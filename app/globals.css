@@ -1,0 +1,608 @@
+:root {
+  --sand: #ead3a9;
+  --sand-deep: #d7b87d;
+  --gold: #a65f00;
+  --ink: #1e1a15;
+  --panel: #fff8ec;
+  --focus: #005fcc;
+  --line: #7d5d2a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  color: var(--ink);
+  background: var(--sand);
+  font-family: Arial, Helvetica, sans-serif;
+  line-height: 1.5;
+}
+
+a {
+  color: inherit;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline: 4px solid var(--focus);
+  outline-offset: 4px;
+}
+
+.skip-link {
+  position: fixed;
+  left: 1rem;
+  top: 1rem;
+  z-index: 30;
+  transform: translateY(-160%);
+  border: 2px solid var(--ink);
+  background: #ffffff;
+  color: var(--ink);
+  padding: 0.65rem 0.9rem;
+  font-weight: 700;
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.site-header {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 20;
+}
+
+.site-nav {
+  position: relative;
+  display: grid;
+  grid-template-columns: 7rem minmax(0, 1fr) 7rem;
+  align-items: center;
+  gap: 1rem;
+  min-height: 5.5rem;
+  padding: 1.1rem 3rem;
+}
+
+.site-wordmark {
+  min-width: 0;
+  margin: 0;
+  color: var(--gold);
+  font-family: "CAE Champagne", Georgia, "Times New Roman", serif;
+  font-size: 4.4rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border: 2px solid var(--line);
+  border-radius: 0;
+  background: rgba(255, 248, 236, 0.82);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.icon-button:hover {
+  background: #ffffff;
+}
+
+.icon-button svg {
+  width: 1.45rem;
+  height: 1.45rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.hamburger-button {
+  gap: 0.28rem;
+}
+
+.hamburger-button span {
+  display: block;
+  width: 1.45rem;
+  height: 0.16rem;
+  background: currentColor;
+}
+
+.site-actions {
+  display: flex;
+  gap: 0.65rem;
+  justify-content: end;
+}
+
+.menu-container {
+  position: relative;
+}
+
+.dropdown-menu {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 0.75rem);
+  z-index: 25;
+  width: min(20rem, calc(100vw - 2rem));
+  margin: 0;
+  padding: 0.55rem;
+  border: 2px solid var(--line);
+  background: #fffaf0;
+  box-shadow: 0 1rem 2.5rem rgba(30, 26, 21, 0.18);
+  list-style: none;
+}
+
+.dropdown-menu a {
+  display: block;
+  padding: 0.8rem 0.9rem;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.dropdown-menu a:hover {
+  background: #f4e3bf;
+  text-decoration: underline;
+}
+
+.hero {
+  min-height: 100vh;
+  background: var(--sand);
+  padding: 7rem 1rem 3rem;
+}
+
+.hero__content {
+  display: grid;
+  place-items: center;
+  min-height: calc(100vh - 10rem);
+}
+
+.hero__artwork {
+  width: 30vw;
+  min-width: 16rem;
+  max-width: 32rem;
+  height: 65vh;
+  min-height: 26rem;
+  object-fit: cover;
+  border: 2px solid var(--line);
+  box-shadow: 0 1.4rem 3rem rgba(82, 48, 12, 0.28);
+}
+
+.originals {
+  min-height: 100vh;
+  background: #fff8ec;
+}
+
+.originals__sticky-bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  min-height: 20vh;
+  padding: 1rem;
+  border-bottom: 2px solid var(--line);
+  background: var(--sand);
+}
+
+.originals__body {
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 5rem 1.25rem;
+}
+
+.originals__body h2 {
+  margin: 0 0 1rem;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 3.5rem;
+  letter-spacing: 0;
+}
+
+.originals__body p {
+  max-width: 42rem;
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.site-footer {
+  background: var(--ink);
+  color: #fff8ec;
+  padding: 1.25rem;
+  text-align: center;
+}
+
+.site-footer p {
+  margin: 0;
+}
+
+.page-main {
+  min-height: 100vh;
+  padding: 8.5rem clamp(1rem, 4vw, 3rem) 4rem;
+  background: var(--sand);
+}
+
+.page-title {
+  max-width: 72rem;
+  margin: 0 auto 2.5rem;
+  text-align: center;
+}
+
+.page-title h1,
+.artist-profile h1 {
+  margin: 0;
+  color: var(--gold);
+  font-family: "CAE Champagne", Georgia, "Times New Roman", serif;
+  font-size: 4.4rem;
+  line-height: 1.05;
+  letter-spacing: 0;
+}
+
+.centered-copy {
+  display: grid;
+  place-items: center;
+  min-height: 38vh;
+}
+
+.centered-copy p {
+  max-width: 46rem;
+  margin: 0;
+  text-align: center;
+  font-size: 1.25rem;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.25rem;
+  max-width: 78rem;
+  margin: 0 auto;
+}
+
+.artist-card,
+.artwork-card,
+.news-card,
+.contact-card,
+.gallery-card {
+  border: 2px solid var(--line);
+  background: var(--panel);
+  box-shadow: 0 0.85rem 1.8rem rgba(82, 48, 12, 0.14);
+}
+
+.artist-card a {
+  display: block;
+  height: 100%;
+  text-decoration: none;
+}
+
+.artist-card a:hover h2,
+.news-card a:hover {
+  text-decoration: underline;
+}
+
+.artist-card__image,
+.artwork-card__image {
+  width: 100%;
+  height: 19rem;
+  object-fit: cover;
+  border-bottom: 2px solid var(--line);
+}
+
+.artist-card__body,
+.artwork-card__body,
+.news-card__body {
+  padding: 1rem;
+}
+
+.artist-card h2,
+.artwork-card h2,
+.news-card h2,
+.gallery-card h3 {
+  margin: 0 0 0.55rem;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.45rem;
+  line-height: 1.2;
+}
+
+.artist-card p,
+.artwork-card p,
+.news-card p,
+.gallery-card p {
+  margin: 0.35rem 0;
+}
+
+.detail-label,
+.price {
+  font-weight: 700;
+}
+
+.button-link,
+.news-card a,
+.gallery-card a,
+.contact-card a,
+.modal-artwork a {
+  display: inline-block;
+  margin-top: 0.85rem;
+  border: 2px solid var(--line);
+  background: var(--ink);
+  color: #fff8ec;
+  padding: 0.65rem 0.9rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.button-link:hover,
+.gallery-card a:hover,
+.contact-card a:hover,
+.modal-artwork a:hover {
+  background: #3a3026;
+  text-decoration: underline;
+}
+
+.artist-profile {
+  display: grid;
+  grid-template-columns: minmax(18rem, 0.85fr) minmax(18rem, 1fr);
+  gap: clamp(1.5rem, 4vw, 4rem);
+  align-items: center;
+  max-width: 76rem;
+  margin: 0 auto 4rem;
+}
+
+.artist-profile__image {
+  width: 100%;
+  max-height: 38rem;
+  object-fit: cover;
+  border: 2px solid var(--line);
+  background: var(--panel);
+}
+
+.artist-profile__content {
+  max-width: 36rem;
+}
+
+.artist-profile__content p {
+  margin: 0.7rem 0;
+  font-size: 1.1rem;
+}
+
+.artist-gallery-section {
+  max-width: 76rem;
+  margin: 0 auto;
+}
+
+.artist-gallery-section h2 {
+  margin: 0 0 1rem;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 2.2rem;
+}
+
+.gallery-scroll {
+  display: grid;
+  grid-auto-columns: calc((100% - 2rem) / 3);
+  grid-auto-flow: column;
+  gap: 1rem;
+  overflow-x: auto;
+  padding: 0 0 1rem;
+  scroll-snap-type: x mandatory;
+}
+
+.gallery-card {
+  min-width: 0;
+  padding: 1rem;
+  scroll-snap-align: start;
+}
+
+.gallery-card__image-button {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: inherit;
+  cursor: pointer;
+}
+
+.gallery-card__image-button img {
+  width: 100%;
+  height: 20rem;
+  object-fit: cover;
+  border: 2px solid var(--line);
+}
+
+.gallery-card h3 {
+  margin-top: 0.85rem;
+}
+
+.news-list {
+  display: grid;
+  gap: 1.25rem;
+  max-width: 74rem;
+  margin: 0 auto;
+}
+
+.news-card {
+  display: grid;
+  grid-template-columns: 18rem minmax(0, 1fr);
+  align-items: stretch;
+}
+
+.news-card__image {
+  width: 100%;
+  height: 100%;
+  min-height: 14rem;
+  object-fit: cover;
+  border-right: 2px solid var(--line);
+}
+
+.contact-card {
+  max-width: 34rem;
+  margin: 0 auto;
+  padding: 2rem;
+  font-style: normal;
+  text-align: center;
+}
+
+.contact-card p {
+  margin: 0.8rem 0;
+  font-size: 1.2rem;
+}
+
+.modal-open {
+  overflow: hidden;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(30, 26, 21, 0.72);
+}
+
+.modal-panel {
+  width: min(56rem, 100%);
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+  border: 3px solid var(--line);
+  background: var(--panel);
+  padding: 1rem;
+}
+
+.modal-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.modal-panel__header h2 {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.8rem;
+}
+
+.modal-artwork img {
+  width: 100%;
+  max-height: 68vh;
+  object-fit: contain;
+  border: 2px solid var(--line);
+  background: var(--sand);
+}
+
+@media (max-width: 720px) {
+  .site-nav {
+    grid-template-columns: 3rem minmax(0, 1fr) 6rem;
+    gap: 0.6rem;
+    min-height: 5rem;
+    padding: 0.9rem 1rem;
+  }
+
+  .site-wordmark {
+    font-size: 1.9rem;
+  }
+
+  .site-actions {
+    gap: 0.4rem;
+  }
+
+  .icon-button {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+
+  .hero__artwork {
+    width: min(72vw, 22rem);
+    height: 65vh;
+  }
+
+  .dropdown-menu {
+    left: 0;
+  }
+
+  .page-main {
+    padding-top: 7rem;
+  }
+
+  .page-title h1,
+  .artist-profile h1 {
+    font-size: 2.8rem;
+  }
+
+  .card-grid,
+  .artist-profile,
+  .news-card {
+    grid-template-columns: 1fr;
+  }
+
+  .news-card__image {
+    border-right: 0;
+    border-bottom: 2px solid var(--line);
+  }
+
+  .gallery-scroll {
+    grid-auto-columns: minmax(16rem, 82%);
+  }
+}
+
+@media (min-width: 721px) and (max-width: 1100px) {
+  .site-nav {
+    padding-inline: 2rem;
+  }
+
+  .site-wordmark {
+    font-size: 3.7rem;
+  }
+
+  .dropdown-menu {
+    left: 0;
+  }
+
+  .card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 420px) {
+  .site-wordmark {
+    font-size: 1.55rem;
+  }
+
+  .icon-button {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  .site-nav {
+    grid-template-columns: 2.5rem minmax(0, 1fr) 5.4rem;
+  }
+}
