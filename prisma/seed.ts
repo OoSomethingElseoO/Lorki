@@ -1,10 +1,29 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { hashPassword } from "@/lib/password";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
+  const adminEmail = process.env.ADMIN_EMAIL;
+  const adminPassword = process.env.ADMIN_PASSWORD;
+
+  if (adminEmail && adminPassword) {
+    await prisma.adminUser.upsert({
+      where: { email: adminEmail.toLowerCase().trim() },
+      update: {},
+      create: {
+        email: adminEmail.toLowerCase().trim(),
+        name: "Admin",
+        passwordHash: await hashPassword(adminPassword),
+      },
+    });
+    console.log(`Seeded admin user: ${adminEmail} (only if it didn't already exist)`);
+  } else {
+    console.log("Skipped admin user seed — set ADMIN_EMAIL and ADMIN_PASSWORD in .env to bootstrap the first login.");
+  }
+
   const conservancy = await prisma.conservancy.upsert({
     where: { id: "seed-mara-lion-project" },
     update: {},

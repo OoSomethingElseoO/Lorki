@@ -126,6 +126,8 @@ model Order {
   id                    String      @id @default(cuid())
   artwork               Artwork     @relation(fields: [artworkId], references: [id])
   artworkId             String
+  customer              Customer?   @relation(fields: [customerId], references: [id])
+  customerId            String?
   buyerEmail            String
   shippingName          String
   shippingAddressLine1  String
@@ -239,4 +241,37 @@ model NewsArticle {
 enum NewsStatus {
   DRAFT
   LIVE
+}
+
+// A person who can sign into /admin. Replaces the old single shared
+// ADMIN_PASSWORD — every admin now has their own login.
+model AdminUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime @default(now())
+}
+
+// A buyer account. Optional — checkout still works as a guest (see
+// Order.customerId being nullable). Logging in just links future orders to
+// this record and unlocks /account order history.
+model Customer {
+  id                   String                @id @default(cuid())
+  email                String                @unique
+  passwordHash         String
+  name                 String?
+  orders               Order[]
+  passwordResetTokens  PasswordResetToken[]
+  createdAt            DateTime              @default(now())
+}
+
+model PasswordResetToken {
+  id         String    @id @default(cuid())
+  customer   Customer  @relation(fields: [customerId], references: [id])
+  customerId String
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  usedAt     DateTime?
+  createdAt  DateTime  @default(now())
 }
