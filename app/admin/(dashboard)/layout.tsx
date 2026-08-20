@@ -10,6 +10,7 @@ const navLinks = [
   { label: "Campaigns", href: "/admin/campaigns" },
   { label: "News", href: "/admin/news" },
   { label: "Orders", href: "/admin/orders" },
+  { label: "Users", href: "/admin/users" },
   { label: "Settings", href: "/admin/settings" },
 ];
 
