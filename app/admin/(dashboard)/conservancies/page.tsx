@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { ConservancyForm } from "@/components/admin/conservancy-form";
 import { DeleteButton } from "@/components/admin/delete-button";
@@ -32,6 +33,9 @@ export default async function AdminConservanciesPage() {
                 </a>
               </td>
               <td>
+                <Link href={`/admin/conservancies/${conservancy.id}/edit`} className="admin-table__link">
+                  Edit
+                </Link>{" "}
                 <DeleteButton endpoint={`/api/admin/conservancies/${conservancy.id}`} confirmLabel={conservancy.name} />
               </td>
             </tr>
