@@ -2,13 +2,25 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getStripe } from "@/lib/stripe";
 import { releaseExpiredReservations } from "@/lib/reservations";
+import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
 
 type CheckoutBody = {
   artworkId: string;
   buyerEmail: string;
 };
 
+// Caps how often one IP can start a checkout, full stop — this is what stops
+// someone from repeatedly RESERVEing (and thus hiding) a one-of-one original
+// without ever paying, since each reservation locks it for 30 minutes.
+const CHECKOUT_RATE_LIMIT = 5;
+const CHECKOUT_RATE_WINDOW_MS = 5 * 60 * 1000;
+
 export async function POST(request: Request) {
+  const ip = getRequestIp(request);
+  if (isRateLimited(`checkout:${ip}`, CHECKOUT_RATE_LIMIT, CHECKOUT_RATE_WINDOW_MS)) {
+    return NextResponse.json({ error: "Too many checkout attempts. Please try again in a few minutes." }, { status: 429 });
+  }
+
   const body = (await request.json()) as Partial<CheckoutBody>;
 
   if (!body.artworkId || !body.buyerEmail) {

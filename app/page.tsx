@@ -3,7 +3,7 @@ import { SiteHeader } from "@/components/site-header";
 import { getLiveArtworksByKind } from "@/lib/storefront";
 
 export default async function Home() {
-  const originals = await getLiveArtworksByKind("ORIGINAL");
+  const { items: originals, totalCount } = await getLiveArtworksByKind("ORIGINAL");
   const featured = originals[0];
 
   return (
@@ -34,7 +34,7 @@ export default async function Home() {
             {featured ? (
               <p>
                 <strong>{featured.title}</strong> by {featured.artistName} — ${(featured.priceCents / 100).toFixed(2)}.{" "}
-                {originals.length > 1 ? `${originals.length} originals available now.` : null}
+                {totalCount > 1 ? `${totalCount} originals available now.` : null}
               </p>
             ) : (
               <p>New originals are on the way — check back soon.</p>

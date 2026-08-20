@@ -284,7 +284,39 @@ a:focus-visible {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1.25rem;
   max-width: 78rem;
-  margin: 0 auto;
+  margin: 0 auto 3rem;
+}
+
+.search-form {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: center;
+  max-width: 34rem;
+  margin: 0 auto 2.5rem;
+}
+
+.search-form input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 2px solid var(--line);
+  background: #fff;
+  padding: 0.65rem 0.9rem;
+  font: inherit;
+  color: var(--ink);
+}
+
+.search-form .button-link {
+  margin-top: 0;
+  border: 2px solid var(--line);
+  cursor: pointer;
+  font: inherit;
+}
+
+.page-main > section h2 {
+  max-width: 78rem;
+  margin: 0 auto 1rem;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.6rem;
 }
 
 .artist-card,
@@ -357,6 +389,24 @@ a:focus-visible {
   padding: 0.65rem 0.9rem;
   font-weight: 700;
   text-decoration: none;
+}
+
+.button-link--disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  max-width: 78rem;
+  margin: 0 auto 3rem;
+}
+
+.pagination__status {
+  font-weight: 700;
 }
 
 .button-link:hover,

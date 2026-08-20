@@ -1,0 +1,9 @@
+node_modules
+.next
+out
+.env
+.env.local
+.git
+.claude
+public/uploads/*
+!public/uploads/.gitkeep
