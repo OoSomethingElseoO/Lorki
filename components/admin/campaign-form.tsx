@@ -6,15 +6,24 @@ import { useState, type FormEvent } from "react";
 type CampaignFormProps = {
   animals: { id: string; name: string }[];
   artists: { id: string; name: string }[];
+  id?: string;
+  initial?: {
+    animalId: string;
+    artistId: string;
+    artistPercent: number;
+    conservancyPercent: number;
+    operationsPercent: number;
+  };
 };
 
-export function CampaignForm({ animals, artists }: CampaignFormProps) {
+export function CampaignForm({ animals, artists, id, initial }: CampaignFormProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [artistPercent, setArtistPercent] = useState(50);
-  const [conservancyPercent, setConservancyPercent] = useState(25);
-  const [operationsPercent, setOperationsPercent] = useState(25);
+  const [artistPercent, setArtistPercent] = useState(initial?.artistPercent ?? 50);
+  const [conservancyPercent, setConservancyPercent] = useState(initial?.conservancyPercent ?? 25);
+  const [operationsPercent, setOperationsPercent] = useState(initial?.operationsPercent ?? 25);
+  const isEditing = Boolean(id);
 
   const total = artistPercent + conservancyPercent + operationsPercent;
 
@@ -24,8 +33,8 @@ export function CampaignForm({ animals, artists }: CampaignFormProps) {
     setError(null);
 
     const form = new FormData(event.currentTarget);
-    const response = await fetch("/api/admin/campaigns", {
-      method: "POST",
+    const response = await fetch(isEditing ? `/api/admin/campaigns/${id}` : "/api/admin/campaigns", {
+      method: isEditing ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         animalId: form.get("animalId"),
@@ -40,7 +49,12 @@ export function CampaignForm({ animals, artists }: CampaignFormProps) {
 
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));
-      setError(data.error ?? "Failed to create campaign");
+      setError(data.error ?? `Failed to ${isEditing ? "save" : "create"} campaign`);
+      return;
+    }
+
+    if (isEditing) {
+      router.push("/admin/campaigns");
       return;
     }
 
@@ -58,7 +72,7 @@ export function CampaignForm({ animals, artists }: CampaignFormProps) {
   return (
     <form className="admin-form" onSubmit={handleSubmit}>
       <label htmlFor="animalId">Animal</label>
-      <select id="animalId" name="animalId" required defaultValue="">
+      <select id="animalId" name="animalId" required defaultValue={initial?.animalId ?? ""}>
         <option value="" disabled>
           Select an animal
         </option>
@@ -70,7 +84,7 @@ export function CampaignForm({ animals, artists }: CampaignFormProps) {
       </select>
 
       <label htmlFor="artistId">Artist</label>
-      <select id="artistId" name="artistId" required defaultValue="">
+      <select id="artistId" name="artistId" required defaultValue={initial?.artistId ?? ""}>
         <option value="" disabled>
           Select an artist
         </option>
@@ -120,7 +134,7 @@ export function CampaignForm({ animals, artists }: CampaignFormProps) {
 
       {error ? <p className="admin-form__error">{error}</p> : null}
       <button type="submit" disabled={submitting || total !== 100}>
-        {submitting ? "Saving…" : "Create campaign"}
+        {submitting ? "Saving…" : isEditing ? "Save changes" : "Create campaign"}
       </button>
     </form>
   );

@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { CampaignForm } from "@/components/admin/campaign-form";
 import { CampaignStatusControl } from "@/components/admin/campaign-status-control";
 import { ArtworkForm } from "@/components/admin/artwork-form";
+import { ArtworkRow } from "@/components/admin/artwork-row";
 import { DeleteButton } from "@/components/admin/delete-button";
 
 export default async function AdminCampaignsPage() {
@@ -26,6 +28,9 @@ export default async function AdminCampaignsPage() {
               {campaign.animal.name} &times; {campaign.artist.name}
             </h2>
             <div className="admin-campaign-card__controls">
+              <Link href={`/admin/campaigns/${campaign.id}/edit`} className="admin-table__link-button">
+                Edit
+              </Link>
               <CampaignStatusControl campaignId={campaign.id} status={campaign.status} />
               <DeleteButton
                 endpoint={`/api/admin/campaigns/${campaign.id}`}
@@ -50,18 +55,7 @@ export default async function AdminCampaignsPage() {
             </thead>
             <tbody>
               {campaign.artworks.map((artwork) => (
-                <tr key={artwork.id}>
-                  <td>{artwork.title}</td>
-                  <td>{artwork.kind}</td>
-                  <td>${(artwork.priceCents / 100).toFixed(2)}</td>
-                  <td>{artwork.inventoryState}</td>
-                  <td>
-                    <DeleteButton
-                      endpoint={`/api/admin/campaigns/${campaign.id}/artworks/${artwork.id}`}
-                      confirmLabel={artwork.title}
-                    />
-                  </td>
-                </tr>
+                <ArtworkRow campaignId={campaign.id} artwork={artwork} key={artwork.id} />
               ))}
               {campaign.artworks.length === 0 ? (
                 <tr>
