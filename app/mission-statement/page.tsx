@@ -1,18 +1,19 @@
 import { PageTitle } from "@/components/page-title";
 import { SiteHeader } from "@/components/site-header";
+import { getBranding } from "@/lib/settings";
 
-export default function MissionStatementPage() {
+export const dynamic = "force-dynamic";
+
+export default async function MissionStatementPage() {
+  const { missionStatement } = await getBranding();
+
   return (
     <>
       <SiteHeader />
       <main className="page-main" id="main-content">
         <PageTitle>Mission Statement</PageTitle>
         <section className="centered-copy" aria-label="Mission statement">
-          <p>
-            We believe original artwork should feel personal, considered, and accessible. This space is
-            designed to connect collectors with artists through clear information, thoughtful presentation,
-            and a calm browsing experience that respects every visitor.
-          </p>
+          <p>{missionStatement}</p>
         </section>
       </main>
     </>

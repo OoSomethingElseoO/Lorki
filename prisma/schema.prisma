@@ -210,7 +210,19 @@ model Settings {
   resendApiKey        String?
   emailFrom           String?
   operationsEmail     String?
-  updatedAt           DateTime @updatedAt
+
+  // Branding — controlled entirely from /admin/settings so the site's name,
+  // hero image, mission copy, and contact details never require a code
+  // change. Null means "use the built-in fallback" (see lib/settings.ts).
+  siteName         String?
+  heroImageUrl     String?
+  heroAlt          String?
+  missionStatement String?
+  contactName      String?
+  contactEmail     String?
+  contactPhone     String?
+
+  updatedAt DateTime @updatedAt
 }
 
 model NewsArticle {

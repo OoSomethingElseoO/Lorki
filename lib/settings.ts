@@ -41,3 +41,31 @@ export async function getOperationsEmail(): Promise<string | undefined> {
   const settings = await getSettings();
   return resolve(settings.operationsEmail, process.env.OPERATIONS_EMAIL);
 }
+
+// Built-in fallbacks so the site still renders sensibly before an admin has
+// ever visited /admin/settings — not meant to be the permanent brand.
+const DEFAULT_BRANDING = {
+  siteName: "Aurelia Originals",
+  heroImageUrl: "/artwork/featured-original.png",
+  heroAlt: "Original artwork.",
+  missionStatement:
+    "We believe original artwork should feel personal, considered, and accessible. This space is designed to connect collectors with artists through clear information, thoughtful presentation, and a calm browsing experience that respects every visitor.",
+  contactName: "Kat Morgan",
+  contactEmail: "kat@example.com",
+  contactPhone: "(555) 019-2026",
+};
+
+export type Branding = typeof DEFAULT_BRANDING;
+
+export async function getBranding(): Promise<Branding> {
+  const settings = await getSettings();
+  return {
+    siteName: settings.siteName?.trim() || DEFAULT_BRANDING.siteName,
+    heroImageUrl: settings.heroImageUrl?.trim() || DEFAULT_BRANDING.heroImageUrl,
+    heroAlt: settings.heroAlt?.trim() || DEFAULT_BRANDING.heroAlt,
+    missionStatement: settings.missionStatement?.trim() || DEFAULT_BRANDING.missionStatement,
+    contactName: settings.contactName?.trim() || DEFAULT_BRANDING.contactName,
+    contactEmail: settings.contactEmail?.trim() || DEFAULT_BRANDING.contactEmail,
+    contactPhone: settings.contactPhone?.trim() || DEFAULT_BRANDING.contactPhone,
+  };
+}

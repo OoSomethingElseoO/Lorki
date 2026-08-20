@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { getBranding } from "@/lib/settings";
 
-export const metadata: Metadata = {
-  title: "Aurelia Originals",
-  description: "An accessibility-first homepage for an original artwork website.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { siteName } = await getBranding();
+  return {
+    title: siteName,
+    description: "An accessibility-first homepage for an original artwork website.",
+  };
+}
 
 export default function RootLayout({
   children,

@@ -1,9 +1,10 @@
-"use client";
-
 import Link from "next/link";
 import { HamburgerMenu } from "@/components/hamburger-menu";
+import { getBranding } from "@/lib/settings";
 
-export function SiteHeader() {
+export async function SiteHeader() {
+  const { siteName } = await getBranding();
+
   return (
     <header className="site-header">
       <a className="skip-link" href="#main-content">
@@ -13,8 +14,8 @@ export function SiteHeader() {
       <nav className="site-nav" aria-label="Primary navigation">
         <HamburgerMenu />
 
-        <Link className="site-wordmark" href="/" aria-label="Aurelia Originals home">
-          Aurelia Originals
+        <Link className="site-wordmark" href="/" aria-label={`${siteName} home`}>
+          {siteName}
         </Link>
 
         <div className="site-actions" aria-label="Site tools">

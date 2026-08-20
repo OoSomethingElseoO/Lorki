@@ -8,7 +8,8 @@ export default async function AdminSettingsPage() {
     <>
       <h1>Settings</h1>
       <p className="admin-form__hint">
-        Keys entered here override the .env file. Leave a field blank to keep its current value.
+        Branding fields blank out to sensible defaults. Stripe/email keys entered here override the .env
+        file — leave those blank to keep the current value.
       </p>
       <SettingsForm
         initial={{
@@ -17,6 +18,13 @@ export default async function AdminSettingsPage() {
           resendApiKeySet: Boolean(settings.resendApiKey),
           emailFrom: settings.emailFrom ?? "",
           operationsEmail: settings.operationsEmail ?? "",
+          siteName: settings.siteName ?? "",
+          heroImageUrl: settings.heroImageUrl ?? "",
+          heroAlt: settings.heroAlt ?? "",
+          missionStatement: settings.missionStatement ?? "",
+          contactName: settings.contactName ?? "",
+          contactEmail: settings.contactEmail ?? "",
+          contactPhone: settings.contactPhone ?? "",
         }}
       />
     </>

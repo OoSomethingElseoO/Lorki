@@ -3,6 +3,8 @@ import { PageTitle } from "@/components/page-title";
 import { SiteHeader } from "@/components/site-header";
 import { getLiveNewsArticles } from "@/lib/storefront";
 
+export const dynamic = "force-dynamic";
+
 export default async function NewsPage() {
   const articles = await getLiveNewsArticles();
 

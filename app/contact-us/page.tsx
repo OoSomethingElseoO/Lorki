@@ -1,20 +1,24 @@
 import { PageTitle } from "@/components/page-title";
 import { SiteHeader } from "@/components/site-header";
-import { ownerContact } from "@/data/site-data";
+import { getBranding } from "@/lib/settings";
 
-export default function ContactUsPage() {
+export const dynamic = "force-dynamic";
+
+export default async function ContactUsPage() {
+  const { contactName, contactEmail, contactPhone } = await getBranding();
+
   return (
     <>
       <SiteHeader />
       <main className="page-main" id="main-content">
         <PageTitle>Contact Us</PageTitle>
         <address className="contact-card" aria-label="Contact information">
-          <p>{ownerContact.name}</p>
+          <p>{contactName}</p>
           <p>
-            <a href={`mailto:${ownerContact.email}`}>{ownerContact.email}</a>
+            <a href={`mailto:${contactEmail}`}>{contactEmail}</a>
           </p>
           <p>
-            <a href={`tel:${ownerContact.phone.replace(/[^0-9]/g, "")}`}>{ownerContact.phone}</a>
+            <a href={`tel:${contactPhone.replace(/[^0-9]/g, "")}`}>{contactPhone}</a>
           </p>
         </address>
       </main>

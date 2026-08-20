@@ -2,6 +2,18 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { ImageUploadField } from "@/components/admin/image-upload-field";
+
+const SECRET_FIELDS = ["stripeSecretKey", "stripeWebhookSecret", "resendApiKey", "emailFrom", "operationsEmail"];
+const BRANDING_FIELDS = [
+  "siteName",
+  "heroImageUrl",
+  "heroAlt",
+  "missionStatement",
+  "contactName",
+  "contactEmail",
+  "contactPhone",
+];
 
 type SettingsFormProps = {
   initial: {
@@ -10,6 +22,13 @@ type SettingsFormProps = {
     resendApiKeySet: boolean;
     emailFrom: string;
     operationsEmail: string;
+    siteName: string;
+    heroImageUrl: string;
+    heroAlt: string;
+    missionStatement: string;
+    contactName: string;
+    contactEmail: string;
+    contactPhone: string;
   };
 };
 
@@ -28,11 +47,20 @@ export function SettingsForm({ initial }: SettingsFormProps) {
     const form = new FormData(event.currentTarget);
     const body: Record<string, string> = {};
 
-    for (const key of ["stripeSecretKey", "stripeWebhookSecret", "resendApiKey", "emailFrom", "operationsEmail"]) {
+    // Secrets: only send if the admin actually typed something new — a
+    // blank field means "leave the stored value alone."
+    for (const key of SECRET_FIELDS) {
       const value = form.get(key);
       if (typeof value === "string" && value.trim().length > 0) {
         body[key] = value.trim();
       }
+    }
+
+    // Branding: always send, even blank — the admin can deliberately clear
+    // a field to fall back to the built-in default.
+    for (const key of BRANDING_FIELDS) {
+      const value = form.get(key);
+      body[key] = typeof value === "string" ? value : "";
     }
 
     const response = await fetch("/api/admin/settings", {
@@ -50,13 +78,36 @@ export function SettingsForm({ initial }: SettingsFormProps) {
     }
 
     setSuccess(true);
-    event.currentTarget.reset();
     router.refresh();
   }
 
   return (
     <form className="admin-form" onSubmit={handleSubmit} style={{ maxWidth: "36rem" }}>
-      <h2 style={{ marginTop: 0 }}>Stripe</h2>
+      <h2 style={{ marginTop: 0 }}>Branding</h2>
+      <label htmlFor="siteName">Site name</label>
+      <input id="siteName" name="siteName" defaultValue={initial.siteName} placeholder="Aurelia Originals" />
+
+      <ImageUploadField name="heroImageUrl" label="Hero image" defaultValue={initial.heroImageUrl} />
+      <p className="admin-form__hint">
+        Shown on the homepage. Leave blank to automatically show whatever original is currently for sale.
+      </p>
+
+      <label htmlFor="heroAlt">Hero image alt text</label>
+      <input id="heroAlt" name="heroAlt" defaultValue={initial.heroAlt} placeholder="Original artwork." />
+
+      <label htmlFor="missionStatement">Mission statement</label>
+      <textarea id="missionStatement" name="missionStatement" rows={4} defaultValue={initial.missionStatement} />
+
+      <label htmlFor="contactName">Contact name</label>
+      <input id="contactName" name="contactName" defaultValue={initial.contactName} />
+
+      <label htmlFor="contactEmail">Contact email</label>
+      <input id="contactEmail" name="contactEmail" type="email" defaultValue={initial.contactEmail} />
+
+      <label htmlFor="contactPhone">Contact phone</label>
+      <input id="contactPhone" name="contactPhone" defaultValue={initial.contactPhone} />
+
+      <h2>Stripe</h2>
       <label htmlFor="stripeSecretKey">Secret key</label>
       <input
         id="stripeSecretKey"
