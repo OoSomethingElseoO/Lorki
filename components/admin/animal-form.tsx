@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { ImageUploadField } from "@/components/admin/image-upload-field";
 
 type AnimalFormProps = {
   conservancies: { id: string; name: string }[];
@@ -82,14 +83,7 @@ export function AnimalForm({ conservancies, id, initial }: AnimalFormProps) {
       <label htmlFor="story">Story</label>
       <textarea id="story" name="story" required rows={4} defaultValue={initial?.story} />
 
-      <label htmlFor="imageUrl">Image URL</label>
-      <input
-        id="imageUrl"
-        name="imageUrl"
-        required
-        placeholder="/artwork/lorkulup.png"
-        defaultValue={initial?.imageUrl}
-      />
+      <ImageUploadField name="imageUrl" label="Image" defaultValue={initial?.imageUrl} />
 
       <label htmlFor="conservancyId">Conservancy</label>
       <select id="conservancyId" name="conservancyId" required defaultValue={initial?.conservancyId ?? ""}>

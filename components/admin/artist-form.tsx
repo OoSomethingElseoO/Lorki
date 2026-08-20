@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { ImageUploadField } from "@/components/admin/image-upload-field";
 
 type SocialLinkInput = { platform: string; url: string };
 
@@ -91,14 +92,7 @@ export function ArtistForm({ coOps, id, initial }: ArtistFormProps) {
       <label htmlFor="bio">Bio</label>
       <textarea id="bio" name="bio" required rows={4} defaultValue={initial?.bio} />
 
-      <label htmlFor="imageUrl">Image URL</label>
-      <input
-        id="imageUrl"
-        name="imageUrl"
-        required
-        placeholder="/artists/name.jpg"
-        defaultValue={initial?.imageUrl}
-      />
+      <ImageUploadField name="imageUrl" label="Image" defaultValue={initial?.imageUrl} />
 
       <label htmlFor="coOpId">Co-op (optional)</label>
       <select id="coOpId" name="coOpId" defaultValue={initial?.coOpId ?? ""}>
