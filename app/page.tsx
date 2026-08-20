@@ -1,6 +1,11 @@
+import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
+import { getLiveArtworksByKind } from "@/lib/storefront";
 
-export default function Home() {
+export default async function Home() {
+  const originals = await getLiveArtworksByKind("ORIGINAL");
+  const featured = originals[0];
+
   return (
     <>
       <SiteHeader />
@@ -12,8 +17,8 @@ export default function Home() {
           <div className="hero__content">
             <img
               className="hero__artwork"
-              src="/artwork/featured-original.png"
-              alt="Abstract mixed-media artwork with terracotta, ochre, black, off-white, and teal layered forms."
+              src={featured?.imageUrl ?? "/artwork/featured-original.png"}
+              alt={featured?.altText ?? "Original artwork, part of the Aurelia Originals collection."}
             />
           </div>
         </section>
@@ -26,10 +31,17 @@ export default function Home() {
           </div>
           <div className="originals__body">
             <h2>Originals</h2>
-            <p>
-              A quiet first look at the originals collection. More artwork,
-              filtering, and purchase details can be added here next.
-            </p>
+            {featured ? (
+              <p>
+                <strong>{featured.title}</strong> by {featured.artistName} — ${(featured.priceCents / 100).toFixed(2)}.{" "}
+                {originals.length > 1 ? `${originals.length} originals available now.` : null}
+              </p>
+            ) : (
+              <p>New originals are on the way — check back soon.</p>
+            )}
+            <Link href="/originals" className="button-link">
+              Browse originals
+            </Link>
           </div>
         </section>
       </main>

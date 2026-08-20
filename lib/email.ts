@@ -1,13 +1,15 @@
+import { getEmailFrom, getOperationsEmail, getResendApiKey } from "@/lib/settings";
+
 // Best-effort transactional email via Resend's REST API. Deliberately never
-// throws: a missing RESEND_API_KEY or a failed send must not break checkout,
-// the Stripe webhook, or order fulfillment — those are the flows that move
-// money and inventory, and are far more important than a notification.
+// throws: a missing key or a failed send must not break checkout, the Stripe
+// webhook, or order fulfillment — those are the flows that move money and
+// inventory, and are far more important than a notification.
 async function sendEmail(to: string, subject: string, html: string): Promise<void> {
-  const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.EMAIL_FROM ?? "Lorkulup <onboarding@resend.dev>";
+  const apiKey = await getResendApiKey();
+  const from = await getEmailFrom();
 
   if (!apiKey) {
-    console.log(`[email:skipped, no RESEND_API_KEY] to=${to} subject="${subject}"`);
+    console.log(`[email:skipped, no Resend key configured] to=${to} subject="${subject}"`);
     return;
   }
 
@@ -60,9 +62,9 @@ export async function sendShippingNotificationEmail(params: {
 }
 
 export async function sendOperationsAlert(subject: string, html: string) {
-  const operationsEmail = process.env.OPERATIONS_EMAIL;
+  const operationsEmail = await getOperationsEmail();
   if (!operationsEmail) {
-    console.log(`[email:skipped, no OPERATIONS_EMAIL] subject="${subject}"`);
+    console.log(`[email:skipped, no operations email configured] subject="${subject}"`);
     return;
   }
   await sendEmail(operationsEmail, subject, html);

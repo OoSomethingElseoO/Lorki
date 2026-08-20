@@ -9,6 +9,7 @@ const navLinks = [
   { label: "Artists", href: "/admin/artists" },
   { label: "Campaigns", href: "/admin/campaigns" },
   { label: "Orders", href: "/admin/orders" },
+  { label: "Settings", href: "/admin/settings" },
 ];
 
 export default function AdminDashboardLayout({ children }: { children: ReactNode }) {

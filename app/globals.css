@@ -977,6 +977,26 @@ a:focus-visible {
   cursor: not-allowed;
 }
 
+.admin-image-field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.admin-image-field__upload-label {
+  margin-top: 0.2rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #5c5c56;
+}
+
+.admin-image-field__preview {
+  max-width: 10rem;
+  max-height: 10rem;
+  object-fit: cover;
+  border: 1px solid #c4c4bf;
+  margin-top: 0.3rem;
+}
+
 .admin-campaign-card h2 {
   margin: 0;
   font-size: 1.1rem;

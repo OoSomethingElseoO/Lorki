@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
+import { getStripeWebhookSecret } from "@/lib/settings";
 import { computeSplit } from "@/lib/payouts";
 import { sendOperationsAlert, sendOrderConfirmationEmail } from "@/lib/email";
 
 export async function POST(request: Request) {
   const signature = request.headers.get("stripe-signature");
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  const webhookSecret = await getStripeWebhookSecret();
 
   if (!signature || !webhookSecret) {
     return NextResponse.json({ error: "Missing webhook signature or secret" }, { status: 400 });
@@ -17,6 +18,7 @@ export async function POST(request: Request) {
 
   let event: Stripe.Event;
   try {
+    const stripe = await getStripe();
     event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
   } catch (error) {
     return NextResponse.json({ error: `Invalid signature: ${(error as Error).message}` }, { status: 400 });

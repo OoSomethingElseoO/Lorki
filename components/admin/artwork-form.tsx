@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { ImageUploadField } from "@/components/admin/image-upload-field";
 
 type ArtworkFormProps = {
   campaignId: string;
@@ -52,7 +53,7 @@ export function ArtworkForm({ campaignId }: ArtworkFormProps) {
         <option value="PRINT">Print</option>
       </select>
       <input name="priceDollars" type="number" min={0} step="0.01" placeholder="Price (USD)" required />
-      <input name="imageUrl" placeholder="Image URL" required />
+      <ImageUploadField name="imageUrl" label="Image" />
       <input name="altText" placeholder="Alt text" required />
       <button type="submit" disabled={submitting}>
         {submitting ? "Adding…" : "Add artwork"}

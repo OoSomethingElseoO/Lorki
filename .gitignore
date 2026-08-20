@@ -13,3 +13,8 @@ coverage/
 .env.local
 
 tsconfig.tsbuildinfo
+
+public/uploads/*
+!public/uploads/.gitkeep
+
+.claude/worktrees/

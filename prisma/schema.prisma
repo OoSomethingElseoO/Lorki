@@ -199,3 +199,16 @@ enum ShipmentMethod {
   ORIGINAL_FREIGHT
   PRINT_POD
 }
+
+// Singleton row (id is always "singleton") holding API keys the admin enters
+// through /admin/settings instead of editing .env by hand. Values here take
+// priority over env vars; env vars remain the fallback for first boot.
+model Settings {
+  id                  String   @id @default("singleton")
+  stripeSecretKey     String?
+  stripeWebhookSecret String?
+  resendApiKey        String?
+  emailFrom           String?
+  operationsEmail     String?
+  updatedAt           DateTime @updatedAt
+}
