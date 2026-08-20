@@ -212,3 +212,19 @@ model Settings {
   operationsEmail     String?
   updatedAt           DateTime @updatedAt
 }
+
+model NewsArticle {
+  id        String          @id @default(cuid())
+  slug      String          @unique
+  title     String
+  summary   String
+  body      String
+  imageUrl  String
+  status    NewsStatus      @default(DRAFT)
+  createdAt DateTime        @default(now())
+}
+
+enum NewsStatus {
+  DRAFT
+  LIVE
+}

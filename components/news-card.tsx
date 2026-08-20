@@ -1,19 +1,24 @@
-import type { NewsArticle } from "@/data/site-data";
+import Link from "next/link";
 
 type NewsCardProps = {
-  article: NewsArticle;
+  article: {
+    slug: string;
+    title: string;
+    summary: string;
+    imageUrl: string;
+  };
 };
 
 export function NewsCard({ article }: NewsCardProps) {
   return (
     <article className="news-card">
-      <img src={article.image} alt={article.alt} className="news-card__image" />
+      <img src={article.imageUrl} alt="" className="news-card__image" />
       <div className="news-card__body">
         <h2>{article.title}</h2>
         <p>{article.summary}</p>
-        <a href={`/news#${article.id}`} aria-label={`Read more about ${article.title}`}>
+        <Link href={`/news/${article.slug}`} aria-label={`Read more about ${article.title}`}>
           Read more
-        </a>
+        </Link>
       </div>
     </article>
   );

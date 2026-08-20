@@ -40,6 +40,19 @@ function mapArtwork(artwork: {
   };
 }
 
+export async function getLiveNewsArticles() {
+  return prisma.newsArticle.findMany({
+    where: { status: "LIVE" },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+export async function getLiveNewsArticleBySlug(slug: string) {
+  return prisma.newsArticle.findFirst({
+    where: { slug, status: "LIVE" },
+  });
+}
+
 function normalizePage(page: number | undefined): number {
   return Number.isInteger(page) && (page as number) > 0 ? (page as number) : 1;
 }

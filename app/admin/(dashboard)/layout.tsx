@@ -8,6 +8,7 @@ const navLinks = [
   { label: "Animals", href: "/admin/animals" },
   { label: "Artists", href: "/admin/artists" },
   { label: "Campaigns", href: "/admin/campaigns" },
+  { label: "News", href: "/admin/news" },
   { label: "Orders", href: "/admin/orders" },
   { label: "Settings", href: "/admin/settings" },
 ];

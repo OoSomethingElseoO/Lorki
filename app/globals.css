@@ -628,6 +628,44 @@ a:focus-visible {
   border-right: 2px solid var(--line);
 }
 
+.news-article {
+  display: grid;
+  grid-template-columns: minmax(18rem, 0.85fr) minmax(18rem, 1fr);
+  gap: clamp(1.5rem, 4vw, 4rem);
+  align-items: center;
+  max-width: 76rem;
+  margin: 0 auto 4rem;
+}
+
+.news-article__image {
+  width: 100%;
+  max-height: 38rem;
+  object-fit: cover;
+  border: 2px solid var(--line);
+  background: var(--panel);
+}
+
+.news-article__body {
+  max-width: 36rem;
+}
+
+.news-article__body h1 {
+  margin: 0;
+  color: var(--gold);
+  font-family: "CAE Champagne", Georgia, "Times New Roman", serif;
+  font-size: 3rem;
+  line-height: 1.05;
+}
+
+.news-article__summary {
+  font-weight: 700;
+}
+
+.news-article__body p {
+  margin: 0.7rem 0;
+  font-size: 1.1rem;
+}
+
 .contact-card {
   max-width: 34rem;
   margin: 0 auto;
@@ -728,6 +766,10 @@ a:focus-visible {
   .card-grid,
   .artist-profile,
   .news-card {
+    grid-template-columns: 1fr;
+  }
+
+  .news-article {
     grid-template-columns: 1fr;
   }
 
