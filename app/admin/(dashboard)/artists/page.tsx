@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { ArtistForm } from "@/components/admin/artist-form";
 import { DeleteButton } from "@/components/admin/delete-button";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminArtistsPage() {
   const [artists, coOps] = await Promise.all([
     prisma.artist.findMany({ include: { socialLinks: true, coOp: true }, orderBy: { createdAt: "desc" } }),

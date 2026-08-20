@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { ConservancyForm } from "@/components/admin/conservancy-form";
 import { DeleteButton } from "@/components/admin/delete-button";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminConservanciesPage() {
   const conservancies = await prisma.conservancy.findMany({ orderBy: { createdAt: "desc" } });
 

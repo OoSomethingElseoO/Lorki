@@ -4,6 +4,8 @@ import { NewsArticleForm } from "@/components/admin/news-article-form";
 import { NewsStatusControl } from "@/components/admin/news-status-control";
 import { DeleteButton } from "@/components/admin/delete-button";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminNewsPage() {
   const articles = await prisma.newsArticle.findMany({ orderBy: { createdAt: "desc" } });
 

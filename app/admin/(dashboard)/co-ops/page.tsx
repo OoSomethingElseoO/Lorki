@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { CoOpForm } from "@/components/admin/co-op-form";
 import { DeleteButton } from "@/components/admin/delete-button";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminCoOpsPage() {
   const coOps = await prisma.coOp.findMany({ orderBy: { createdAt: "desc" } });
 

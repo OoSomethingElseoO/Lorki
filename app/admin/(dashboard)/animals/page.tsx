@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { AnimalForm } from "@/components/admin/animal-form";
 import { DeleteButton } from "@/components/admin/delete-button";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminAnimalsPage() {
   const [animals, conservancies] = await Promise.all([
     prisma.animal.findMany({ include: { conservancy: true }, orderBy: { createdAt: "desc" } }),

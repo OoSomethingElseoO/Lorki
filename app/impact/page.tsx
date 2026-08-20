@@ -6,6 +6,10 @@ function formatDollars(cents: number) {
   return `$${(cents / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+// Payout totals change every time an order ships — never freeze this at
+// build time, same reasoning as the branding pages.
+export const dynamic = "force-dynamic";
+
 export default async function ImpactPage() {
   const [released, piecesSold, campaigns] = await Promise.all([
     prisma.payout.groupBy({

@@ -6,6 +6,8 @@ import { ArtworkForm } from "@/components/admin/artwork-form";
 import { ArtworkRow } from "@/components/admin/artwork-row";
 import { DeleteButton } from "@/components/admin/delete-button";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminCampaignsPage() {
   const [campaigns, animals, artists] = await Promise.all([
     prisma.campaign.findMany({
