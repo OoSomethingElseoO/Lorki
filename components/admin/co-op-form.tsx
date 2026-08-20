@@ -3,10 +3,20 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
-export function CoOpForm() {
+type CoOpFormProps = {
+  id?: string;
+  initial?: {
+    name: string;
+    region: string;
+    contactEmail: string;
+  };
+};
+
+export function CoOpForm({ id, initial }: CoOpFormProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const isEditing = Boolean(id);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -14,8 +24,8 @@ export function CoOpForm() {
     setError(null);
 
     const form = new FormData(event.currentTarget);
-    const response = await fetch("/api/admin/co-ops", {
-      method: "POST",
+    const response = await fetch(isEditing ? `/api/admin/co-ops/${id}` : "/api/admin/co-ops", {
+      method: isEditing ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name: form.get("name"),
@@ -28,7 +38,13 @@ export function CoOpForm() {
 
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));
-      setError(data.error ?? "Failed to create co-op");
+      setError(data.error ?? `Failed to ${isEditing ? "update" : "create"} co-op`);
+      return;
+    }
+
+    if (isEditing) {
+      router.push("/admin/co-ops");
+      router.refresh();
       return;
     }
 
@@ -39,17 +55,17 @@ export function CoOpForm() {
   return (
     <form className="admin-form" onSubmit={handleSubmit}>
       <label htmlFor="name">Name</label>
-      <input id="name" name="name" required />
+      <input id="name" name="name" required defaultValue={initial?.name} />
 
       <label htmlFor="region">Region</label>
-      <input id="region" name="region" required />
+      <input id="region" name="region" required defaultValue={initial?.region} />
 
       <label htmlFor="contactEmail">Contact email</label>
-      <input id="contactEmail" name="contactEmail" type="email" required />
+      <input id="contactEmail" name="contactEmail" type="email" required defaultValue={initial?.contactEmail} />
 
       {error ? <p className="admin-form__error">{error}</p> : null}
       <button type="submit" disabled={submitting}>
-        {submitting ? "Saving…" : "Add co-op"}
+        {submitting ? "Saving…" : isEditing ? "Save changes" : "Add co-op"}
       </button>
     </form>
   );

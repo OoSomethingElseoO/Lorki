@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { CoOpForm } from "@/components/admin/co-op-form";
 import { DeleteButton } from "@/components/admin/delete-button";
@@ -26,6 +27,9 @@ export default async function AdminCoOpsPage() {
               <td>{coOp.region}</td>
               <td>{coOp.contactEmail}</td>
               <td>
+                <Link href={`/admin/co-ops/${coOp.id}/edit`} className="admin-table__link">
+                  Edit
+                </Link>{" "}
                 <DeleteButton endpoint={`/api/admin/co-ops/${coOp.id}`} confirmLabel={coOp.name} />
               </td>
             </tr>
