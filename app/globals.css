@@ -977,6 +977,20 @@ a:focus-visible {
   cursor: not-allowed;
 }
 
+.admin-table__link-button {
+  padding: 0.3rem 0.6rem;
+  border: 1px solid #c4c4bf;
+  background: #ffffff;
+  color: inherit;
+  font-weight: 600;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.admin-table__link-button:hover {
+  background: #eeeeea;
+}
+
 .admin-image-field {
   display: grid;
   gap: 0.35rem;
