@@ -5,12 +5,22 @@ import { useState, type FormEvent } from "react";
 
 type AnimalFormProps = {
   conservancies: { id: string; name: string }[];
+  id?: string;
+  initial?: {
+    name: string;
+    species: string;
+    region: string;
+    story: string;
+    imageUrl: string;
+    conservancyId: string;
+  };
 };
 
-export function AnimalForm({ conservancies }: AnimalFormProps) {
+export function AnimalForm({ conservancies, id, initial }: AnimalFormProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const isEditing = Boolean(id);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -18,8 +28,8 @@ export function AnimalForm({ conservancies }: AnimalFormProps) {
     setError(null);
 
     const form = new FormData(event.currentTarget);
-    const response = await fetch("/api/admin/animals", {
-      method: "POST",
+    const response = await fetch(isEditing ? `/api/admin/animals/${id}` : "/api/admin/animals", {
+      method: isEditing ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name: form.get("name"),
@@ -35,7 +45,12 @@ export function AnimalForm({ conservancies }: AnimalFormProps) {
 
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));
-      setError(data.error ?? "Failed to create animal");
+      setError(data.error ?? `Failed to ${isEditing ? "save" : "create"} animal`);
+      return;
+    }
+
+    if (isEditing) {
+      router.push("/admin/animals");
       return;
     }
 
@@ -50,22 +65,34 @@ export function AnimalForm({ conservancies }: AnimalFormProps) {
   return (
     <form className="admin-form" onSubmit={handleSubmit}>
       <label htmlFor="name">Name</label>
-      <input id="name" name="name" required placeholder="Lorkulup" />
+      <input id="name" name="name" required placeholder="Lorkulup" defaultValue={initial?.name} />
 
       <label htmlFor="species">Species</label>
-      <input id="species" name="species" required placeholder="Lion" />
+      <input id="species" name="species" required placeholder="Lion" defaultValue={initial?.species} />
 
       <label htmlFor="region">Region</label>
-      <input id="region" name="region" required placeholder="Maasai Mara, Kenya" />
+      <input
+        id="region"
+        name="region"
+        required
+        placeholder="Maasai Mara, Kenya"
+        defaultValue={initial?.region}
+      />
 
       <label htmlFor="story">Story</label>
-      <textarea id="story" name="story" required rows={4} />
+      <textarea id="story" name="story" required rows={4} defaultValue={initial?.story} />
 
       <label htmlFor="imageUrl">Image URL</label>
-      <input id="imageUrl" name="imageUrl" required placeholder="/artwork/lorkulup.png" />
+      <input
+        id="imageUrl"
+        name="imageUrl"
+        required
+        placeholder="/artwork/lorkulup.png"
+        defaultValue={initial?.imageUrl}
+      />
 
       <label htmlFor="conservancyId">Conservancy</label>
-      <select id="conservancyId" name="conservancyId" required defaultValue="">
+      <select id="conservancyId" name="conservancyId" required defaultValue={initial?.conservancyId ?? ""}>
         <option value="" disabled>
           Select a conservancy
         </option>
@@ -78,7 +105,7 @@ export function AnimalForm({ conservancies }: AnimalFormProps) {
 
       {error ? <p className="admin-form__error">{error}</p> : null}
       <button type="submit" disabled={submitting}>
-        {submitting ? "Saving…" : "Add animal"}
+        {submitting ? "Saving…" : isEditing ? "Save changes" : "Add animal"}
       </button>
     </form>
   );

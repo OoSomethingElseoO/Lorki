@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { AnimalForm } from "@/components/admin/animal-form";
 import { DeleteButton } from "@/components/admin/delete-button";
@@ -31,6 +32,7 @@ export default async function AdminAnimalsPage() {
               <td>{animal.region}</td>
               <td>{animal.conservancy.name}</td>
               <td>
+                <Link href={`/admin/animals/${animal.id}/edit`}>Edit</Link>{" "}
                 <DeleteButton endpoint={`/api/admin/animals/${animal.id}`} confirmLabel={animal.name} />
               </td>
             </tr>
