@@ -1,21 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import type { Artwork } from "@/data/site-data";
-import { inquiryHref } from "@/data/site-data";
+import type { StorefrontArtwork } from "@/lib/storefront";
 import { AccessibleModal } from "@/components/accessible-modal";
+import { BuyButton } from "@/components/buy-button";
 
 type ArtistGalleryProps = {
-  artworks: Artwork[];
+  artworks: StorefrontArtwork[];
 };
 
 export function ArtistGallery({ artworks }: ArtistGalleryProps) {
-  const [selectedArtwork, setSelectedArtwork] = useState<Artwork | null>(null);
+  const [selectedArtwork, setSelectedArtwork] = useState<StorefrontArtwork | null>(null);
 
   return (
     <>
       <section className="artist-gallery-section" aria-labelledby="artist-gallery-title">
         <h2 id="artist-gallery-title">Available Artwork</h2>
+        {artworks.length === 0 ? <p>No artwork available from this artist right now.</p> : null}
         <div className="gallery-scroll" aria-label="Scrollable artwork gallery">
           {artworks.map((artwork) => (
             <article className="gallery-card" key={artwork.id}>
@@ -25,13 +26,10 @@ export function ArtistGallery({ artworks }: ArtistGalleryProps) {
                 aria-label={`Enlarge ${artwork.title}`}
                 onClick={() => setSelectedArtwork(artwork)}
               >
-                <img src={artwork.image} alt={artwork.alt} />
+                <img src={artwork.imageUrl} alt={artwork.altText} />
               </button>
               <h3>{artwork.title}</h3>
-              <p className="price">{artwork.price}</p>
-              <a href={inquiryHref(artwork.title)} aria-label={`Email inquiry about ${artwork.title}`}>
-                Email purchase inquiry
-              </a>
+              <BuyButton artworkId={artwork.id} title={artwork.title} priceCents={artwork.priceCents} />
             </article>
           ))}
         </div>
@@ -44,9 +42,12 @@ export function ArtistGallery({ artworks }: ArtistGalleryProps) {
       >
         {selectedArtwork ? (
           <div className="modal-artwork">
-            <img src={selectedArtwork.image} alt={selectedArtwork.alt} />
-            <p className="price">{selectedArtwork.price}</p>
-            <a href={inquiryHref(selectedArtwork.title)}>Email purchase inquiry</a>
+            <img src={selectedArtwork.imageUrl} alt={selectedArtwork.altText} />
+            <BuyButton
+              artworkId={selectedArtwork.id}
+              title={selectedArtwork.title}
+              priceCents={selectedArtwork.priceCents}
+            />
           </div>
         ) : null}
       </AccessibleModal>

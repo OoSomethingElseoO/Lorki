@@ -1,9 +1,11 @@
 import { ArtistCard } from "@/components/artist-card";
 import { PageTitle } from "@/components/page-title";
 import { SiteHeader } from "@/components/site-header";
-import { artists } from "@/data/site-data";
+import { getArtists } from "@/lib/storefront";
 
-export default function ArtistsPage() {
+export default async function ArtistsPage() {
+  const artists = await getArtists();
+
   return (
     <>
       <SiteHeader />
@@ -14,6 +16,7 @@ export default function ArtistsPage() {
             <ArtistCard artist={artist} key={artist.slug} />
           ))}
         </section>
+        {artists.length === 0 ? <p className="centered-copy">No artists listed yet.</p> : null}
       </main>
     </>
   );

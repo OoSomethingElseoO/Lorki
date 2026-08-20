@@ -1,0 +1,201 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// A conservancy is the accountable partner org that receives the conservation
+// cut for the animals it protects. One conservancy can back many animals.
+model Conservancy {
+  id            String   @id @default(cuid())
+  name          String
+  region        String
+  mission       String
+  website       String
+  contactEmail  String
+  payoutAccount String? // Stripe Connect account id, or bank/M-Pesa reference
+  animals       Animal[]
+  createdAt     DateTime @default(now())
+}
+
+// A co-op supplies and vouches for multiple artists, and is the local
+// consolidation/shipping point for that region's originals.
+model CoOp {
+  id            String   @id @default(cuid())
+  name          String
+  region        String
+  contactEmail  String
+  payoutAccount String?
+  artists       Artist[]
+  createdAt     DateTime @default(now())
+}
+
+model Animal {
+  id             String      @id @default(cuid())
+  slug           String      @unique
+  name           String
+  species        String
+  region         String
+  story          String
+  imageUrl       String
+  conservancy    Conservancy @relation(fields: [conservancyId], references: [id])
+  conservancyId  String
+  campaigns      Campaign[]
+  createdAt      DateTime    @default(now())
+}
+
+model Artist {
+  id            String      @id @default(cuid())
+  slug          String      @unique
+  name          String
+  country       String
+  bio           String
+  imageUrl      String
+  payoutAccount String?
+  coOp          CoOp?       @relation(fields: [coOpId], references: [id])
+  coOpId        String?
+  socialLinks   SocialLink[]
+  campaigns     Campaign[]
+  createdAt     DateTime    @default(now())
+}
+
+model SocialLink {
+  id       String @id @default(cuid())
+  platform String
+  url      String
+  artist   Artist @relation(fields: [artistId], references: [id])
+  artistId String
+}
+
+// The core unit: one animal x one artist x one split ratio. Everything sold
+// under this campaign inherits its split.
+model Campaign {
+  id                  String     @id @default(cuid())
+  slug                String     @unique
+  animal              Animal     @relation(fields: [animalId], references: [id])
+  animalId            String
+  artist              Artist     @relation(fields: [artistId], references: [id])
+  artistId            String
+  artistPercent       Int
+  conservancyPercent  Int
+  operationsPercent   Int
+  status              CampaignStatus @default(DRAFT)
+  artworks            Artwork[]
+  createdAt           DateTime   @default(now())
+}
+
+enum CampaignStatus {
+  DRAFT
+  LIVE
+  PAUSED
+  ARCHIVED
+}
+
+model Artwork {
+  id             String       @id @default(cuid())
+  campaign       Campaign     @relation(fields: [campaignId], references: [id])
+  campaignId     String
+  title          String
+  kind           ArtworkKind
+  priceCents     Int
+  currency       String       @default("usd")
+  imageUrl       String
+  altText        String
+  inventoryState InventoryState @default(AVAILABLE)
+  reservedAt     DateTime?
+  orders         Order[]
+  createdAt      DateTime     @default(now())
+}
+
+enum ArtworkKind {
+  ORIGINAL
+  PRINT
+}
+
+// Originals are one-of-one; prints are fulfilled per order via a
+// print-on-demand partner and stay AVAILABLE indefinitely.
+enum InventoryState {
+  AVAILABLE
+  RESERVED
+  SOLD
+}
+
+model Order {
+  id                    String      @id @default(cuid())
+  artwork               Artwork     @relation(fields: [artworkId], references: [id])
+  artworkId             String
+  buyerEmail            String
+  shippingName          String
+  shippingAddressLine1  String
+  shippingAddressLine2  String?
+  shippingCity          String
+  shippingRegion        String
+  shippingPostalCode    String
+  shippingCountry       String
+  amountCents           Int
+  currency              String      @default("usd")
+  stripePaymentIntentId String?     @unique
+  status                OrderStatus @default(PENDING)
+  payouts               Payout[]
+  shipment              Shipment?
+  createdAt             DateTime    @default(now())
+}
+
+enum OrderStatus {
+  PENDING    // checkout started
+  PAID       // Stripe payment confirmed, payouts not yet released
+  SHIPPED    // triggers payout release
+  DELIVERED
+  REFUNDED
+}
+
+// Payouts are held (PENDING) until the order ships, then released as Stripe
+// Transfers to the recipient's connected/bank account. This is the audit
+// trail for the public impact numbers.
+model Payout {
+  id            String        @id @default(cuid())
+  order         Order         @relation(fields: [orderId], references: [id])
+  orderId       String
+  recipientType RecipientType
+  recipientId   String // Artist.id, Conservancy.id, or "operations"
+  amountCents   Int
+  status        PayoutStatus  @default(PENDING)
+  stripeTransferId String?
+  releasedAt    DateTime?
+  createdAt     DateTime      @default(now())
+}
+
+enum RecipientType {
+  ARTIST
+  CONSERVANCY
+  OPERATIONS
+}
+
+enum PayoutStatus {
+  PENDING
+  RELEASED
+  FAILED
+}
+
+model Shipment {
+  id             String    @id @default(cuid())
+  order          Order     @relation(fields: [orderId], references: [id])
+  orderId        String    @unique
+  carrier        String
+  trackingNumber String?
+  method         ShipmentMethod
+  shippedAt      DateTime?
+  deliveredAt    DateTime?
+  createdAt      DateTime  @default(now())
+}
+
+// ORIGINAL_FOUNDER: bootstrap phase, shipped from founder-held inventory.
+// ORIGINAL_FREIGHT: scaled phase, co-op consolidates + fine-art freight forwarder.
+// PRINT_POD: print-on-demand partner fulfills regionally, no international leg.
+enum ShipmentMethod {
+  ORIGINAL_FOUNDER
+  ORIGINAL_FREIGHT
+  PRINT_POD
+}

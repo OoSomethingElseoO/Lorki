@@ -1,8 +1,12 @@
 import Link from "next/link";
-import type { Artist } from "@/data/site-data";
 
 type ArtistCardProps = {
-  artist: Artist;
+  artist: {
+    slug: string;
+    name: string;
+    country: string;
+    imageUrl: string;
+  };
 };
 
 export function ArtistCard({ artist }: ArtistCardProps) {
@@ -10,7 +14,7 @@ export function ArtistCard({ artist }: ArtistCardProps) {
     <article className="artist-card">
       <Link href={`/artists/${artist.slug}`} aria-label={`View ${artist.name}'s artist page`}>
         <img
-          src={artist.image}
+          src={artist.imageUrl}
           alt={`Portrait placeholder for artist ${artist.name}.`}
           className="artist-card__image"
         />
@@ -18,9 +22,6 @@ export function ArtistCard({ artist }: ArtistCardProps) {
           <h2>{artist.name}</h2>
           <p>
             <span className="detail-label">Country:</span> {artist.country}
-          </p>
-          <p>
-            <span className="detail-label">Age:</span> {artist.age}
           </p>
         </div>
       </Link>

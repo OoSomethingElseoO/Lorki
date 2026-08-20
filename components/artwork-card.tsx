@@ -1,27 +1,18 @@
-import type { Artwork } from "@/data/site-data";
-import { inquiryHref } from "@/data/site-data";
+import type { StorefrontArtwork } from "@/lib/storefront";
+import { BuyButton } from "@/components/buy-button";
 
 type ArtworkCardProps = {
-  artwork: Artwork;
-  variant?: "inquiry" | "buy";
+  artwork: StorefrontArtwork;
 };
 
-export function ArtworkCard({ artwork, variant = "inquiry" }: ArtworkCardProps) {
-  const actionLabel =
-    variant === "buy"
-      ? `Buy ${artwork.title} directly`
-      : `Email inquiry about ${artwork.title}`;
-
+export function ArtworkCard({ artwork }: ArtworkCardProps) {
   return (
     <article className="artwork-card">
-      <img src={artwork.image} alt={artwork.alt} className="artwork-card__image" />
+      <img src={artwork.imageUrl} alt={artwork.altText} className="artwork-card__image" />
       <div className="artwork-card__body">
         <h2>{artwork.title}</h2>
         <p>{artwork.artistName}</p>
-        <p className="price">{artwork.price}</p>
-        <a className="button-link" href={inquiryHref(artwork.title)} aria-label={actionLabel}>
-          {variant === "buy" ? "Direct Buy" : "Email Inquiry"}
-        </a>
+        <BuyButton artworkId={artwork.id} title={artwork.title} priceCents={artwork.priceCents} />
       </div>
     </article>
   );

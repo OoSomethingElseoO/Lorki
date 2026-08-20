@@ -1,3 +1,39 @@
+export type SocialLink = {
+  platform: string;
+  url: string;
+};
+
+export type Conservancy = {
+  slug: string;
+  name: string;
+  region: string;
+  mission: string;
+  website: string;
+};
+
+export type Animal = {
+  slug: string;
+  name: string;
+  species: string;
+  region: string;
+  story: string;
+  conservancySlug: string;
+  image: string;
+};
+
+export type Split = {
+  artistPercent: number;
+  conservancyPercent: number;
+  operationsPercent: number;
+};
+
+export type Campaign = {
+  slug: string;
+  animalSlug: string;
+  artistSlug: string;
+  split: Split;
+};
+
 export type Artist = {
   slug: string;
   name: string;
@@ -5,6 +41,7 @@ export type Artist = {
   age: number;
   bio: string;
   image: string;
+  socialLinks: SocialLink[];
 };
 
 export type Artwork = {
@@ -12,6 +49,7 @@ export type Artwork = {
   title: string;
   artistSlug: string;
   artistName: string;
+  campaignSlug: string;
   price: string;
   image: string;
   alt: string;
@@ -31,56 +69,95 @@ export const ownerContact = {
   phone: "(555) 019-2026",
 };
 
+export const conservancies: Conservancy[] = [
+  {
+    slug: "mara-lion-project",
+    name: "Mara Lion Project",
+    region: "Maasai Mara, Kenya",
+    mission: "Placeholder conservancy partner — replace with the confirmed organization tied to Lorkulup.",
+    website: "https://example.org",
+  },
+];
+
+export const animals: Animal[] = [
+  {
+    slug: "lorkulup",
+    name: "Lorkulup",
+    species: "Lion",
+    region: "Maasai Mara, Kenya",
+    story: "Placeholder story for Lorkulup — replace with the real background once confirmed.",
+    conservancySlug: "mara-lion-project",
+    image: "/artwork/featured-original.png",
+  },
+];
+
 export const artists: Artist[] = [
   {
     slug: "mara-vale",
     name: "Mara Vale",
-    country: "Portugal",
+    country: "Kenya",
     age: 41,
-    bio: "Mara creates layered works that combine architectural memory, shoreline light, and quiet abstraction.",
+    bio: "Placeholder artist bio — replace with a confirmed Kenyan artist and their real background.",
     image: "/placeholders/artist-portrait.svg",
+    socialLinks: [],
   },
   {
     slug: "noah-sato",
     name: "Noah Sato",
-    country: "Japan",
+    country: "Kenya",
     age: 36,
-    bio: "Noah works with ink, linen, and restrained color to explore balance, pause, and interior landscapes.",
+    bio: "Placeholder artist bio — replace with a confirmed Kenyan artist and their real background.",
     image: "/placeholders/artist-portrait.svg",
+    socialLinks: [],
   },
   {
     slug: "elena-rossi",
     name: "Elena Rossi",
-    country: "Italy",
+    country: "Kenya",
     age: 52,
-    bio: "Elena's paintings use earthy pigment and gentle geometry to hold fragments of place and memory.",
+    bio: "Placeholder artist bio — replace with a confirmed Kenyan artist and their real background.",
     image: "/placeholders/artist-portrait.svg",
+    socialLinks: [],
   },
   {
     slug: "amira-diallo",
     name: "Amira Diallo",
-    country: "Senegal",
+    country: "Kenya",
     age: 33,
-    bio: "Amira builds luminous compositions from textile references, found forms, and hand-drawn marks.",
+    bio: "Placeholder artist bio — replace with a confirmed Kenyan artist and their real background.",
     image: "/placeholders/artist-portrait.svg",
+    socialLinks: [],
   },
   {
     slug: "lucien-hart",
     name: "Lucien Hart",
-    country: "Canada",
+    country: "Kenya",
     age: 47,
-    bio: "Lucien's studio practice centers on slow observation, weathered surfaces, and tonal restraint.",
+    bio: "Placeholder artist bio — replace with a confirmed Kenyan artist and their real background.",
     image: "/placeholders/artist-portrait.svg",
+    socialLinks: [],
   },
   {
     slug: "sol-rivera",
     name: "Sol Rivera",
-    country: "Mexico",
+    country: "Kenya",
     age: 29,
-    bio: "Sol creates warm, vivid works that move between symbolic landscape and contemporary folk abstraction.",
+    bio: "Placeholder artist bio — replace with a confirmed Kenyan artist and their real background.",
     image: "/placeholders/artist-portrait.svg",
+    socialLinks: [],
   },
 ];
+
+export const campaigns: Campaign[] = artists.map((artist) => ({
+  slug: `lorkulup-${artist.slug}`,
+  animalSlug: "lorkulup",
+  artistSlug: artist.slug,
+  split: {
+    artistPercent: 50,
+    conservancyPercent: 25,
+    operationsPercent: 25,
+  },
+}));
 
 export const artworks: Artwork[] = [
   {
@@ -88,6 +165,7 @@ export const artworks: Artwork[] = [
     title: "Arch and Tide",
     artistSlug: "mara-vale",
     artistName: "Mara Vale",
+    campaignSlug: "lorkulup-mara-vale",
     price: "$2,400",
     image: "/artwork/featured-original.png",
     alt: "Abstract artwork with an arched pale form, terracotta shapes, water, and dark coastal silhouettes.",
@@ -97,6 +175,7 @@ export const artworks: Artwork[] = [
     title: "Quiet Channel",
     artistSlug: "noah-sato",
     artistName: "Noah Sato",
+    campaignSlug: "lorkulup-noah-sato",
     price: "$1,850",
     image: "/artwork/featured-original.png",
     alt: "Mixed-media abstract landscape in ochre, black, off-white, and deep teal.",
@@ -106,6 +185,7 @@ export const artworks: Artwork[] = [
     title: "Ochre Gate",
     artistSlug: "elena-rossi",
     artistName: "Elena Rossi",
+    campaignSlug: "lorkulup-elena-rossi",
     price: "$2,100",
     image: "/artwork/featured-original.png",
     alt: "Vertical abstract composition with warm ochre fields and a central pale doorway shape.",
@@ -115,6 +195,7 @@ export const artworks: Artwork[] = [
     title: "Shoreline Study",
     artistSlug: "amira-diallo",
     artistName: "Amira Diallo",
+    campaignSlug: "lorkulup-amira-diallo",
     price: "$1,600",
     image: "/artwork/featured-original.png",
     alt: "Layered abstract coastal scene with textured earth tones and dark organic forms.",
@@ -124,6 +205,7 @@ export const artworks: Artwork[] = [
     title: "Black Stone Morning",
     artistSlug: "lucien-hart",
     artistName: "Lucien Hart",
+    campaignSlug: "lorkulup-lucien-hart",
     price: "$2,750",
     image: "/artwork/featured-original.png",
     alt: "Contemporary mixed-media artwork with black stone-like forms and warm paper textures.",
@@ -133,6 +215,7 @@ export const artworks: Artwork[] = [
     title: "Terracotta Window",
     artistSlug: "sol-rivera",
     artistName: "Sol Rivera",
+    campaignSlug: "lorkulup-sol-rivera",
     price: "$1,950",
     image: "/artwork/featured-original.png",
     alt: "Abstract painting with a terracotta window-like form, pale center, and teal accent.",
@@ -172,6 +255,22 @@ export const newsArticles: NewsArticle[] = [
 
 export function getArtistBySlug(slug: string) {
   return artists.find((artist) => artist.slug === slug);
+}
+
+export function getAnimalBySlug(slug: string) {
+  return animals.find((animal) => animal.slug === slug);
+}
+
+export function getConservancyBySlug(slug: string) {
+  return conservancies.find((conservancy) => conservancy.slug === slug);
+}
+
+export function getCampaignBySlug(slug: string) {
+  return campaigns.find((campaign) => campaign.slug === slug);
+}
+
+export function getCampaignForArtwork(artwork: Artwork) {
+  return getCampaignBySlug(artwork.campaignSlug);
 }
 
 export function getArtworksByArtist(slug: string) {
