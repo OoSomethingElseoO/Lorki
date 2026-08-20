@@ -34,6 +34,19 @@ export async function getLiveArtworksByKind(kind: "ORIGINAL" | "PRINT"): Promise
   }));
 }
 
+export async function getLiveNewsArticles() {
+  return prisma.newsArticle.findMany({
+    where: { status: "LIVE" },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+export async function getLiveNewsArticleBySlug(slug: string) {
+  return prisma.newsArticle.findFirst({
+    where: { slug, status: "LIVE" },
+  });
+}
+
 export async function getArtists() {
   return prisma.artist.findMany({
     include: { socialLinks: true },
