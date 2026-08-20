@@ -3,17 +3,29 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
-type ArtistFormProps = {
-  coOps: { id: string; name: string }[];
-};
-
 type SocialLinkInput = { platform: string; url: string };
 
-export function ArtistForm({ coOps }: ArtistFormProps) {
+type ArtistFormProps = {
+  coOps: { id: string; name: string }[];
+  id?: string;
+  initial?: {
+    name: string;
+    country: string;
+    bio: string;
+    imageUrl: string;
+    coOpId: string | null;
+    socialLinks: SocialLinkInput[];
+  };
+};
+
+export function ArtistForm({ coOps, id, initial }: ArtistFormProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [socialLinks, setSocialLinks] = useState<SocialLinkInput[]>([{ platform: "", url: "" }]);
+  const [socialLinks, setSocialLinks] = useState<SocialLinkInput[]>(
+    initial?.socialLinks.length ? initial.socialLinks : [{ platform: "", url: "" }],
+  );
+  const isEditing = Boolean(id);
 
   function updateSocialLink(index: number, field: keyof SocialLinkInput, value: string) {
     setSocialLinks((current) =>
@@ -37,8 +49,8 @@ export function ArtistForm({ coOps }: ArtistFormProps) {
     const form = new FormData(event.currentTarget);
     const coOpId = form.get("coOpId");
 
-    const response = await fetch("/api/admin/artists", {
-      method: "POST",
+    const response = await fetch(isEditing ? `/api/admin/artists/${id}` : "/api/admin/artists", {
+      method: isEditing ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name: form.get("name"),
@@ -54,7 +66,12 @@ export function ArtistForm({ coOps }: ArtistFormProps) {
 
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));
-      setError(data.error ?? "Failed to create artist");
+      setError(data.error ?? `Failed to ${isEditing ? "save" : "create"} artist`);
+      return;
+    }
+
+    if (isEditing) {
+      router.push("/admin/artists");
       return;
     }
 
@@ -66,19 +83,25 @@ export function ArtistForm({ coOps }: ArtistFormProps) {
   return (
     <form className="admin-form" onSubmit={handleSubmit}>
       <label htmlFor="name">Name</label>
-      <input id="name" name="name" required />
+      <input id="name" name="name" required defaultValue={initial?.name} />
 
       <label htmlFor="country">Country</label>
-      <input id="country" name="country" required placeholder="Kenya" />
+      <input id="country" name="country" required placeholder="Kenya" defaultValue={initial?.country} />
 
       <label htmlFor="bio">Bio</label>
-      <textarea id="bio" name="bio" required rows={4} />
+      <textarea id="bio" name="bio" required rows={4} defaultValue={initial?.bio} />
 
       <label htmlFor="imageUrl">Image URL</label>
-      <input id="imageUrl" name="imageUrl" required placeholder="/artists/name.jpg" />
+      <input
+        id="imageUrl"
+        name="imageUrl"
+        required
+        placeholder="/artists/name.jpg"
+        defaultValue={initial?.imageUrl}
+      />
 
       <label htmlFor="coOpId">Co-op (optional)</label>
-      <select id="coOpId" name="coOpId" defaultValue="">
+      <select id="coOpId" name="coOpId" defaultValue={initial?.coOpId ?? ""}>
         <option value="">No co-op</option>
         {coOps.map((coOp) => (
           <option key={coOp.id} value={coOp.id}>
@@ -113,7 +136,7 @@ export function ArtistForm({ coOps }: ArtistFormProps) {
 
       {error ? <p className="admin-form__error">{error}</p> : null}
       <button type="submit" disabled={submitting}>
-        {submitting ? "Saving…" : "Add artist"}
+        {submitting ? "Saving…" : isEditing ? "Save changes" : "Add artist"}
       </button>
     </form>
   );

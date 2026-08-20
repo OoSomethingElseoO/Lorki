@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { ArtistForm } from "@/components/admin/artist-form";
 import { DeleteButton } from "@/components/admin/delete-button";
@@ -39,6 +40,7 @@ export default async function AdminArtistsPage() {
                     ))}
               </td>
               <td>
+                <Link href={`/admin/artists/${artist.id}/edit`}>Edit</Link>{" "}
                 <DeleteButton endpoint={`/api/admin/artists/${artist.id}`} confirmLabel={artist.name} />
               </td>
             </tr>
