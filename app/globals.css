@@ -233,6 +233,52 @@ a:focus-visible {
   font-size: 1.2rem;
 }
 
+.home-section {
+  padding: 4.5rem clamp(1rem, 4vw, 3rem);
+  background: #fff8ec;
+}
+
+.home-section:nth-of-type(even) {
+  background: var(--sand);
+}
+
+.home-section--impact {
+  text-align: center;
+}
+
+.home-section--impact .home-section__intro {
+  margin-inline: auto;
+}
+
+.home-section > .button-link {
+  display: block;
+  width: fit-content;
+  margin: 0 auto;
+}
+
+.home-section__intro {
+  max-width: 44rem;
+  margin: 0 auto 2.5rem;
+  text-align: center;
+}
+
+.home-section__intro h2 {
+  margin: 0 0 0.6rem;
+  color: var(--gold);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 2.4rem;
+  letter-spacing: 0;
+}
+
+.home-section__intro p {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.home-section .impact-totals {
+  margin-bottom: 2rem;
+}
+
 .site-footer {
   background: var(--ink);
   color: #fff8ec;

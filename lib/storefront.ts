@@ -128,6 +128,36 @@ export async function getLiveArtworksForArtist(artistId: string): Promise<Storef
   return artworks.map(mapArtwork);
 }
 
+export type ImpactTotals = {
+  artistCents: number;
+  conservancyCents: number;
+  operationsCents: number;
+  piecesSold: number;
+};
+
+// Shared by the home page teaser and the full /impact page — always derived
+// from RELEASED payouts only, so the number shown is money that's actually
+// moved, never just money collected.
+export async function getImpactTotals(): Promise<ImpactTotals> {
+  const [released, piecesSold] = await Promise.all([
+    prisma.payout.groupBy({
+      by: ["recipientType"],
+      where: { status: "RELEASED" },
+      _sum: { amountCents: true },
+    }),
+    prisma.artwork.count({ where: { inventoryState: "SOLD" } }),
+  ]);
+
+  const totals: ImpactTotals = { artistCents: 0, conservancyCents: 0, operationsCents: 0, piecesSold };
+  for (const row of released) {
+    const cents = row._sum.amountCents ?? 0;
+    if (row.recipientType === "ARTIST") totals.artistCents = cents;
+    if (row.recipientType === "CONSERVANCY") totals.conservancyCents = cents;
+    if (row.recipientType === "OPERATIONS") totals.operationsCents = cents;
+  }
+  return totals;
+}
+
 export async function searchStorefront(query: string) {
   const trimmed = query.trim();
   if (!trimmed) {

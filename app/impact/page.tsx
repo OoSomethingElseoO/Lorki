@@ -1,6 +1,7 @@
 import { PageTitle } from "@/components/page-title";
 import { SiteHeader } from "@/components/site-header";
 import { prisma } from "@/lib/prisma";
+import { getImpactTotals } from "@/lib/storefront";
 
 function formatDollars(cents: number) {
   return `$${(cents / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -11,26 +12,13 @@ function formatDollars(cents: number) {
 export const dynamic = "force-dynamic";
 
 export default async function ImpactPage() {
-  const [released, piecesSold, campaigns] = await Promise.all([
-    prisma.payout.groupBy({
-      by: ["recipientType"],
-      where: { status: "RELEASED" },
-      _sum: { amountCents: true },
-    }),
-    prisma.artwork.count({ where: { inventoryState: "SOLD" } }),
+  const [totals, campaigns] = await Promise.all([
+    getImpactTotals(),
     prisma.campaign.findMany({
       where: { status: "LIVE" },
       include: { animal: { include: { conservancy: true } }, artist: true },
     }),
   ]);
-
-  const totals = { artistCents: 0, conservancyCents: 0, operationsCents: 0 };
-  for (const row of released) {
-    const cents = row._sum.amountCents ?? 0;
-    if (row.recipientType === "ARTIST") totals.artistCents = cents;
-    if (row.recipientType === "CONSERVANCY") totals.conservancyCents = cents;
-    if (row.recipientType === "OPERATIONS") totals.operationsCents = cents;
-  }
 
   return (
     <>
@@ -55,7 +43,7 @@ export default async function ImpactPage() {
             <span className="impact-totals__label">Paid to conservancies</span>
           </div>
           <div className="impact-totals__stat">
-            <span className="impact-totals__value">{piecesSold}</span>
+            <span className="impact-totals__value">{totals.piecesSold}</span>
             <span className="impact-totals__label">Pieces sold</span>
           </div>
         </section>

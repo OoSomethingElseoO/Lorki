@@ -1,19 +1,43 @@
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
-import { getLiveArtworksByKind } from "@/lib/storefront";
+import { ArtworkCard } from "@/components/artwork-card";
+import { ArtistCard } from "@/components/artist-card";
+import { NewsCard } from "@/components/news-card";
+import {
+  getArtists,
+  getImpactTotals,
+  getLiveArtworksByKind,
+  getLiveNewsArticles,
+} from "@/lib/storefront";
 import { getBranding, getSettings } from "@/lib/settings";
+import { getCurrentCustomer } from "@/lib/customer-auth";
 
-// Admin-editable content (branding, live inventory) must never be frozen at
-// build time — force this to render per-request so /admin/settings changes
-// show up immediately instead of only after the next deploy.
+function formatDollars(cents: number) {
+  return `$${(cents / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+// Admin-editable content (branding, live inventory, impact totals) must
+// never be frozen at build time — force this to render per-request so
+// /admin/settings changes and new sales show up immediately.
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [{ items: originals, totalCount }, branding, settings] = await Promise.all([
-    getLiveArtworksByKind("ORIGINAL"),
-    getBranding(),
-    getSettings(),
-  ]);
+  const [originalsResult, printsResult, artistsResult, newsArticles, impact, branding, settings, customer] =
+    await Promise.all([
+      getLiveArtworksByKind("ORIGINAL"),
+      getLiveArtworksByKind("PRINT"),
+      getArtists(),
+      getLiveNewsArticles(),
+      getImpactTotals(),
+      getBranding(),
+      getSettings(),
+      getCurrentCustomer(),
+    ]);
+
+  const originals = originalsResult.items;
+  const prints = printsResult.items.slice(0, 3);
+  const artists = artistsResult.items.slice(0, 4);
+  const news = newsArticles.slice(0, 3);
   const featured = originals[0];
 
   // An admin-chosen hero image always wins; otherwise show whatever's
@@ -45,7 +69,7 @@ export default async function Home() {
             {featured ? (
               <p>
                 <strong>{featured.title}</strong> by {featured.artistName} — ${(featured.priceCents / 100).toFixed(2)}.{" "}
-                {totalCount > 1 ? `${totalCount} originals available now.` : null}
+                {originalsResult.totalCount > 1 ? `${originalsResult.totalCount} originals available now.` : null}
               </p>
             ) : (
               <p>New originals are on the way — check back soon.</p>
@@ -55,6 +79,103 @@ export default async function Home() {
             </Link>
           </div>
         </section>
+
+        <section className="home-section home-section--impact" aria-label="Impact so far">
+          <div className="home-section__intro">
+            <h2>Where the money goes</h2>
+            <p>
+              Every piece sold pays the artist who made it and funds the conservancy protecting the animal it
+              depicts. These numbers are money that has actually been paid out, not just collected.
+            </p>
+          </div>
+          <div className="impact-totals">
+            <div className="impact-totals__stat">
+              <span className="impact-totals__value">{formatDollars(impact.artistCents)}</span>
+              <span className="impact-totals__label">Paid to artists</span>
+            </div>
+            <div className="impact-totals__stat">
+              <span className="impact-totals__value">{formatDollars(impact.conservancyCents)}</span>
+              <span className="impact-totals__label">Paid to conservancies</span>
+            </div>
+            <div className="impact-totals__stat">
+              <span className="impact-totals__value">{impact.piecesSold}</span>
+              <span className="impact-totals__label">Pieces sold</span>
+            </div>
+          </div>
+          <Link href="/impact" className="button-link">
+            See the full breakdown
+          </Link>
+        </section>
+
+        {originals.length > 0 ? (
+          <section className="home-section" aria-label="Available originals">
+            <div className="home-section__intro">
+              <h2>Available now</h2>
+              <p>One-of-one originals, each tied to a specific animal and artist.</p>
+            </div>
+            <div className="card-grid">
+              {originals.slice(0, 3).map((artwork) => (
+                <ArtworkCard artwork={artwork} customerEmail={customer?.email} key={artwork.id} />
+              ))}
+            </div>
+            {originalsResult.totalCount > 3 ? (
+              <Link href="/originals" className="button-link">
+                View all originals
+              </Link>
+            ) : null}
+          </section>
+        ) : null}
+
+        {artists.length > 0 ? (
+          <section className="home-section" aria-label="Meet the artists">
+            <div className="home-section__intro">
+              <h2>Meet the artists</h2>
+              <p>Every piece is painted by an artist local to the animal it depicts.</p>
+            </div>
+            <div className="card-grid">
+              {artists.map((artist) => (
+                <ArtistCard artist={artist} key={artist.slug} />
+              ))}
+            </div>
+            <Link href="/artists" className="button-link">
+              View all artists
+            </Link>
+          </section>
+        ) : null}
+
+        {prints.length > 0 ? (
+          <section className="home-section" aria-label="Prints">
+            <div className="home-section__intro">
+              <h2>Prints, from {formatDollars(Math.min(...prints.map((p) => p.priceCents)))}</h2>
+              <p>The same artwork, reprinted at a lower price — a smaller way to support the same cause.</p>
+            </div>
+            <div className="card-grid">
+              {prints.map((artwork) => (
+                <ArtworkCard artwork={artwork} customerEmail={customer?.email} key={artwork.id} />
+              ))}
+            </div>
+            <Link href="/prints" className="button-link">
+              Shop prints
+            </Link>
+          </section>
+        ) : null}
+
+        {news.length > 0 ? (
+          <section className="home-section" aria-label="Latest news">
+            <div className="home-section__intro">
+              <h2>Studio notes</h2>
+              <p>Updates from the artists and the conservancies they work with.</p>
+            </div>
+            <div className="news-list">
+              {news.map((article) => (
+                <NewsCard article={article} key={article.id} />
+              ))}
+            </div>
+            <Link href="/news" className="button-link">
+              Read more news
+            </Link>
+          </section>
+        ) : null}
       </main>
       <footer className="site-footer">
         <p>&copy; 2026 {branding.siteName}</p>
