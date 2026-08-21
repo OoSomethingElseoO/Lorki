@@ -139,6 +139,7 @@ model Order {
   amountCents           Int
   currency              String      @default("usd")
   stripePaymentIntentId String?     @unique
+  paymentMethod         PaymentMethod @default(STRIPE)
   status                OrderStatus @default(PENDING)
   payouts               Payout[]
   shipment              Shipment?
@@ -147,10 +148,19 @@ model Order {
 
 enum OrderStatus {
   PENDING    // checkout started
-  PAID       // Stripe payment confirmed, payouts not yet released
+  PAID       // payment confirmed (Stripe webhook, or an admin recording cash), payouts not yet released
   SHIPPED    // triggers payout release
   DELIVERED
   REFUNDED
+}
+
+// CASH covers any sale collected outside Stripe — cash in hand, bank
+// transfer, at a market/fair — recorded by an admin instead of arriving via
+// webhook. Everything downstream (split computation, hold-until-shipped
+// payout release) is identical for both.
+enum PaymentMethod {
+  STRIPE
+  CASH
 }
 
 // Payouts are held (PENDING) until the order ships, then released as Stripe
