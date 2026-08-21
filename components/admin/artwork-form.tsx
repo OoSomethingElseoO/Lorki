@@ -25,10 +25,15 @@ export function ArtworkForm({ campaignId, id, initial, onSaved }: ArtworkFormPro
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    // Capture the form element now — React nulls event.currentTarget once
+    // the event finishes dispatching, so using it after the `await fetch`
+    // below throws "Cannot read properties of null (reading 'reset')" and
+    // silently aborts before router.refresh() ever runs.
+    const formElement = event.currentTarget;
     setSubmitting(true);
     setError(null);
 
-    const form = new FormData(event.currentTarget);
+    const form = new FormData(formElement);
     const priceDollars = Number(form.get("priceDollars"));
 
     const endpoint = isEditing
@@ -61,7 +66,7 @@ export function ArtworkForm({ campaignId, id, initial, onSaved }: ArtworkFormPro
       return;
     }
 
-    event.currentTarget.reset();
+    formElement.reset();
     router.refresh();
   }
 

@@ -22,10 +22,15 @@ export function NewsArticleForm({ id, initial }: NewsArticleFormProps) {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    // Capture the form element now — React nulls event.currentTarget once
+    // the event finishes dispatching, so using it after the `await fetch`
+    // below throws "Cannot read properties of null (reading 'reset')" and
+    // silently aborts before router.refresh() ever runs.
+    const formElement = event.currentTarget;
     setSubmitting(true);
     setError(null);
 
-    const form = new FormData(event.currentTarget);
+    const form = new FormData(formElement);
     const response = await fetch(isEditing ? `/api/admin/news/${id}` : "/api/admin/news", {
       method: isEditing ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
@@ -50,7 +55,7 @@ export function NewsArticleForm({ id, initial }: NewsArticleFormProps) {
       return;
     }
 
-    event.currentTarget.reset();
+    formElement.reset();
     router.refresh();
   }
 
