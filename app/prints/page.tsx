@@ -3,6 +3,7 @@ import { PageTitle } from "@/components/page-title";
 import { SiteHeader } from "@/components/site-header";
 import { Pagination } from "@/components/pagination";
 import { getLiveArtworksByKind } from "@/lib/storefront";
+import { getCurrentCustomer } from "@/lib/customer-auth";
 
 type PrintsPageProps = {
   searchParams: Promise<{ page?: string }>;
@@ -10,7 +11,10 @@ type PrintsPageProps = {
 
 export default async function PrintsPage({ searchParams }: PrintsPageProps) {
   const { page } = await searchParams;
-  const { items, totalPages, page: currentPage } = await getLiveArtworksByKind("PRINT", Number(page));
+  const [{ items, totalPages, page: currentPage }, customer] = await Promise.all([
+    getLiveArtworksByKind("PRINT", Number(page)),
+    getCurrentCustomer(),
+  ]);
 
   return (
     <>
@@ -19,7 +23,7 @@ export default async function PrintsPage({ searchParams }: PrintsPageProps) {
         <PageTitle>Prints</PageTitle>
         <section className="card-grid" aria-label="Artwork prints">
           {items.map((artwork) => (
-            <ArtworkCard artwork={artwork} key={artwork.id} />
+            <ArtworkCard artwork={artwork} customerEmail={customer?.email} key={artwork.id} />
           ))}
         </section>
         {items.length === 0 ? <p className="centered-copy">No prints available right now.</p> : null}

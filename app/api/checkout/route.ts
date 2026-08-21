@@ -3,10 +3,11 @@ import { prisma } from "@/lib/prisma";
 import { getStripe } from "@/lib/stripe";
 import { releaseExpiredReservations } from "@/lib/reservations";
 import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
+import { getCurrentCustomer } from "@/lib/customer-auth";
 
 type CheckoutBody = {
   artworkId: string;
-  buyerEmail: string;
+  buyerEmail?: string;
 };
 
 // Caps how often one IP can start a checkout, full stop — this is what stops
@@ -23,8 +24,18 @@ export async function POST(request: Request) {
 
   const body = (await request.json()) as Partial<CheckoutBody>;
 
-  if (!body.artworkId || !body.buyerEmail) {
-    return NextResponse.json({ error: "artworkId and buyerEmail are required" }, { status: 400 });
+  if (!body.artworkId) {
+    return NextResponse.json({ error: "artworkId is required" }, { status: 400 });
+  }
+
+  // A logged-in buyer's email comes from their account, not the request
+  // body — this is also what links the resulting Order back to them via
+  // the webhook. Guests must supply an email explicitly.
+  const customer = await getCurrentCustomer();
+  const buyerEmail = customer?.email ?? body.buyerEmail;
+
+  if (!buyerEmail) {
+    return NextResponse.json({ error: "buyerEmail is required" }, { status: 400 });
   }
 
   let stripe;
@@ -60,7 +71,7 @@ export async function POST(request: Request) {
   try {
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
-      customer_email: body.buyerEmail,
+      customer_email: buyerEmail,
       line_items: [
         {
           quantity: 1,
@@ -72,7 +83,7 @@ export async function POST(request: Request) {
         },
       ],
       shipping_address_collection: { allowed_countries: ["US", "CA", "GB", "KE"] },
-      metadata: { artworkId: artwork.id },
+      metadata: { artworkId: artwork.id, ...(customer ? { customerId: customer.id } : {}) },
       success_url: `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/checkout/cancelled`,
     });

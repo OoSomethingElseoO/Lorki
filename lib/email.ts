@@ -61,6 +61,14 @@ export async function sendShippingNotificationEmail(params: {
   );
 }
 
+export async function sendPasswordResetEmail(params: { to: string; resetUrl: string }) {
+  await sendEmail(
+    params.to,
+    "Reset your password",
+    `<p>Someone requested a password reset for this account.</p><p><a href="${params.resetUrl}">Reset your password</a></p><p>This link expires in 1 hour. If you didn't request this, you can ignore this email.</p>`,
+  );
+}
+
 export async function sendOperationsAlert(subject: string, html: string) {
   const operationsEmail = await getOperationsEmail();
   if (!operationsEmail) {

@@ -3,6 +3,7 @@ import { ArtistGallery } from "@/components/artist-gallery";
 import { SiteHeader } from "@/components/site-header";
 import { getArtistBySlug, getLiveArtworksForArtist } from "@/lib/storefront";
 import { prisma } from "@/lib/prisma";
+import { getCurrentCustomer } from "@/lib/customer-auth";
 
 type ArtistPageProps = {
   params: Promise<{
@@ -23,7 +24,10 @@ export default async function ArtistPage({ params }: ArtistPageProps) {
     notFound();
   }
 
-  const artistArtworks = await getLiveArtworksForArtist(artist.id);
+  const [artistArtworks, customer] = await Promise.all([
+    getLiveArtworksForArtist(artist.id),
+    getCurrentCustomer(),
+  ]);
 
   return (
     <>
@@ -54,7 +58,7 @@ export default async function ArtistPage({ params }: ArtistPageProps) {
             ) : null}
           </div>
         </section>
-        <ArtistGallery artworks={artistArtworks} />
+        <ArtistGallery artworks={artistArtworks} customerEmail={customer?.email} />
       </main>
     </>
   );

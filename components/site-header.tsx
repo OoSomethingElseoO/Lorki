@@ -24,11 +24,11 @@ export async function SiteHeader() {
               <path d="m21 21-4.3-4.3m1.3-5.2a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0Z" />
             </svg>
           </Link>
-          <button className="icon-button" type="button" aria-label="Open account">
+          <Link className="icon-button" href="/account" aria-label="Open account">
             <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
               <path d="M20 21a8 8 0 0 0-16 0m12-13a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z" />
             </svg>
-          </button>
+          </Link>
         </div>
       </nav>
     </header>

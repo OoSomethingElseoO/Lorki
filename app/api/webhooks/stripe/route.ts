@@ -61,11 +61,13 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   const shipping = session.collected_information?.shipping_details ?? session.customer_details;
   const address = shipping?.address;
+  const customerId = session.metadata?.customerId;
 
   const order = await prisma.$transaction(async (tx) => {
     const order = await tx.order.create({
       data: {
         artworkId: artwork.id,
+        customerId: customerId || null,
         buyerEmail: session.customer_details?.email ?? session.customer_email ?? "unknown@buyer",
         shippingName: shipping?.name ?? "Unknown",
         shippingAddressLine1: address?.line1 ?? "",
