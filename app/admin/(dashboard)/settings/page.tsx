@@ -21,6 +21,7 @@ export default async function AdminSettingsPage() {
           emailFrom: settings.emailFrom ?? "",
           operationsEmail: settings.operationsEmail ?? "",
           siteName: settings.siteName ?? "",
+          heroTagline: settings.heroTagline ?? "",
           heroImageUrl: settings.heroImageUrl ?? "",
           heroAlt: settings.heroAlt ?? "",
           missionStatement: settings.missionStatement ?? "",

@@ -7,6 +7,7 @@ import { ImageUploadField } from "@/components/admin/image-upload-field";
 const SECRET_FIELDS = ["stripeSecretKey", "stripeWebhookSecret", "resendApiKey", "emailFrom", "operationsEmail"];
 const BRANDING_FIELDS = [
   "siteName",
+  "heroTagline",
   "heroImageUrl",
   "heroAlt",
   "missionStatement",
@@ -23,6 +24,7 @@ type SettingsFormProps = {
     emailFrom: string;
     operationsEmail: string;
     siteName: string;
+    heroTagline: string;
     heroImageUrl: string;
     heroAlt: string;
     missionStatement: string;
@@ -86,6 +88,14 @@ export function SettingsForm({ initial }: SettingsFormProps) {
       <h2 style={{ marginTop: 0 }}>Branding</h2>
       <label htmlFor="siteName">Site name</label>
       <input id="siteName" name="siteName" defaultValue={initial.siteName} placeholder="Aurelia Originals" />
+
+      <label htmlFor="heroTagline">Hero tagline</label>
+      <input
+        id="heroTagline"
+        name="heroTagline"
+        defaultValue={initial.heroTagline}
+        placeholder="Original artwork, collected with care."
+      />
 
       <ImageUploadField name="heroImageUrl" label="Hero image" defaultValue={initial.heroImageUrl} />
       <p className="admin-form__hint">

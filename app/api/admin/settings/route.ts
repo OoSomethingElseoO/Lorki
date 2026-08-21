@@ -5,6 +5,7 @@ import { getSettings } from "@/lib/settings";
 const SECRET_FIELDS = ["stripeSecretKey", "stripeWebhookSecret", "resendApiKey"] as const;
 const BRANDING_FIELDS = [
   "siteName",
+  "heroTagline",
   "heroImageUrl",
   "heroAlt",
   "missionStatement",
@@ -24,6 +25,7 @@ export async function GET() {
       emailFrom: settings.emailFrom ?? "",
       operationsEmail: settings.operationsEmail ?? "",
       siteName: settings.siteName ?? "",
+      heroTagline: settings.heroTagline ?? "",
       heroImageUrl: settings.heroImageUrl ?? "",
       heroAlt: settings.heroAlt ?? "",
       missionStatement: settings.missionStatement ?? "",

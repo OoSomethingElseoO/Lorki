@@ -6,6 +6,11 @@
   --panel: #fff8ec;
   --focus: #005fcc;
   --line: #7d5d2a;
+  /* Pulled from the featured artwork's own palette (terracotta, ochre,
+     black, off-white, teal) — used sparingly as a second accent, not a
+     palette overhaul. */
+  --teal: #2b5a5c;
+  --teal-deep: #1c4042;
 }
 
 * {
@@ -20,8 +25,8 @@ body {
   margin: 0;
   color: var(--ink);
   background: var(--sand);
-  font-family: Arial, Helvetica, sans-serif;
-  line-height: 1.5;
+  font-family: var(--font-body), Georgia, serif;
+  line-height: 1.6;
 }
 
 a {
@@ -92,7 +97,7 @@ a:focus-visible {
   min-width: 0;
   margin: 0;
   color: var(--gold);
-  font-family: "CAE Champagne", Georgia, "Times New Roman", serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 4.4rem;
   font-weight: 700;
   letter-spacing: 0;
@@ -176,61 +181,137 @@ a:focus-visible {
 
 .hero {
   min-height: 100vh;
-  background: var(--sand);
-  padding: 7rem 1rem 3rem;
+  background:
+    radial-gradient(ellipse 60% 50% at 78% 45%, rgba(43, 90, 92, 0.14), transparent 70%),
+    radial-gradient(ellipse 55% 60% at 15% 30%, rgba(166, 95, 0, 0.1), transparent 65%),
+    var(--sand);
+  padding: 9rem 1.5rem 4rem;
+  display: flex;
+  align-items: center;
 }
 
 .hero__content {
   display: grid;
-  place-items: center;
-  min-height: calc(100vh - 10rem);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(2rem, 5vw, 5rem);
+  max-width: 80rem;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.hero__copy {
+  max-width: 32rem;
+}
+
+.hero__eyebrow {
+  display: inline-block;
+  margin: 0 0 1.1rem;
+  font-family: var(--font-body), Georgia, serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--teal-deep);
+}
+
+.hero__title {
+  margin: 0 0 1.1rem;
+  color: var(--gold);
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 600;
+  font-size: clamp(2.6rem, 5.5vw, 4.6rem);
+  line-height: 1.02;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+.hero__tagline {
+  margin: 0 0 2rem;
+  font-size: 1.2rem;
+  line-height: 1.55;
+  color: var(--ink);
+  max-width: 30rem;
+}
+
+.hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+}
+
+.hero__actions .button-link {
+  margin-top: 0;
+}
+
+.hero__actions-link {
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.hero__frame {
+  position: relative;
+  justify-self: center;
+}
+
+.hero__frame::before {
+  content: "";
+  position: absolute;
+  inset: -1.1rem;
+  border: 1px solid var(--line);
+  opacity: 0.5;
+  z-index: 0;
 }
 
 .hero__artwork {
-  width: 30vw;
-  min-width: 16rem;
-  max-width: 32rem;
-  height: 65vh;
-  min-height: 26rem;
+  position: relative;
+  z-index: 1;
+  width: min(28vw, 26rem);
+  min-width: 15rem;
+  height: 58vh;
+  min-height: 24rem;
+  max-height: 34rem;
   object-fit: cover;
   border: 2px solid var(--line);
-  box-shadow: 0 1.4rem 3rem rgba(82, 48, 12, 0.28);
+  box-shadow:
+    0 1.8rem 3.5rem rgba(43, 30, 10, 0.32),
+    0 0.5rem 1rem rgba(43, 30, 10, 0.18);
 }
 
-.originals {
-  min-height: 100vh;
-  background: #fff8ec;
-}
+@media (max-width: 860px) {
+  .hero {
+    padding-top: 8rem;
+  }
 
-.originals__sticky-bar {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  display: grid;
-  place-items: center;
-  min-height: 20vh;
-  padding: 1rem;
-  border-bottom: 2px solid var(--line);
-  background: var(--sand);
-}
+  .hero__content {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
 
-.originals__body {
-  max-width: 64rem;
-  margin: 0 auto;
-  padding: 5rem 1.25rem;
-}
+  .hero__copy {
+    max-width: 32rem;
+    margin: 0 auto;
+  }
 
-.originals__body h2 {
-  margin: 0 0 1rem;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 3.5rem;
-  letter-spacing: 0;
-}
+  .hero__tagline {
+    margin-inline: auto;
+  }
 
-.originals__body p {
-  max-width: 42rem;
-  margin: 0;
-  font-size: 1.2rem;
+  .hero__actions {
+    justify-content: center;
+  }
+
+  .hero__frame {
+    order: -1;
+  }
+
+  .hero__artwork {
+    width: min(70vw, 22rem);
+    height: 46vh;
+    min-height: 20rem;
+  }
 }
 
 .home-section {
@@ -265,7 +346,7 @@ a:focus-visible {
 .home-section__intro h2 {
   margin: 0 0 0.6rem;
   color: var(--gold);
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 2.4rem;
   letter-spacing: 0;
 }
@@ -306,7 +387,7 @@ a:focus-visible {
 .artist-profile h1 {
   margin: 0;
   color: var(--gold);
-  font-family: "CAE Champagne", Georgia, "Times New Roman", serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 4.4rem;
   line-height: 1.05;
   letter-spacing: 0;
@@ -327,7 +408,8 @@ a:focus-visible {
 
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(20rem, 22rem));
+  justify-content: center;
   gap: 1.25rem;
   max-width: 78rem;
   margin: 0 auto 3rem;
@@ -361,7 +443,7 @@ a:focus-visible {
 .page-main > section h2 {
   max-width: 78rem;
   margin: 0 auto 1rem;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 1.6rem;
 }
 
@@ -405,7 +487,7 @@ a:focus-visible {
 .news-card h2,
 .gallery-card h3 {
   margin: 0 0 0.55rem;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 1.45rem;
   line-height: 1.2;
 }
@@ -542,7 +624,7 @@ a:focus-visible {
 }
 
 .impact-totals__value {
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 2.2rem;
   font-weight: 700;
   color: var(--gold);
@@ -569,7 +651,7 @@ a:focus-visible {
 
 .campaign-card h2 {
   margin: 0 0 0.5rem;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 1.4rem;
 }
 
@@ -613,7 +695,7 @@ a:focus-visible {
 
 .artist-gallery-section h2 {
   margin: 0 0 1rem;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 2.2rem;
 }
 
@@ -698,7 +780,7 @@ a:focus-visible {
 .news-article__body h1 {
   margin: 0;
   color: var(--gold);
-  font-family: "CAE Champagne", Georgia, "Times New Roman", serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 3rem;
   line-height: 1.05;
 }
@@ -779,7 +861,7 @@ a:focus-visible {
 }
 
 .account-orders h2 {
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 1.6rem;
   margin-bottom: 1rem;
 }
@@ -811,7 +893,7 @@ a:focus-visible {
 
 .account-orders__item h3 {
   margin: 0 0 0.3rem;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 1.2rem;
 }
 
@@ -858,7 +940,7 @@ a:focus-visible {
 
 .modal-panel__header h2 {
   margin: 0;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 1.8rem;
 }
 
@@ -891,11 +973,6 @@ a:focus-visible {
     height: 2.75rem;
   }
 
-  .hero__artwork {
-    width: min(72vw, 22rem);
-    height: 65vh;
-  }
-
   .dropdown-menu {
     left: 0;
   }
@@ -909,7 +986,6 @@ a:focus-visible {
     font-size: 2.8rem;
   }
 
-  .card-grid,
   .artist-profile,
   .news-card {
     grid-template-columns: 1fr;
@@ -940,10 +1016,6 @@ a:focus-visible {
 
   .dropdown-menu {
     left: 0;
-  }
-
-  .card-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

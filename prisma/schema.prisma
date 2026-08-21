@@ -217,6 +217,7 @@ model Settings {
   // hero image, mission copy, and contact details never require a code
   // change. Null means "use the built-in fallback" (see lib/settings.ts).
   siteName         String?
+  heroTagline      String?
   heroImageUrl     String?
   heroAlt          String?
   missionStatement String?

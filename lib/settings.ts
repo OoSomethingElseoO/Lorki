@@ -46,6 +46,7 @@ export async function getOperationsEmail(): Promise<string | undefined> {
 // ever visited /admin/settings — not meant to be the permanent brand.
 const DEFAULT_BRANDING = {
   siteName: "Aurelia Originals",
+  heroTagline: "Original artwork, collected with care.",
   heroImageUrl: "/artwork/featured-original.png",
   heroAlt: "Original artwork.",
   missionStatement:
@@ -61,6 +62,7 @@ export async function getBranding(): Promise<Branding> {
   const settings = await getSettings();
   return {
     siteName: settings.siteName?.trim() || DEFAULT_BRANDING.siteName,
+    heroTagline: settings.heroTagline?.trim() || DEFAULT_BRANDING.heroTagline,
     heroImageUrl: settings.heroImageUrl?.trim() || DEFAULT_BRANDING.heroImageUrl,
     heroAlt: settings.heroAlt?.trim() || DEFAULT_BRANDING.heroAlt,
     missionStatement: settings.missionStatement?.trim() || DEFAULT_BRANDING.missionStatement,

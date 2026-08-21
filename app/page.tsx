@@ -50,21 +50,30 @@ export default async function Home() {
       <SiteHeader />
       <main id="main-content">
         <section className="hero" aria-labelledby="home-title">
-          <h1 className="sr-only" id="home-title">
-            {branding.siteName}
-          </h1>
           <div className="hero__content">
-            <img className="hero__artwork" src={heroImage} alt={heroAlt} />
+            <div className="hero__copy">
+              <span className="hero__eyebrow">Original art, real impact</span>
+              <h1 className="hero__title" id="home-title">
+                {branding.siteName}
+              </h1>
+              <p className="hero__tagline">{branding.heroTagline}</p>
+              <div className="hero__actions">
+                <Link href="/originals" className="button-link">
+                  Browse originals
+                </Link>
+                <Link href="/impact" className="hero__actions-link">
+                  See where the money goes
+                </Link>
+              </div>
+            </div>
+            <div className="hero__frame">
+              <img className="hero__artwork" src={heroImage} alt={heroAlt} />
+            </div>
           </div>
         </section>
 
-        <section className="originals" id="originals" aria-labelledby="originals-title">
-          <div className="originals__sticky-bar">
-            <p className="site-wordmark" id="originals-title">
-              {branding.siteName}
-            </p>
-          </div>
-          <div className="originals__body">
+        <section className="home-section" aria-label="Originals">
+          <div className="home-section__intro">
             <h2>Originals</h2>
             {featured ? (
               <p>
@@ -74,10 +83,19 @@ export default async function Home() {
             ) : (
               <p>New originals are on the way — check back soon.</p>
             )}
-            <Link href="/originals" className="button-link">
-              Browse originals
-            </Link>
           </div>
+          {originals.length > 0 ? (
+            <>
+              <div className="card-grid">
+                {originals.slice(0, 3).map((artwork) => (
+                  <ArtworkCard artwork={artwork} customerEmail={customer?.email} key={artwork.id} />
+                ))}
+              </div>
+              <Link href="/originals" className="button-link">
+                {originalsResult.totalCount > 3 ? "View all originals" : "Browse originals"}
+              </Link>
+            </>
+          ) : null}
         </section>
 
         <section className="home-section home-section--impact" aria-label="Impact so far">
@@ -106,25 +124,6 @@ export default async function Home() {
             See the full breakdown
           </Link>
         </section>
-
-        {originals.length > 0 ? (
-          <section className="home-section" aria-label="Available originals">
-            <div className="home-section__intro">
-              <h2>Available now</h2>
-              <p>One-of-one originals, each tied to a specific animal and artist.</p>
-            </div>
-            <div className="card-grid">
-              {originals.slice(0, 3).map((artwork) => (
-                <ArtworkCard artwork={artwork} customerEmail={customer?.email} key={artwork.id} />
-              ))}
-            </div>
-            {originalsResult.totalCount > 3 ? (
-              <Link href="/originals" className="button-link">
-                View all originals
-              </Link>
-            ) : null}
-          </section>
-        ) : null}
 
         {artists.length > 0 ? (
           <section className="home-section" aria-label="Meet the artists">
