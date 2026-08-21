@@ -7,9 +7,10 @@ import { BuyButton } from "@/components/buy-button";
 
 type ArtistGalleryProps = {
   artworks: StorefrontArtwork[];
+  customerEmail?: string;
 };
 
-export function ArtistGallery({ artworks }: ArtistGalleryProps) {
+export function ArtistGallery({ artworks, customerEmail }: ArtistGalleryProps) {
   const [selectedArtwork, setSelectedArtwork] = useState<StorefrontArtwork | null>(null);
 
   return (
@@ -29,7 +30,12 @@ export function ArtistGallery({ artworks }: ArtistGalleryProps) {
                 <img src={artwork.imageUrl} alt={artwork.altText} />
               </button>
               <h3>{artwork.title}</h3>
-              <BuyButton artworkId={artwork.id} title={artwork.title} priceCents={artwork.priceCents} />
+              <BuyButton
+                artworkId={artwork.id}
+                title={artwork.title}
+                priceCents={artwork.priceCents}
+                customerEmail={customerEmail}
+              />
             </article>
           ))}
         </div>
@@ -47,6 +53,7 @@ export function ArtistGallery({ artworks }: ArtistGalleryProps) {
               artworkId={selectedArtwork.id}
               title={selectedArtwork.title}
               priceCents={selectedArtwork.priceCents}
+              customerEmail={customerEmail}
             />
           </div>
         ) : null}

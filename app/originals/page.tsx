@@ -3,6 +3,7 @@ import { PageTitle } from "@/components/page-title";
 import { SiteHeader } from "@/components/site-header";
 import { Pagination } from "@/components/pagination";
 import { getLiveArtworksByKind } from "@/lib/storefront";
+import { getCurrentCustomer } from "@/lib/customer-auth";
 
 type OriginalsPageProps = {
   searchParams: Promise<{ page?: string }>;
@@ -10,7 +11,10 @@ type OriginalsPageProps = {
 
 export default async function OriginalsPage({ searchParams }: OriginalsPageProps) {
   const { page } = await searchParams;
-  const { items, totalPages, page: currentPage } = await getLiveArtworksByKind("ORIGINAL", Number(page));
+  const [{ items, totalPages, page: currentPage }, customer] = await Promise.all([
+    getLiveArtworksByKind("ORIGINAL", Number(page)),
+    getCurrentCustomer(),
+  ]);
 
   return (
     <>
@@ -19,7 +23,7 @@ export default async function OriginalsPage({ searchParams }: OriginalsPageProps
         <PageTitle>Originals</PageTitle>
         <section className="card-grid" aria-label="Original artwork">
           {items.map((artwork) => (
-            <ArtworkCard artwork={artwork} key={artwork.id} />
+            <ArtworkCard artwork={artwork} customerEmail={customer?.email} key={artwork.id} />
           ))}
         </section>
         {items.length === 0 ? <p className="centered-copy">No originals available right now.</p> : null}
