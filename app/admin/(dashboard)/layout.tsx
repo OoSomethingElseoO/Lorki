@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { LogoutButton } from "@/components/admin/logout-button";
+import { LogoutButton } from "@/components/logout-button";
 
 const navLinks = [
   { label: "Conservancies", href: "/admin/conservancies" },

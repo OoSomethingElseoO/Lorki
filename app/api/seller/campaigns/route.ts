@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentSeller } from "@/lib/seller-auth";
+import { getCurrentUser } from "@/lib/auth";
 import { DEFAULT_SPLIT } from "@/lib/payouts";
 import { isUniqueConstraintError, uniqueConstraintResponse } from "@/lib/prisma-errors";
 
 export async function GET() {
-  const seller = await getCurrentSeller();
+  const currentUser = await getCurrentUser();
+  const seller = currentUser?.artist;
   if (!seller) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
@@ -25,7 +26,8 @@ type CreateBody = { animalId: string };
 // LIVE immediately — no admin approval step. The split ratio is fixed
 // (DEFAULT_SPLIT), never settable here; see lib/payouts.ts for why.
 export async function POST(request: Request) {
-  const seller = await getCurrentSeller();
+  const currentUser = await getCurrentUser();
+  const seller = currentUser?.artist;
   if (!seller) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }

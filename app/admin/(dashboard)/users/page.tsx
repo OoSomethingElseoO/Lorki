@@ -5,7 +5,8 @@ import { DeleteButton } from "@/components/admin/delete-button";
 export const dynamic = "force-dynamic";
 
 export default async function AdminUsersPage() {
-  const users = await prisma.adminUser.findMany({
+  const users = await prisma.user.findMany({
+    where: { isAdmin: true },
     select: { id: true, email: true, name: true, createdAt: true },
     orderBy: { createdAt: "asc" },
   });

@@ -2,14 +2,15 @@ import { redirect } from "next/navigation";
 import { PageTitle } from "@/components/page-title";
 import { SiteHeader } from "@/components/site-header";
 import { SellerProfileForm } from "@/components/seller-profile-form";
-import { getCurrentSeller } from "@/lib/seller-auth";
+import { getCurrentUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function SellerProfilePage() {
-  const seller = await getCurrentSeller();
+  const currentUser = await getCurrentUser();
+  const seller = currentUser?.artist;
   if (!seller) {
-    redirect("/seller/login");
+    redirect("/login");
   }
 
   return (

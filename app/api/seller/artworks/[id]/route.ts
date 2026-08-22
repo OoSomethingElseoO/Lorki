@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentSeller } from "@/lib/seller-auth";
+import { getCurrentUser } from "@/lib/auth";
 import { foreignKeyConstraintResponse, isForeignKeyConstraintError } from "@/lib/prisma-errors";
 
 type RouteParams = { params: Promise<{ id: string }> };
@@ -25,7 +25,8 @@ async function loadOwnArtwork(sellerId: string, artworkId: string) {
 }
 
 export async function PATCH(request: Request, { params }: RouteParams) {
-  const seller = await getCurrentSeller();
+  const currentUser = await getCurrentUser();
+  const seller = currentUser?.artist;
   if (!seller) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
@@ -64,7 +65,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 }
 
 export async function DELETE(_request: Request, { params }: RouteParams) {
-  const seller = await getCurrentSeller();
+  const currentUser = await getCurrentUser();
+  const seller = currentUser?.artist;
   if (!seller) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }

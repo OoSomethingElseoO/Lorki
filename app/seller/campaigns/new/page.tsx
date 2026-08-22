@@ -2,15 +2,16 @@ import { redirect } from "next/navigation";
 import { PageTitle } from "@/components/page-title";
 import { SiteHeader } from "@/components/site-header";
 import { SellerNewCampaignForm } from "@/components/seller-new-campaign-form";
-import { getCurrentSeller } from "@/lib/seller-auth";
+import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
 export default async function SellerNewCampaignPage() {
-  const seller = await getCurrentSeller();
+  const currentUser = await getCurrentUser();
+  const seller = currentUser?.artist;
   if (!seller) {
-    redirect("/seller/login");
+    redirect("/login");
   }
 
   const animals = await prisma.animal.findMany({

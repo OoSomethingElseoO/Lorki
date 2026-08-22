@@ -1,8 +1,9 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PageTitle } from "@/components/page-title";
 import { SiteHeader } from "@/components/site-header";
-import { AccountLogoutButton } from "@/components/account-logout-button";
-import { getCurrentCustomer } from "@/lib/customer-auth";
+import { LogoutButton } from "@/components/logout-button";
+import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -16,14 +17,14 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export default async function AccountPage() {
-  const customer = await getCurrentCustomer();
+  const user = await getCurrentUser();
 
-  if (!customer) {
-    redirect("/account/login");
+  if (!user) {
+    redirect("/login");
   }
 
   const orders = await prisma.order.findMany({
-    where: { customerId: customer.id },
+    where: { customerId: user.id },
     include: { artwork: true, shipment: true },
     orderBy: { createdAt: "desc" },
   });
@@ -35,9 +36,23 @@ export default async function AccountPage() {
         <PageTitle>My Account</PageTitle>
         <div className="account-summary">
           <p>
-            Signed in as <strong>{customer.name || customer.email}</strong>
+            Signed in as <strong>{user.name || user.email}</strong>
           </p>
-          <AccountLogoutButton />
+          {user.isAdmin ? (
+            <Link href="/admin" className="button-link">
+              Admin dashboard
+            </Link>
+          ) : null}
+          {user.artist ? (
+            <Link href="/seller" className="button-link">
+              Seller dashboard
+            </Link>
+          ) : (
+            <Link href="/seller/onboarding" className="button-link">
+              Start selling
+            </Link>
+          )}
+          <LogoutButton />
         </div>
 
         <section className="account-orders" aria-label="Order history">

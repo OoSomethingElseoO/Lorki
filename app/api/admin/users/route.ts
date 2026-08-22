@@ -4,7 +4,8 @@ import { hashPassword } from "@/lib/password";
 import { isUniqueConstraintError, uniqueConstraintResponse } from "@/lib/prisma-errors";
 
 export async function GET() {
-  const users = await prisma.adminUser.findMany({
+  const users = await prisma.user.findMany({
+    where: { isAdmin: true },
     select: { id: true, email: true, name: true, createdAt: true },
     orderBy: { createdAt: "asc" },
   });
@@ -29,11 +30,12 @@ export async function POST(request: Request) {
   }
 
   try {
-    const user = await prisma.adminUser.create({
+    const user = await prisma.user.create({
       data: {
         name: body.name,
         email: body.email.toLowerCase().trim(),
         passwordHash: await hashPassword(body.password),
+        isAdmin: true,
       },
       select: { id: true, email: true, name: true, createdAt: true },
     });
@@ -41,7 +43,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ user }, { status: 201 });
   } catch (error) {
     if (isUniqueConstraintError(error)) {
-      return uniqueConstraintResponse("An admin with this email already exists");
+      return uniqueConstraintResponse("An account with this email already exists");
     }
     throw error;
   }

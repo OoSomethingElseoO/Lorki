@@ -60,10 +60,12 @@ model Artist {
   campaigns     Campaign[]
   createdAt     DateTime    @default(now())
 
-  // Self-service seller login. Nullable — an artist added by an admin (no
-  // signup) has no login until they self-register or an admin sets one.
-  email         String?     @unique
-  passwordHash  String?
+  // Having a linked User is what makes this artist a "seller" — one login
+  // (User) unlocks whichever surfaces they're entitled to. Nullable: an
+  // artist added by an admin with no login has no linked User until they
+  // (or an admin) connect one.
+  user          User?       @relation(fields: [userId], references: [id])
+  userId        String?     @unique
 }
 
 model SocialLink {
@@ -131,7 +133,7 @@ model Order {
   id                    String      @id @default(cuid())
   artwork               Artwork     @relation(fields: [artworkId], references: [id])
   artworkId             String
-  customer              Customer?   @relation(fields: [customerId], references: [id])
+  customer              User?       @relation(fields: [customerId], references: [id])
   customerId            String?
   buyerEmail            String
   shippingName          String
@@ -259,33 +261,30 @@ enum NewsStatus {
   LIVE
 }
 
-// A person who can sign into /admin. Replaces the old single shared
-// ADMIN_PASSWORD — every admin now has their own login.
-model AdminUser {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
-  name         String
-  createdAt    DateTime @default(now())
-}
-
-// A buyer account. Optional — checkout still works as a guest (see
-// Order.customerId being nullable). Logging in just links future orders to
-// this record and unlocks /account order history.
-model Customer {
-  id                   String                @id @default(cuid())
-  email                String                @unique
-  passwordHash         String
-  name                 String?
-  orders               Order[]
-  passwordResetTokens  PasswordResetToken[]
-  createdAt            DateTime              @default(now())
+// One identity, one login, for everyone — a single email+password gets you
+// in through the same page regardless of what you're here to do. What you
+// can actually access is layered on top of this one row, not a separate
+// account per role:
+//   - isAdmin true            -> can use /admin
+//   - a linked Artist exists  -> can use /seller (that Artist IS their shop)
+//   - always                  -> can browse/buy, see /account order history
+// Someone can be more than one of these at once on the same login.
+model User {
+  id                  String                @id @default(cuid())
+  email               String                @unique
+  passwordHash        String
+  name                String?
+  isAdmin             Boolean               @default(false)
+  artist              Artist?
+  orders              Order[]
+  passwordResetTokens PasswordResetToken[]
+  createdAt           DateTime              @default(now())
 }
 
 model PasswordResetToken {
   id         String    @id @default(cuid())
-  customer   Customer  @relation(fields: [customerId], references: [id])
-  customerId String
+  user       User      @relation(fields: [userId], references: [id])
+  userId     String
   tokenHash  String    @unique
   expiresAt  DateTime
   usedAt     DateTime?

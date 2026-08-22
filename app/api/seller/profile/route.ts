@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentSeller } from "@/lib/seller-auth";
+import { getCurrentUser } from "@/lib/auth";
 
 type ProfileUpdateBody = {
   name: string;
@@ -10,7 +10,8 @@ type ProfileUpdateBody = {
 };
 
 export async function PATCH(request: Request) {
-  const seller = await getCurrentSeller();
+  const currentUser = await getCurrentUser();
+  const seller = currentUser?.artist;
   if (!seller) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }

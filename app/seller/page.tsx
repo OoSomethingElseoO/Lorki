@@ -2,8 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PageTitle } from "@/components/page-title";
 import { SiteHeader } from "@/components/site-header";
-import { SellerLogoutButton } from "@/components/seller-logout-button";
-import { getCurrentSeller } from "@/lib/seller-auth";
+import { LogoutButton } from "@/components/logout-button";
+import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -13,9 +13,10 @@ function formatDollars(cents: number) {
 }
 
 export default async function SellerDashboardPage() {
-  const seller = await getCurrentSeller();
+  const currentUser = await getCurrentUser();
+  const seller = currentUser?.artist;
   if (!seller) {
-    redirect("/seller/login");
+    redirect("/login");
   }
 
   const [campaigns, orders] = await Promise.all([
@@ -53,7 +54,7 @@ export default async function SellerDashboardPage() {
           <Link href="/seller/profile" className="button-link">
             Edit profile
           </Link>
-          <SellerLogoutButton />
+          <LogoutButton />
         </div>
 
         <section className="impact-totals" aria-label="Your earnings">

@@ -10,13 +10,14 @@ async function main() {
   const adminPassword = process.env.ADMIN_PASSWORD;
 
   if (adminEmail && adminPassword) {
-    await prisma.adminUser.upsert({
+    await prisma.user.upsert({
       where: { email: adminEmail.toLowerCase().trim() },
       update: {},
       create: {
         email: adminEmail.toLowerCase().trim(),
         name: "Admin",
         passwordHash: await hashPassword(adminPassword),
+        isAdmin: true,
       },
     });
     console.log(`Seeded admin user: ${adminEmail} (only if it didn't already exist)`);

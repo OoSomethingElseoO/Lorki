@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentSeller } from "@/lib/seller-auth";
+import { getCurrentUser } from "@/lib/auth";
 
 export async function GET() {
-  const seller = await getCurrentSeller();
+  const currentUser = await getCurrentUser();
+  const seller = currentUser?.artist;
   if (!seller) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
@@ -30,7 +31,8 @@ type CreateBody = {
 // belongs to is already LIVE (self-service campaigns always are), so there
 // is no separate publish/approval step for the artwork itself.
 export async function POST(request: Request) {
-  const seller = await getCurrentSeller();
+  const currentUser = await getCurrentUser();
+  const seller = currentUser?.artist;
   if (!seller) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }

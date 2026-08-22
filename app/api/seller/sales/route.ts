@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentSeller } from "@/lib/seller-auth";
+import { getCurrentUser } from "@/lib/auth";
 
 // A seller sees only orders for artwork under their own campaigns, and
 // only their own ARTIST-recipient payout rows — never another seller's
 // numbers, never the conservancy/operations cut of their own sale.
 export async function GET() {
-  const seller = await getCurrentSeller();
+  const currentUser = await getCurrentUser();
+  const seller = currentUser?.artist;
   if (!seller) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }

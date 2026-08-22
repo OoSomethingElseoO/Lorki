@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { PageTitle } from "@/components/page-title";
 import { SiteHeader } from "@/components/site-header";
 import { SellerNewArtworkForm } from "@/components/seller-new-artwork-form";
-import { getCurrentSeller } from "@/lib/seller-auth";
+import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -12,9 +12,10 @@ type PageProps = {
 };
 
 export default async function SellerNewArtworkPage({ searchParams }: PageProps) {
-  const seller = await getCurrentSeller();
+  const currentUser = await getCurrentUser();
+  const seller = currentUser?.artist;
   if (!seller) {
-    redirect("/seller/login");
+    redirect("/login");
   }
 
   const { campaignId } = await searchParams;

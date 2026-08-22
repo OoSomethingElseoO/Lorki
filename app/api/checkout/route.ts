@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getStripe } from "@/lib/stripe";
 import { releaseExpiredReservations } from "@/lib/reservations";
 import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
-import { getCurrentCustomer } from "@/lib/customer-auth";
+import { getCurrentUser } from "@/lib/auth";
 
 type CheckoutBody = {
   artworkId: string;
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
   // A logged-in buyer's email comes from their account, not the request
   // body — this is also what links the resulting Order back to them via
   // the webhook. Guests must supply an email explicitly.
-  const customer = await getCurrentCustomer();
+  const customer = await getCurrentUser();
   const buyerEmail = customer?.email ?? body.buyerEmail;
 
   if (!buyerEmail) {

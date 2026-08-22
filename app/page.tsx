@@ -10,7 +10,7 @@ import {
   getLiveNewsArticles,
 } from "@/lib/storefront";
 import { getBranding, getSettings } from "@/lib/settings";
-import { getCurrentCustomer } from "@/lib/customer-auth";
+import { getCurrentUser } from "@/lib/auth";
 
 function formatDollars(cents: number) {
   return `$${(cents / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -31,7 +31,7 @@ export default async function Home() {
       getImpactTotals(),
       getBranding(),
       getSettings(),
-      getCurrentCustomer(),
+      getCurrentUser(),
     ]);
 
   const originals = originalsResult.items;

@@ -3,7 +3,7 @@ import { PageTitle } from "@/components/page-title";
 import { SiteHeader } from "@/components/site-header";
 import { Pagination } from "@/components/pagination";
 import { getLiveArtworksByKind } from "@/lib/storefront";
-import { getCurrentCustomer } from "@/lib/customer-auth";
+import { getCurrentUser } from "@/lib/auth";
 
 type PrintsPageProps = {
   searchParams: Promise<{ page?: string }>;
@@ -13,7 +13,7 @@ export default async function PrintsPage({ searchParams }: PrintsPageProps) {
   const { page } = await searchParams;
   const [{ items, totalPages, page: currentPage }, customer] = await Promise.all([
     getLiveArtworksByKind("PRINT", Number(page)),
-    getCurrentCustomer(),
+    getCurrentUser(),
   ]);
 
   return (
