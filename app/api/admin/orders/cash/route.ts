@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { computeSplit } from "@/lib/payouts";
+import { computeSplit, getCampaignConservancyId } from "@/lib/payouts";
 import { sendOperationsAlert, sendOrderConfirmationEmail } from "@/lib/email";
+import { attemptAutomaticPayout } from "@/lib/payout-channels";
 
 type CashSaleBody = {
   artworkId: string;
@@ -13,6 +14,10 @@ type CashSaleBody = {
   shippingRegion?: string;
   shippingPostalCode?: string;
   shippingCountry?: string;
+  // Buyer is taking the piece home right now — nothing to ship, so there's
+  // no delivery window to wait out. Payouts release immediately instead of
+  // holding PENDING through the normal ship-then-deliver flow.
+  inPerson?: boolean;
 };
 
 // Mirrors handleCheckoutCompleted in app/api/webhooks/stripe/route.ts — same
@@ -29,7 +34,11 @@ export async function POST(request: Request) {
 
   const artwork = await prisma.artwork.findUnique({
     where: { id: body.artworkId },
-    include: { campaign: true },
+    include: {
+      campaign: {
+        include: { artist: true, conservancy: true, animal: { include: { conservancy: true } } },
+      },
+    },
   });
 
   if (!artwork) {
@@ -39,6 +48,10 @@ export async function POST(request: Request) {
   if (artwork.inventoryState !== "AVAILABLE") {
     return NextResponse.json({ error: "Artwork is not available" }, { status: 409 });
   }
+
+  const inPerson = body.inPerson === true;
+  const conservancyId = getCampaignConservancyId(artwork.campaign);
+  const conservancy = artwork.campaign.animal?.conservancy ?? artwork.campaign.conservancy!;
 
   const order = await prisma.$transaction(async (tx) => {
     const order = await tx.order.create({
@@ -55,7 +68,9 @@ export async function POST(request: Request) {
         amountCents: artwork.priceCents,
         currency: artwork.currency,
         paymentMethod: "CASH",
-        status: "PAID",
+        // In-person handoffs skip the ship→deliver wait entirely: the buyer
+        // already has the piece the moment the sale is recorded.
+        status: inPerson ? "DELIVERED" : "PAID",
       },
     });
 
@@ -67,12 +82,35 @@ export async function POST(request: Request) {
     }
 
     const split = computeSplit(order.amountCents, artwork.campaign);
+    const payoutStatus = inPerson ? ("RELEASED" as const) : ("PENDING" as const);
+    const releasedAt = inPerson ? new Date() : null;
 
     await tx.payout.createMany({
       data: [
-        { orderId: order.id, recipientType: "ARTIST", recipientId: artwork.campaign.artistId, amountCents: split.artistCents },
-        { orderId: order.id, recipientType: "CONSERVANCY", recipientId: artwork.campaign.animalId, amountCents: split.conservancyCents },
-        { orderId: order.id, recipientType: "OPERATIONS", recipientId: "operations", amountCents: split.operationsCents },
+        {
+          orderId: order.id,
+          recipientType: "ARTIST",
+          recipientId: artwork.campaign.artistId,
+          amountCents: split.artistCents,
+          status: payoutStatus,
+          releasedAt,
+        },
+        {
+          orderId: order.id,
+          recipientType: "CONSERVANCY",
+          recipientId: conservancyId,
+          amountCents: split.conservancyCents,
+          status: payoutStatus,
+          releasedAt,
+        },
+        {
+          orderId: order.id,
+          recipientType: "OPERATIONS",
+          recipientId: "operations",
+          amountCents: split.operationsCents,
+          status: payoutStatus,
+          releasedAt,
+        },
       ],
     });
 
@@ -89,6 +127,17 @@ export async function POST(request: Request) {
     `Cash sale recorded: ${artwork.title}`,
     `<p>${order.buyerEmail} bought <strong>${artwork.title}</strong> for $${(order.amountCents / 100).toFixed(2)} (cash).</p>`,
   );
+
+  if (inPerson) {
+    const artistPayout = await prisma.payout.findFirst({ where: { orderId: order.id, recipientType: "ARTIST" } });
+    if (artistPayout) {
+      await attemptAutomaticPayout(artistPayout.id, artwork.campaign.artist);
+    }
+    const conservancyPayout = await prisma.payout.findFirst({ where: { orderId: order.id, recipientType: "CONSERVANCY" } });
+    if (conservancyPayout) {
+      await attemptAutomaticPayout(conservancyPayout.id, conservancy);
+    }
+  }
 
   return NextResponse.json({ order }, { status: 201 });
 }

@@ -8,6 +8,15 @@ datasource db {
 
 // A conservancy is the accountable partner org that receives the conservation
 // cut for the animals it protects. One conservancy can back many animals.
+// A Conservancy is really "any cause a campaign's donations go to" — the
+// name predates campaigns that don't depict a specific animal at all (see
+// Campaign.conservancyId). Kept as-is rather than renamed throughout the
+// codebase (a mass rename across every route/page referencing it is a lot
+// of blast radius for a cosmetic change); admin-facing copy calls it
+// "Cause" where that reads better. animals is populated only for
+// wildlife-specific causes; campaigns is populated for both — a campaign
+// either goes through an Animal (and this is derived) or links here
+// directly (see Campaign.conservancyId).
 model Conservancy {
   id            String   @id @default(cuid())
   name          String
@@ -15,9 +24,63 @@ model Conservancy {
   mission       String
   website       String
   contactEmail  String
-  payoutAccount String? // Stripe Connect account id, or bank/M-Pesa reference
+  payoutAccount String? // free-text note; superseded by the structured payout fields below
   animals       Animal[]
+  campaigns     Campaign[]
   createdAt     DateTime @default(now())
+
+  // Not real KYC/KYB — no identity or sanctions database is checked here,
+  // this is a lightweight anti-impersonation checkpoint, not a compliance
+  // program (get a lawyer involved before treating it as one). Anyone can
+  // self-register a cause (see /cause/onboarding) with nothing but a name
+  // and a self-asserted mission; these fields give an admin something
+  // concrete to actually check instead of trusting prose, and a record of
+  // what was checked. verifiedAt (the actual gate — /api/seller/campaigns
+  // refuses to let an artist route a self-service campaign's donations to
+  // an unverified cause) is only set by /api/admin/conservancies/[id]/verify
+  // once all three checklist items below are confirmed together in one
+  // request — see that route. Admin-created conservancies (via
+  // /admin/conservancies) are verified at creation instead: an admin
+  // entering one by hand already is the vetting.
+  verifiedAt              DateTime?
+  registrationNumber      String? // self-reported NGO/business registry number — the admin looks this up, it isn't validated automatically
+  registrationDocumentUrl String? // an uploaded registration certificate/scan, for the admin to review
+  payoutAccountHolderName String? // the name ON the payout account — should match `name` (money should go to the entity, not an individual); checked at verification, not enforced by the DB
+  registrationCheckedAt   DateTime? // admin confirmed the registration number checks out
+  // HOW it was confirmed — required, free text. Not every country has a
+  // free instant registry lookup (Kenya's PBORA and Ethiopia's ACSO don't;
+  // Nigeria's CAC and South Africa's NPO register do), so a uniform
+  // checkbox would let "verified" mean anything from a one-click official
+  // search to nothing at all. Forcing the admin to write down the actual
+  // method (a paid records search, an independently-found phone call, a
+  // sector-specific directory, whichever official registry) makes that
+  // difference visible instead of hiding it — see lib/registry-lookups.ts.
+  registrationVerificationMethod String?
+  sanctionsCheckedAt      DateTime? // admin confirmed the org/contact isn't on a sanctions list (e.g. OFAC's SDN list)
+  payoutNameCheckedAt     DateTime? // admin confirmed payoutAccountHolderName actually matches the org's name
+
+  // Having a linked User is what lets an org register and manage itself
+  // (name/mission/payout details) through the same unified login as
+  // everyone else, instead of requiring an admin to create every cause by
+  // hand — see /cause/onboarding. Nullable: admin-created causes have no
+  // linked User until they (or an admin) connect one.
+  user   User?   @relation(fields: [userId], references: [id])
+  userId String? @unique
+
+  // Same pluggable payout system as Artist (see lib/payout-channels/) —
+  // a cause is just a second kind of payout recipient, not a different
+  // system. MANUAL (the default) keeps today's behavior: an admin settles
+  // it by hand via /admin/payouts.
+  payoutChannel            PayoutChannel @default(MANUAL)
+  payoutCountry            String?
+  payoutCurrency           String?
+  payoutMobileNetwork      String?
+  payoutAccountNumber      String?
+  payoutBankCode           String?
+  stripeConnectedAccountId String?
+  stripeConnectOnboarded   Boolean       @default(false)
+  cryptoNetwork            String?
+  cryptoAddress            String?
 }
 
 // A co-op supplies and vouches for multiple artists, and is the local
@@ -54,6 +117,41 @@ model Artist {
   bio           String
   imageUrl      String
   payoutAccount String?
+  // Which automated rail (if any) actually moves this artist's payout —
+  // see lib/payout-channels/. This is per-artist, not a single global
+  // choice, because artists bank in different countries through different
+  // systems: FLUTTERWAVE alone covers 30+ countries across mobile money
+  // (M-Pesa in Kenya or Ethiopia, MTN/Airtel elsewhere) and bank transfer
+  // (e.g. South Africa) — see the payoutCountry/payoutCurrency/
+  // payoutMobileNetwork fields below, which is which. STRIPE_CONNECT is
+  // for an artist banking in a Stripe-supported country instead. MANUAL
+  // (the default) means no automated rail is set up — the payout still
+  // releases as a tracked obligation (Payout.paidOutAt), an admin just
+  // settles it by hand. Adding a new country/provider later is a new enum
+  // value plus a new module in lib/payout-channels/, not a rewrite.
+  payoutChannel PayoutChannel @default(MANUAL)
+  // FLUTTERWAVE details — all generic, no country hardcoded anywhere in
+  // code that reads these. payoutMobileNetwork set (e.g. "Mpesa", "MTN",
+  // "Airtel") means mobile money and payoutAccountNumber is a phone
+  // number; left null means bank transfer instead, and
+  // payoutAccountNumber is a bank account number with payoutBankCode
+  // required alongside it (e.g. Flutterwave's numeric bank codes in
+  // Nigeria, or the short bank codes South African banks use).
+  payoutCountry        String?
+  payoutCurrency       String?
+  payoutMobileNetwork  String?
+  payoutAccountNumber  String?
+  payoutBankCode       String?
+  // STRIPE_CONNECT detail: set once the artist completes Stripe's hosted
+  // onboarding (see /api/seller/connect/onboard). onboarded tracks
+  // charges_enabled/payouts_enabled so we don't attempt a transfer to an
+  // account that can't yet receive one.
+  stripeConnectedAccountId String?
+  stripeConnectOnboarded   Boolean @default(false)
+  // CRYPTO detail: e.g. cryptoNetwork "USDC on Base", cryptoAddress the
+  // wallet to send to. No automated sending — see the enum comment.
+  cryptoNetwork String?
+  cryptoAddress String?
   coOp          CoOp?       @relation(fields: [coOpId], references: [id])
   coOpId        String?
   socialLinks   SocialLink[]
@@ -78,19 +176,31 @@ model SocialLink {
 
 // The core unit: one animal x one artist x one split ratio. Everything sold
 // under this campaign inherits its split.
+// A campaign always benefits exactly one cause — either indirectly through
+// a specific Animal (the wildlife-portrait case this app started as: the
+// cause is derived as animal.conservancy) or directly through
+// conservancyId (any other campaign: the artist picks a registered cause,
+// no animal involved at all). Exactly one of animalId/conservancyId is
+// ever set — enforced in the campaign-creation routes, not the DB, since
+// Postgres has no clean "exactly one of two nullable FKs" constraint.
+// getCampaignConservancyId() in lib/payouts.ts is the one place that
+// resolves which one applies — every payout-creating code path calls it
+// rather than re-deriving this itself.
 model Campaign {
-  id                  String     @id @default(cuid())
-  slug                String     @unique
-  animal              Animal     @relation(fields: [animalId], references: [id])
-  animalId            String
-  artist              Artist     @relation(fields: [artistId], references: [id])
+  id                  String      @id @default(cuid())
+  slug                String      @unique
+  animal              Animal?     @relation(fields: [animalId], references: [id])
+  animalId            String?
+  conservancy         Conservancy? @relation(fields: [conservancyId], references: [id])
+  conservancyId       String?
+  artist              Artist      @relation(fields: [artistId], references: [id])
   artistId            String
   artistPercent       Int
   conservancyPercent  Int
   operationsPercent   Int
   status              CampaignStatus @default(DRAFT)
   artworks            Artwork[]
-  createdAt           DateTime   @default(now())
+  createdAt           DateTime    @default(now())
 }
 
 enum CampaignStatus {
@@ -113,12 +223,35 @@ model Artwork {
   inventoryState InventoryState @default(AVAILABLE)
   reservedAt     DateTime?
   orders         Order[]
+  inquiries      Inquiry[]
   createdAt      DateTime     @default(now())
 }
 
 enum ArtworkKind {
   ORIGINAL
   PRINT
+}
+
+// Originals are high-value and one-of-one, so they don't go through instant
+// self-checkout — a visitor expresses interest here, the team follows up
+// personally (payment method, shipping/insurance, timeline), and the
+// resulting sale gets recorded through the existing admin cash-sale flow
+// once terms are agreed. Prints stay on instant Stripe checkout.
+model Inquiry {
+  id        String        @id @default(cuid())
+  artwork   Artwork       @relation(fields: [artworkId], references: [id])
+  artworkId String
+  name      String
+  email     String
+  message   String?
+  status    InquiryStatus @default(NEW)
+  createdAt DateTime      @default(now())
+}
+
+enum InquiryStatus {
+  NEW
+  CONTACTED
+  CLOSED
 }
 
 // Originals are one-of-one; prints are fulfilled per order via a
@@ -148,6 +281,12 @@ model Order {
   stripePaymentIntentId String?     @unique
   paymentMethod         PaymentMethod @default(STRIPE)
   status                OrderStatus @default(PENDING)
+  // A Stripe chargeback in progress — orthogonal to `status` (fulfillment
+  // progress) rather than a replacement for it, since a dispute can open on
+  // an order that's already SHIPPED or DELIVERED and we must not lose that
+  // fulfillment history. Set on charge.dispute.created, cleared on
+  // charge.dispute.closed; see handleDispute in the Stripe webhook.
+  disputedAt            DateTime?
   payouts               Payout[]
   shipment              Shipment?
   createdAt             DateTime    @default(now())
@@ -156,8 +295,8 @@ model Order {
 enum OrderStatus {
   PENDING    // checkout started
   PAID       // payment confirmed (Stripe webhook, or an admin recording cash), payouts not yet released
-  SHIPPED    // triggers payout release
-  DELIVERED
+  SHIPPED    // buyer doesn't have it yet — payout release still waits for DELIVERED
+  DELIVERED  // triggers payout release
   REFUNDED
 }
 
@@ -170,9 +309,14 @@ enum PaymentMethod {
   CASH
 }
 
-// Payouts are held (PENDING) until the order ships, then released as Stripe
-// Transfers to the recipient's connected/bank account. This is the audit
-// trail for the public impact numbers.
+// Payouts are held (PENDING) until the buyer actually has the piece in hand
+// — order status DELIVERED (confirmed after shipping) or an in-person cash
+// handoff — then released as Stripe Transfers to the recipient's
+// connected/bank account. Holding through SHIPPED-but-not-yet-DELIVERED is
+// deliberate: it's the window a refund (lost in transit, damaged,
+// dissatisfaction) can still claw back a PENDING payout with nothing to
+// unwind on the recipient's side. This is the audit trail for the public
+// impact numbers.
 model Payout {
   id            String        @id @default(cuid())
   order         Order         @relation(fields: [orderId], references: [id])
@@ -183,6 +327,19 @@ model Payout {
   status        PayoutStatus  @default(PENDING)
   stripeTransferId String?
   releasedAt    DateTime?
+  // RELEASED means "cleared to pay" (the buyer has the piece) — it does NOT
+  // by itself mean money has moved. For an ARTIST payout where the artist
+  // has set mpesaPhone and Flutterwave is configured, release attempts a
+  // real M-Pesa transfer automatically (see lib/flutterwave.ts) and these
+  // two fields track it. Everything else (conservancy, operations, or an
+  // artist with no mpesaPhone yet) has no automated rail: it's an
+  // obligation the admin settles manually — sweep this amount into a
+  // separate holding account, then mark it paid out from there.
+  // paidOutAt records that real-world step either way, independent of
+  // `status` — see /admin/payouts.
+  flutterwaveTransferId     String?
+  flutterwaveTransferStatus String?
+  paidOutAt     DateTime?
   createdAt     DateTime      @default(now())
 }
 
@@ -190,6 +347,23 @@ enum RecipientType {
   ARTIST
   CONSERVANCY
   OPERATIONS
+}
+
+// One value per automated payout rail — see lib/payout-channels/. Add a
+// value here plus a matching module to support a new country/provider;
+// nothing else in the dispatch needs to change.
+enum PayoutChannel {
+  MANUAL
+  FLUTTERWAVE
+  STRIPE_CONNECT
+  // No automated on-chain sending yet — deliberately. That needs the
+  // business to hold real crypto funds and a private key in production,
+  // which is its own security-sensitive project (proper custody, not an
+  // env var), not something to bolt on here. For now this behaves like
+  // MANUAL: the artist's wallet address/network show up in /admin/payouts
+  // so an admin can send it from whatever wallet/exchange they actually
+  // use, then mark it paid out.
+  CRYPTO
 }
 
 enum PayoutStatus {
@@ -226,6 +400,11 @@ model Settings {
   id                  String   @id @default("singleton")
   stripeSecretKey     String?
   stripeWebhookSecret String?
+  // Sends money to Kenyan artists' M-Pesa numbers directly — Flutterwave
+  // holds US money-transmitter licenses, unlike Stripe (Kenya isn't a
+  // supported Stripe country at all). See lib/flutterwave.ts.
+  flutterwaveSecretKey     String?
+  flutterwaveWebhookSecret String?
   resendApiKey        String?
   emailFrom           String?
   operationsEmail     String?
@@ -276,6 +455,7 @@ model User {
   name                String?
   isAdmin             Boolean               @default(false)
   artist              Artist?
+  conservancy         Conservancy?
   orders              Order[]
   passwordResetTokens PasswordResetToken[]
   createdAt           DateTime              @default(now())

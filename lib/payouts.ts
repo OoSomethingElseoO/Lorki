@@ -1,5 +1,22 @@
 import type { Campaign } from "@prisma/client";
 
+// A campaign benefits exactly one cause, reached one of two ways: through
+// a specific Animal (derived as animal.conservancyId — the wildlife-
+// portrait case) or directly (campaign.conservancyId — any other cause,
+// no animal involved). Every payout-creating code path resolves it here
+// rather than re-deriving this itself, so the two ways of expressing "who
+// gets the conservancy's cut" never drift out of sync.
+export function getCampaignConservancyId(campaign: {
+  conservancyId: string | null;
+  animal: { conservancyId: string } | null;
+}): string {
+  const conservancyId = campaign.animal?.conservancyId ?? campaign.conservancyId;
+  if (!conservancyId) {
+    throw new Error("Campaign has neither an animal nor a direct conservancyId — this should never happen");
+  }
+  return conservancyId;
+}
+
 // Applied to every self-service campaign a seller creates — deliberately
 // not settable by the seller. Letting a seller pick their own split would
 // let them quietly zero out the conservation cut, which is the entire

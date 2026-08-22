@@ -1,6 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { ShipOrderForm } from "@/components/admin/ship-order-form";
+import { DeliverOrderForm } from "@/components/admin/deliver-order-form";
+import { RefundOrderButton } from "@/components/admin/refund-order-button";
 import { CashSaleForm } from "@/components/admin/cash-sale-form";
+import { getCampaignLabel } from "@/lib/campaigns";
 
 export const dynamic = "force-dynamic";
 
@@ -8,7 +11,7 @@ export default async function AdminOrdersPage() {
   const [orders, availableArtworks] = await Promise.all([
     prisma.order.findMany({
       include: {
-        artwork: { include: { campaign: { include: { animal: true, artist: true } } } },
+        artwork: { include: { campaign: { include: { animal: true, conservancy: true, artist: true } } } },
         payouts: true,
         shipment: true,
       },
@@ -16,7 +19,7 @@ export default async function AdminOrdersPage() {
     }),
     prisma.artwork.findMany({
       where: { inventoryState: "AVAILABLE", campaign: { status: "LIVE" } },
-      include: { campaign: { include: { animal: true, artist: true } } },
+      include: { campaign: { include: { animal: true, conservancy: true, artist: true } } },
       orderBy: { createdAt: "desc" },
     }),
   ]);
@@ -28,14 +31,14 @@ export default async function AdminOrdersPage() {
       <h2>Record a cash sale</h2>
       <p className="admin-form__hint">
         For a sale collected outside Stripe — cash in hand, bank transfer, at a market. Follows the same
-        split and payout-on-shipment rules as a card sale.
+        split as a card sale, and the same payout-held-until-delivered rule unless it's an in-person handoff.
       </p>
       <CashSaleForm
         artworks={availableArtworks.map((artwork) => ({
           id: artwork.id,
           title: artwork.title,
           priceCents: artwork.priceCents,
-          campaignLabel: `${artwork.campaign.animal.name} × ${artwork.campaign.artist.name}`,
+          campaignLabel: getCampaignLabel(artwork.campaign),
         }))}
       />
 
@@ -49,6 +52,7 @@ export default async function AdminOrdersPage() {
             <th>Status</th>
             <th>Payouts</th>
             <th>Fulfillment</th>
+            <th>Refund</th>
           </tr>
         </thead>
         <tbody>
@@ -57,9 +61,7 @@ export default async function AdminOrdersPage() {
               <td>
                 {order.artwork.title}
                 <br />
-                <span className="admin-form__hint">
-                  {order.artwork.campaign.animal.name} &times; {order.artwork.campaign.artist.name}
-                </span>
+                <span className="admin-form__hint">{getCampaignLabel(order.artwork.campaign)}</span>
               </td>
               <td>{order.buyerEmail}</td>
               <td>${(order.amountCents / 100).toFixed(2)}</td>
@@ -74,20 +76,32 @@ export default async function AdminOrdersPage() {
               </td>
               <td>
                 {order.shipment ? (
-                  <span>
-                    Shipped via {order.shipment.carrier} ({order.shipment.method})
-                  </span>
+                  <>
+                    <span>
+                      {order.shipment.deliveredAt ? "Delivered" : "Shipped"} via {order.shipment.carrier} (
+                      {order.shipment.method})
+                      {order.shipment.deliveredAt
+                        ? ` — ${order.shipment.deliveredAt.toLocaleDateString()}`
+                        : null}
+                    </span>
+                    {!order.shipment.deliveredAt && order.status === "SHIPPED" ? (
+                      <DeliverOrderForm orderId={order.id} />
+                    ) : null}
+                  </>
                 ) : order.status === "PAID" ? (
                   <ShipOrderForm orderId={order.id} />
+                ) : order.status === "DELIVERED" ? (
+                  "Delivered (in person)"
                 ) : (
                   "—"
                 )}
               </td>
+              <td>{order.status === "REFUNDED" ? "Refunded" : <RefundOrderButton orderId={order.id} />}</td>
             </tr>
           ))}
           {orders.length === 0 ? (
             <tr>
-              <td colSpan={7}>No orders yet.</td>
+              <td colSpan={8}>No orders yet.</td>
             </tr>
           ) : null}
         </tbody>

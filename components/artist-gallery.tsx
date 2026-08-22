@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { StorefrontArtwork } from "@/lib/storefront";
 import { AccessibleModal } from "@/components/accessible-modal";
 import { BuyButton } from "@/components/buy-button";
+import { InquiryForm } from "@/components/inquiry-form";
 
 type ArtistGalleryProps = {
   artworks: StorefrontArtwork[];
@@ -30,12 +31,16 @@ export function ArtistGallery({ artworks, customerEmail }: ArtistGalleryProps) {
                 <img src={artwork.imageUrl} alt={artwork.altText} />
               </button>
               <h3>{artwork.title}</h3>
-              <BuyButton
-                artworkId={artwork.id}
-                title={artwork.title}
-                priceCents={artwork.priceCents}
-                customerEmail={customerEmail}
-              />
+              {artwork.kind === "ORIGINAL" ? (
+                <InquiryForm artworkId={artwork.id} title={artwork.title} customerEmail={customerEmail} />
+              ) : (
+                <BuyButton
+                  artworkId={artwork.id}
+                  title={artwork.title}
+                  priceCents={artwork.priceCents}
+                  customerEmail={customerEmail}
+                />
+              )}
             </article>
           ))}
         </div>
@@ -49,12 +54,16 @@ export function ArtistGallery({ artworks, customerEmail }: ArtistGalleryProps) {
         {selectedArtwork ? (
           <div className="modal-artwork">
             <img src={selectedArtwork.imageUrl} alt={selectedArtwork.altText} />
-            <BuyButton
-              artworkId={selectedArtwork.id}
-              title={selectedArtwork.title}
-              priceCents={selectedArtwork.priceCents}
-              customerEmail={customerEmail}
-            />
+            {selectedArtwork.kind === "ORIGINAL" ? (
+              <InquiryForm artworkId={selectedArtwork.id} title={selectedArtwork.title} customerEmail={customerEmail} />
+            ) : (
+              <BuyButton
+                artworkId={selectedArtwork.id}
+                title={selectedArtwork.title}
+                priceCents={selectedArtwork.priceCents}
+                customerEmail={customerEmail}
+              />
+            )}
           </div>
         ) : null}
       </AccessibleModal>

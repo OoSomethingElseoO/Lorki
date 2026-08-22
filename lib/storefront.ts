@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 export type StorefrontArtwork = {
   id: string;
   title: string;
+  kind: "ORIGINAL" | "PRINT";
   artistName: string;
   artistSlug: string;
   priceCents: number;
@@ -24,6 +25,7 @@ export type PaginatedResult<T> = {
 function mapArtwork(artwork: {
   id: string;
   title: string;
+  kind: "ORIGINAL" | "PRINT";
   priceCents: number;
   imageUrl: string;
   altText: string;
@@ -32,6 +34,7 @@ function mapArtwork(artwork: {
   return {
     id: artwork.id,
     title: artwork.title,
+    kind: artwork.kind,
     artistName: artwork.campaign.artist.name,
     artistSlug: artwork.campaign.artist.slug,
     priceCents: artwork.priceCents,

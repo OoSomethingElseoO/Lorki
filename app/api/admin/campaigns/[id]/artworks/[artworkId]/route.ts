@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { foreignKeyConstraintResponse, isForeignKeyConstraintError, isNotFoundError } from "@/lib/prisma-errors";
+import { isPriceTooLow, MIN_PRICE_CENTS } from "@/lib/pricing";
 
 type RouteParams = { params: Promise<{ id: string; artworkId: string }> };
 
@@ -25,6 +26,10 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
   if (body.kind !== "ORIGINAL" && body.kind !== "PRINT") {
     return NextResponse.json({ error: "kind must be ORIGINAL or PRINT" }, { status: 400 });
+  }
+
+  if (isPriceTooLow(body.priceCents)) {
+    return NextResponse.json({ error: `priceCents must be at least ${MIN_PRICE_CENTS}` }, { status: 400 });
   }
 
   const artwork = await prisma.artwork.findUnique({ where: { id: artworkId } });

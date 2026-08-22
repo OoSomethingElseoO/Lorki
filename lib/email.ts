@@ -69,6 +69,23 @@ export async function sendPasswordResetEmail(params: { to: string; resetUrl: str
   );
 }
 
+export async function sendRefundConfirmationEmail(params: { buyerEmail: string; artworkTitle: string; amountCents: number }) {
+  const amount = (params.amountCents / 100).toFixed(2);
+  await sendEmail(
+    params.buyerEmail,
+    `Your refund: ${params.artworkTitle}`,
+    `<p>Your order for <strong>${params.artworkTitle}</strong> ($${amount}) has been refunded.</p><p>If you paid by card, the refund should appear on your statement within a few business days.</p>`,
+  );
+}
+
+export async function sendInquiryConfirmationEmail(params: { email: string; artworkTitle: string }) {
+  await sendEmail(
+    params.email,
+    `We received your inquiry: ${params.artworkTitle}`,
+    `<p>Thanks for your interest in <strong>${params.artworkTitle}</strong>.</p><p>This is a one-of-one original, so we arrange these sales personally — someone from our team will be in touch with you by email shortly to sort out payment and shipping.</p>`,
+  );
+}
+
 export async function sendOperationsAlert(subject: string, html: string) {
   const operationsEmail = await getOperationsEmail();
   if (!operationsEmail) {

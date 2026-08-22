@@ -583,6 +583,58 @@ a:focus-visible {
   font-size: 0.9rem;
 }
 
+.inquiry-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+}
+
+.inquiry-form input,
+.inquiry-form textarea {
+  border: 2px solid var(--line);
+  background: #fff;
+  padding: 0.6rem 0.7rem;
+  font: inherit;
+  color: var(--ink);
+}
+
+.inquiry-form textarea {
+  min-height: 4.5rem;
+  resize: vertical;
+}
+
+.inquiry-form .button-link {
+  align-self: flex-start;
+  margin-top: 0;
+  border: 2px solid var(--line);
+  cursor: pointer;
+  font: inherit;
+}
+
+.inquiry-form .button-link:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.inquiry-form__hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--muted, #6b6357);
+}
+
+.inquiry-form__error {
+  margin: 0;
+  color: #a13d2f;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.inquiry-form__success {
+  margin-top: 0.85rem;
+  font-weight: 700;
+}
+
 .artist-profile__social-links {
   display: flex;
   flex-wrap: wrap;

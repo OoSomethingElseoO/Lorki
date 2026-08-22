@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { foreignKeyConstraintResponse, isForeignKeyConstraintError } from "@/lib/prisma-errors";
+import { isPriceTooLow, MIN_PRICE_CENTS } from "@/lib/pricing";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -48,6 +49,10 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
   if (owned.inventoryState === "SOLD") {
     return NextResponse.json({ error: "This piece has already sold and can no longer be edited" }, { status: 409 });
+  }
+
+  if (isPriceTooLow(body.priceCents)) {
+    return NextResponse.json({ error: `priceCents must be at least ${MIN_PRICE_CENTS}` }, { status: 400 });
   }
 
   const artwork = await prisma.artwork.update({

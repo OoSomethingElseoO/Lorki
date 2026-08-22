@@ -10,10 +10,10 @@ type ShipBody = {
 
 type RouteParams = { params: Promise<{ id: string }> };
 
-// Phase 0: payout release is recorded here, not executed via Stripe Connect
-// (see BACKEND_PRD.md §11 — Connect payouts to Kenya-based recipients are an
-// open decision). Marking a Payout RELEASED here means "the obligation is
-// confirmed and reconciled outside Stripe," not "a Stripe Transfer fired."
+// Payout release does NOT happen here — shipped isn't delivered, and the
+// buyer needs to actually have the piece in hand before money moves to the
+// artist/conservancy/ops (see app/api/admin/orders/[id]/deliver/route.ts,
+// which is what flips Payouts from PENDING to RELEASED).
 export async function POST(request: Request, { params }: RouteParams) {
   const { id } = await params;
   const body = (await request.json()) as Partial<ShipBody>;
@@ -49,10 +49,6 @@ export async function POST(request: Request, { params }: RouteParams) {
         method: body.method,
         shippedAt: new Date(),
       },
-    }),
-    prisma.payout.updateMany({
-      where: { orderId: order.id, status: "PENDING" },
-      data: { status: "RELEASED", releasedAt: new Date() },
     }),
   ]);
 

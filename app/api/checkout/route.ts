@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getStripe } from "@/lib/stripe";
-import { releaseExpiredReservations } from "@/lib/reservations";
 import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
 import { getCurrentUser } from "@/lib/auth";
+import { PRINT_SHIPPING_CENTS } from "@/lib/pricing";
 
 type CheckoutBody = {
   artworkId: string;
@@ -45,8 +45,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Checkout isn't configured yet — no Stripe key is set" }, { status: 503 });
   }
 
-  await releaseExpiredReservations();
-
   const artwork = await prisma.artwork.findUnique({ where: { id: body.artworkId } });
 
   if (!artwork) {
@@ -57,13 +55,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Artwork is not available" }, { status: 409 });
   }
 
-  // Reserve originals immediately so two buyers can't check out the same
-  // one-of-one piece at once. Prints have no inventory limit, so no reserve.
+  // Originals are one-of-one and high-value — they're arranged personally
+  // (see /api/inquiries), never sold through instant self-checkout. Blocking
+  // it here too (not just in the UI) matters: without this, anyone who knew
+  // an artworkId could hit this endpoint directly and buy a one-of-one
+  // instantly, bypassing the entire point of the inquiry flow.
   if (artwork.kind === "ORIGINAL") {
-    await prisma.artwork.update({
-      where: { id: artwork.id },
-      data: { inventoryState: "RESERVED", reservedAt: new Date() },
-    });
+    return NextResponse.json(
+      { error: "Originals are arranged personally rather than sold through instant checkout — please submit an inquiry instead." },
+      { status: 409 },
+    );
   }
 
   const origin = request.headers.get("origin") ?? new URL(request.url).origin;
@@ -83,6 +84,15 @@ export async function POST(request: Request) {
         },
       ],
       shipping_address_collection: { allowed_countries: ["US", "CA", "GB", "KE"] },
+      shipping_options: [
+        {
+          shipping_rate_data: {
+            type: "fixed_amount",
+            fixed_amount: { amount: PRINT_SHIPPING_CENTS, currency: artwork.currency },
+            display_name: "Standard shipping",
+          },
+        },
+      ],
       metadata: { artworkId: artwork.id, ...(customer ? { customerId: customer.id } : {}) },
       success_url: `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/checkout/cancelled`,
@@ -90,15 +100,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ url: session.url });
   } catch (error) {
-    // Undo the reservation on failure — otherwise a bad/expired Stripe key
-    // or a transient API error locks the piece as RESERVED for the full
-    // 30-minute TTL even though no checkout session was ever created.
-    if (artwork.kind === "ORIGINAL") {
-      await prisma.artwork.update({
-        where: { id: artwork.id },
-        data: { inventoryState: "AVAILABLE", reservedAt: null },
-      });
-    }
     console.error("[checkout] Stripe session creation failed", error);
     return NextResponse.json({ error: "Checkout is temporarily unavailable. Please try again." }, { status: 502 });
   }

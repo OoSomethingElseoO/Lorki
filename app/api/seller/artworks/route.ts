@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { isPriceTooLow, MIN_PRICE_CENTS } from "@/lib/pricing";
 
 export async function GET() {
   const currentUser = await getCurrentUser();
@@ -50,8 +51,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "kind must be ORIGINAL or PRINT" }, { status: 400 });
   }
 
-  if (body.priceCents <= 0) {
-    return NextResponse.json({ error: "priceCents must be greater than 0" }, { status: 400 });
+  if (isPriceTooLow(body.priceCents)) {
+    return NextResponse.json({ error: `priceCents must be at least ${MIN_PRICE_CENTS}` }, { status: 400 });
   }
 
   // Ownership check: this campaign must actually belong to the seller

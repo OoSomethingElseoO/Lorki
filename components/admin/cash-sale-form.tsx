@@ -33,6 +33,7 @@ export function CashSaleForm({ artworks }: CashSaleFormProps) {
         shippingRegion: form.get("shippingRegion"),
         shippingPostalCode: form.get("shippingPostalCode"),
         shippingCountry: form.get("shippingCountry"),
+        inPerson: form.get("inPerson") === "on",
       }),
     });
 
@@ -71,6 +72,11 @@ export function CashSaleForm({ artworks }: CashSaleFormProps) {
       <input id="buyerEmail" name="buyerEmail" type="email" required placeholder="buyer@example.com" />
 
       <p className="admin-form__hint">Shipping details are optional — leave blank for an in-person handoff.</p>
+
+      <label className="admin-form__checkbox">
+        <input type="checkbox" id="inPerson" name="inPerson" />
+        Buyer is taking the piece home right now (no shipping needed — releases payout immediately)
+      </label>
 
       <label htmlFor="shippingName">Recipient name</label>
       <input id="shippingName" name="shippingName" />
