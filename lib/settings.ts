@@ -27,6 +27,16 @@ export async function getStripeWebhookSecret(): Promise<string | undefined> {
   return resolve(settings.stripeWebhookSecret, process.env.STRIPE_WEBHOOK_SECRET);
 }
 
+export async function getFlutterwaveSecretKey(): Promise<string | undefined> {
+  const settings = await getSettings();
+  return resolve(settings.flutterwaveSecretKey, process.env.FLUTTERWAVE_SECRET_KEY);
+}
+
+export async function getFlutterwaveWebhookSecret(): Promise<string | undefined> {
+  const settings = await getSettings();
+  return resolve(settings.flutterwaveWebhookSecret, process.env.FLUTTERWAVE_WEBHOOK_SECRET);
+}
+
 export async function getResendApiKey(): Promise<string | undefined> {
   const settings = await getSettings();
   return resolve(settings.resendApiKey, process.env.RESEND_API_KEY);

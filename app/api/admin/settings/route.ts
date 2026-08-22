@@ -2,7 +2,13 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
 
-const SECRET_FIELDS = ["stripeSecretKey", "stripeWebhookSecret", "resendApiKey"] as const;
+const SECRET_FIELDS = [
+  "stripeSecretKey",
+  "stripeWebhookSecret",
+  "flutterwaveSecretKey",
+  "flutterwaveWebhookSecret",
+  "resendApiKey",
+] as const;
 const BRANDING_FIELDS = [
   "siteName",
   "heroTagline",
@@ -21,6 +27,8 @@ export async function GET() {
     settings: {
       stripeSecretKeySet: Boolean(settings.stripeSecretKey),
       stripeWebhookSecretSet: Boolean(settings.stripeWebhookSecret),
+      flutterwaveSecretKeySet: Boolean(settings.flutterwaveSecretKey),
+      flutterwaveWebhookSecretSet: Boolean(settings.flutterwaveWebhookSecret),
       resendApiKeySet: Boolean(settings.resendApiKey),
       emailFrom: settings.emailFrom ?? "",
       operationsEmail: settings.operationsEmail ?? "",

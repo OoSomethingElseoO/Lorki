@@ -4,7 +4,15 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { ImageUploadField } from "@/components/admin/image-upload-field";
 
-const SECRET_FIELDS = ["stripeSecretKey", "stripeWebhookSecret", "resendApiKey", "emailFrom", "operationsEmail"];
+const SECRET_FIELDS = [
+  "stripeSecretKey",
+  "stripeWebhookSecret",
+  "flutterwaveSecretKey",
+  "flutterwaveWebhookSecret",
+  "resendApiKey",
+  "emailFrom",
+  "operationsEmail",
+];
 const BRANDING_FIELDS = [
   "siteName",
   "heroTagline",
@@ -20,6 +28,8 @@ type SettingsFormProps = {
   initial: {
     stripeSecretKeySet: boolean;
     stripeWebhookSecretSet: boolean;
+    flutterwaveSecretKeySet: boolean;
+    flutterwaveWebhookSecretSet: boolean;
     resendApiKeySet: boolean;
     emailFrom: string;
     operationsEmail: string;
@@ -132,6 +142,30 @@ export function SettingsForm({ initial }: SettingsFormProps) {
         name="stripeWebhookSecret"
         type="password"
         placeholder={initial.stripeWebhookSecretSet ? "•••••••••••••••• (set — leave blank to keep)" : "whsec_..."}
+      />
+
+      <h2>Flutterwave (mobile money / bank payouts, 30+ countries)</h2>
+      <p className="admin-form__hint">
+        For artists banking somewhere Stripe doesn't support (e.g. Kenya, Ethiopia, South Africa) — sends
+        their payout straight to mobile money or a bank account, per what each artist sets in their own
+        profile. Leave blank until you've set up a Flutterwave account.
+      </p>
+      <label htmlFor="flutterwaveSecretKey">Secret key</label>
+      <input
+        id="flutterwaveSecretKey"
+        name="flutterwaveSecretKey"
+        type="password"
+        placeholder={initial.flutterwaveSecretKeySet ? "•••••••••••••••• (set — leave blank to keep)" : "FLWSECK_..."}
+      />
+
+      <label htmlFor="flutterwaveWebhookSecret">Webhook secret hash</label>
+      <input
+        id="flutterwaveWebhookSecret"
+        name="flutterwaveWebhookSecret"
+        type="password"
+        placeholder={
+          initial.flutterwaveWebhookSecretSet ? "•••••••••••••••• (set — leave blank to keep)" : "matches the hash configured in Flutterwave's dashboard"
+        }
       />
 
       <h2>Email (Resend)</h2>

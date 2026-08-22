@@ -2,19 +2,17 @@
 
 import { useId, useState } from "react";
 
-type ImageUploadFieldProps = {
+type DocumentUploadFieldProps = {
   name: string;
   label: string;
   defaultValue?: string;
 };
 
-// Hybrid text-or-upload field: the underlying <input name=...> stays a plain
-// URL string so it works with the surrounding form's existing FormData-based
-// submit handlers unchanged — this component just offers a second way to
-// fill it in, either typed or via /api/uploads (shared by admin, seller,
-// and cause forms alike — see that route's own comment for why it isn't
-// under /api/admin/).
-export function ImageUploadField({ name, label, defaultValue }: ImageUploadFieldProps) {
+// Same hybrid text-or-upload pattern as ImageUploadField, but for a
+// document (PDF or image scan of a certificate) rather than artwork —
+// shows a filename/link instead of an <img> preview, since a PDF can't
+// render as one. Posts to the same shared /api/uploads route.
+export function DocumentUploadField({ name, label, defaultValue }: DocumentUploadFieldProps) {
   const id = useId();
   const [url, setUrl] = useState(defaultValue ?? "");
   const [uploading, setUploading] = useState(false);
@@ -54,16 +52,19 @@ export function ImageUploadField({ name, label, defaultValue }: ImageUploadField
         name={name}
         value={url}
         onChange={(event) => setUrl(event.target.value)}
-        placeholder="/uploads/... or paste any image URL"
-        required
+        placeholder="/uploads/... or paste any document URL"
       />
       <label htmlFor={`${id}-file`} className="admin-image-field__upload-label">
-        {uploading ? "Uploading…" : "Or upload a file"}
+        {uploading ? "Uploading…" : "Or upload a file (PDF or image)"}
       </label>
-      <input id={`${id}-file`} type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml" onChange={handleFileChange} />
+      <input id={`${id}-file`} type="file" accept="application/pdf,image/png,image/jpeg,image/webp" onChange={handleFileChange} />
       {error ? <p className="admin-form__error">{error}</p> : null}
       {url ? (
-        <img src={url} alt="" className="admin-image-field__preview" />
+        <p className="admin-form__hint">
+          <a href={url} target="_blank" rel="noreferrer">
+            View uploaded document
+          </a>
+        </p>
       ) : null}
     </div>
   );

@@ -17,6 +17,8 @@ export default async function AdminSettingsPage() {
         initial={{
           stripeSecretKeySet: Boolean(settings.stripeSecretKey),
           stripeWebhookSecretSet: Boolean(settings.stripeWebhookSecret),
+          flutterwaveSecretKeySet: Boolean(settings.flutterwaveSecretKey),
+          flutterwaveWebhookSecretSet: Boolean(settings.flutterwaveWebhookSecret),
           resendApiKeySet: Boolean(settings.resendApiKey),
           emailFrom: settings.emailFrom ?? "",
           operationsEmail: settings.operationsEmail ?? "",
