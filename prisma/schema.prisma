@@ -59,6 +59,11 @@ model Artist {
   socialLinks   SocialLink[]
   campaigns     Campaign[]
   createdAt     DateTime    @default(now())
+
+  // Self-service seller login. Nullable — an artist added by an admin (no
+  // signup) has no login until they self-register or an admin sets one.
+  email         String?     @unique
+  passwordHash  String?
 }
 
 model SocialLink {

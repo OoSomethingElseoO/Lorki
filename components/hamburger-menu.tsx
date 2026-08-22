@@ -9,6 +9,7 @@ const menuLinks = [
   { label: "Originals", href: "/originals" },
   { label: "Prints", href: "/prints" },
   { label: "News", href: "/news" },
+  { label: "Sell Your Art", href: "/seller" },
   { label: "Contact Us", href: "/contact-us" },
 ];
 
