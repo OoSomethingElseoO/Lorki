@@ -5,10 +5,12 @@ import { useState, type FormEvent } from "react";
 
 type CampaignFormProps = {
   animals: { id: string; name: string }[];
+  conservancies: { id: string; name: string }[];
   artists: { id: string; name: string }[];
   id?: string;
   initial?: {
-    animalId: string;
+    animalId: string | null;
+    conservancyId: string | null;
     artistId: string;
     artistPercent: number;
     conservancyPercent: number;
@@ -16,13 +18,21 @@ type CampaignFormProps = {
   };
 };
 
-export function CampaignForm({ animals, artists, id, initial }: CampaignFormProps) {
+export function CampaignForm({ animals, conservancies, artists, id, initial }: CampaignFormProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [artistPercent, setArtistPercent] = useState(initial?.artistPercent ?? 50);
   const [conservancyPercent, setConservancyPercent] = useState(initial?.conservancyPercent ?? 25);
   const [operationsPercent, setOperationsPercent] = useState(initial?.operationsPercent ?? 25);
+  // A campaign benefits exactly one cause, two ways to name it: a specific
+  // Animal (its conservancy is derived) for wildlife-portrait work, or a
+  // Conservancy/cause picked directly for anything else — see the schema
+  // comment on Campaign. Default to whichever the campaign already uses
+  // when editing; default to "animal" (today's only case) when creating.
+  const [causeMode, setCauseMode] = useState<"animal" | "conservancy">(
+    initial?.conservancyId ? "conservancy" : "animal",
+  );
   const isEditing = Boolean(id);
 
   const total = artistPercent + conservancyPercent + operationsPercent;
@@ -42,7 +52,8 @@ export function CampaignForm({ animals, artists, id, initial }: CampaignFormProp
       method: isEditing ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        animalId: form.get("animalId"),
+        animalId: causeMode === "animal" ? form.get("animalId") : null,
+        conservancyId: causeMode === "conservancy" ? form.get("conservancyId") : null,
         artistId: form.get("artistId"),
         artistPercent,
         conservancyPercent,
@@ -70,23 +81,62 @@ export function CampaignForm({ animals, artists, id, initial }: CampaignFormProp
     router.refresh();
   }
 
-  if (animals.length === 0 || artists.length === 0) {
-    return <p className="admin-form__hint">Add at least one animal and one artist before creating a campaign.</p>;
+  if (artists.length === 0 || (animals.length === 0 && conservancies.length === 0)) {
+    return <p className="admin-form__hint">Add at least one animal or conservancy, and one artist, before creating a campaign.</p>;
   }
 
   return (
     <form className="admin-form" onSubmit={handleSubmit}>
-      <label htmlFor="animalId">Animal</label>
-      <select id="animalId" name="animalId" required defaultValue={initial?.animalId ?? ""}>
-        <option value="" disabled>
-          Select an animal
-        </option>
-        {animals.map((animal) => (
-          <option key={animal.id} value={animal.id}>
-            {animal.name}
-          </option>
-        ))}
-      </select>
+      <label>
+        <input
+          type="radio"
+          name="causeMode"
+          value="animal"
+          checked={causeMode === "animal"}
+          onChange={() => setCauseMode("animal")}
+        />{" "}
+        About a specific animal
+      </label>
+      <label>
+        <input
+          type="radio"
+          name="causeMode"
+          value="conservancy"
+          checked={causeMode === "conservancy"}
+          onChange={() => setCauseMode("conservancy")}
+        />{" "}
+        Pick a cause directly (no specific animal)
+      </label>
+
+      {causeMode === "animal" ? (
+        <>
+          <label htmlFor="animalId">Animal</label>
+          <select id="animalId" name="animalId" required defaultValue={initial?.animalId ?? ""}>
+            <option value="" disabled>
+              Select an animal
+            </option>
+            {animals.map((animal) => (
+              <option key={animal.id} value={animal.id}>
+                {animal.name}
+              </option>
+            ))}
+          </select>
+        </>
+      ) : (
+        <>
+          <label htmlFor="conservancyId">Cause</label>
+          <select id="conservancyId" name="conservancyId" required defaultValue={initial?.conservancyId ?? ""}>
+            <option value="" disabled>
+              Select a cause
+            </option>
+            {conservancies.map((conservancy) => (
+              <option key={conservancy.id} value={conservancy.id}>
+                {conservancy.name}
+              </option>
+            ))}
+          </select>
+        </>
+      )}
 
       <label htmlFor="artistId">Artist</label>
       <select id="artistId" name="artistId" required defaultValue={initial?.artistId ?? ""}>

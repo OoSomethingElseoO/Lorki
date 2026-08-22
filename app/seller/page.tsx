@@ -5,6 +5,7 @@ import { SiteHeader } from "@/components/site-header";
 import { LogoutButton } from "@/components/logout-button";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getCampaignCauseName } from "@/lib/campaigns";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,7 @@ export default async function SellerDashboardPage() {
   const [campaigns, orders] = await Promise.all([
     prisma.campaign.findMany({
       where: { artistId: seller.id },
-      include: { animal: { include: { conservancy: true } }, artworks: true },
+      include: { animal: { include: { conservancy: true } }, conservancy: true, artworks: true },
       orderBy: { createdAt: "desc" },
     }),
     prisma.order.findMany({
@@ -85,9 +86,10 @@ export default async function SellerDashboardPage() {
           ) : (
             campaigns.map((campaign) => (
               <article className="campaign-card" key={campaign.id} style={{ marginBottom: "1rem" }}>
-                <h3>{campaign.animal.name}</h3>
+                <h3>{getCampaignCauseName(campaign)}</h3>
                 <p>
-                  <span className="detail-label">Conservancy:</span> {campaign.animal.conservancy.name}
+                  <span className="detail-label">Conservancy:</span>{" "}
+                  {campaign.animal?.conservancy.name ?? campaign.conservancy?.name ?? "Unknown cause"}
                 </p>
                 <p className="campaign-card__split">
                   <span>{campaign.artistPercent}% you</span>

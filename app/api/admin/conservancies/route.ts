@@ -31,6 +31,10 @@ export async function POST(request: Request) {
       mission: body.mission,
       website: body.website,
       contactEmail: body.contactEmail,
+      // An admin entering this by hand already is the vetting — unlike a
+      // self-registered cause (see /api/cause/onboarding), which starts
+      // unverified until an admin explicitly reviews it.
+      verifiedAt: new Date(),
     },
   });
 

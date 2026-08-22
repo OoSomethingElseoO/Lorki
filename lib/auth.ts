@@ -26,5 +26,5 @@ export async function getCurrentUser() {
   if (!userId) {
     return null;
   }
-  return prisma.user.findUnique({ where: { id: userId }, include: { artist: true } });
+  return prisma.user.findUnique({ where: { id: userId }, include: { artist: true, conservancy: true } });
 }

@@ -52,6 +52,15 @@ export default async function AccountPage() {
               Start selling
             </Link>
           )}
+          {user.conservancy ? (
+            <Link href="/cause/profile" className="button-link">
+              Cause dashboard
+            </Link>
+          ) : (
+            <Link href="/cause/onboarding" className="button-link">
+              Register a cause
+            </Link>
+          )}
           <LogoutButton />
         </div>
 

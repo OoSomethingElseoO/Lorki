@@ -2,6 +2,7 @@ import { PageTitle } from "@/components/page-title";
 import { SiteHeader } from "@/components/site-header";
 import { prisma } from "@/lib/prisma";
 import { getImpactTotals } from "@/lib/storefront";
+import { getCampaignLabel } from "@/lib/campaigns";
 
 function formatDollars(cents: number) {
   return `$${(cents / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -16,7 +17,7 @@ export default async function ImpactPage() {
     getImpactTotals(),
     prisma.campaign.findMany({
       where: { status: "LIVE" },
-      include: { animal: { include: { conservancy: true } }, artist: true },
+      include: { animal: { include: { conservancy: true } }, conservancy: true, artist: true },
     }),
   ]);
 
@@ -49,14 +50,14 @@ export default async function ImpactPage() {
         </section>
 
         <section className="campaign-list" aria-label="Active campaigns">
-          {campaigns.map((campaign) => (
+          {campaigns.map((campaign) => {
+            const conservancy = campaign.animal?.conservancy ?? campaign.conservancy;
+            return (
             <article className="campaign-card" key={campaign.id}>
-              <h2>
-                {campaign.animal.name} &times; {campaign.artist.name}
-              </h2>
+              <h2>{getCampaignLabel(campaign)}</h2>
               <p>
-                <span className="detail-label">Conservancy partner:</span> {campaign.animal.conservancy.name} (
-                {campaign.animal.conservancy.region})
+                <span className="detail-label">Conservancy partner:</span> {conservancy?.name ?? "Unknown cause"}
+                {conservancy ? ` (${conservancy.region})` : null}
               </p>
               <p className="campaign-card__split">
                 <span>{campaign.artistPercent}% artist</span>
@@ -64,7 +65,8 @@ export default async function ImpactPage() {
                 <span>{campaign.operationsPercent}% operations</span>
               </p>
             </article>
-          ))}
+            );
+          })}
           {campaigns.length === 0 ? <p>No campaigns are live yet.</p> : null}
         </section>
       </main>

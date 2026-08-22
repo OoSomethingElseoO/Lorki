@@ -5,6 +5,7 @@ import { SiteHeader } from "@/components/site-header";
 import { DeleteButton } from "@/components/admin/delete-button";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getCampaignCauseName } from "@/lib/campaigns";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ export default async function SellerArtworksPage() {
 
   const artworks = await prisma.artwork.findMany({
     where: { campaign: { artistId: seller.id } },
-    include: { campaign: { include: { animal: true } } },
+    include: { campaign: { include: { animal: true, conservancy: true } } },
     orderBy: { createdAt: "desc" },
   });
 
@@ -36,7 +37,7 @@ export default async function SellerArtworksPage() {
           <thead>
             <tr>
               <th>Title</th>
-              <th>Animal</th>
+              <th>Cause</th>
               <th>Kind</th>
               <th>Price</th>
               <th>Status</th>
@@ -47,7 +48,7 @@ export default async function SellerArtworksPage() {
             {artworks.map((artwork) => (
               <tr key={artwork.id}>
                 <td>{artwork.title}</td>
-                <td>{artwork.campaign.animal.name}</td>
+                <td>{getCampaignCauseName(artwork.campaign)}</td>
                 <td>{artwork.kind}</td>
                 <td>${(artwork.priceCents / 100).toFixed(2)}</td>
                 <td>{artwork.inventoryState}</td>

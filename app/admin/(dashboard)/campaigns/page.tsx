@@ -5,30 +5,30 @@ import { CampaignStatusControl } from "@/components/admin/campaign-status-contro
 import { ArtworkForm } from "@/components/admin/artwork-form";
 import { ArtworkRow } from "@/components/admin/artwork-row";
 import { DeleteButton } from "@/components/admin/delete-button";
+import { getCampaignLabel } from "@/lib/campaigns";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminCampaignsPage() {
-  const [campaigns, animals, artists] = await Promise.all([
+  const [campaigns, animals, conservancies, artists] = await Promise.all([
     prisma.campaign.findMany({
-      include: { animal: true, artist: true, artworks: true },
+      include: { animal: true, conservancy: true, artist: true, artworks: true },
       orderBy: { createdAt: "desc" },
     }),
     prisma.animal.findMany({ orderBy: { name: "asc" } }),
+    prisma.conservancy.findMany({ orderBy: { name: "asc" } }),
     prisma.artist.findMany({ orderBy: { name: "asc" } }),
   ]);
 
   return (
     <>
       <h1>Campaigns</h1>
-      <CampaignForm animals={animals} artists={artists} />
+      <CampaignForm animals={animals} conservancies={conservancies} artists={artists} />
 
       {campaigns.map((campaign) => (
         <section className="admin-campaign-card" key={campaign.id}>
           <header>
-            <h2>
-              {campaign.animal.name} &times; {campaign.artist.name}
-            </h2>
+            <h2>{getCampaignLabel(campaign)}</h2>
             <div className="admin-campaign-card__controls">
               <Link href={`/admin/campaigns/${campaign.id}/edit`} className="admin-table__link-button">
                 Edit
@@ -36,7 +36,7 @@ export default async function AdminCampaignsPage() {
               <CampaignStatusControl campaignId={campaign.id} status={campaign.status} />
               <DeleteButton
                 endpoint={`/api/admin/campaigns/${campaign.id}`}
-                confirmLabel={`${campaign.animal.name} × ${campaign.artist.name}`}
+                confirmLabel={getCampaignLabel(campaign)}
               />
             </div>
           </header>
