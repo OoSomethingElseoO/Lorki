@@ -58,16 +58,28 @@ const DEFAULT_BRANDING = {
 
 export type Branding = typeof DEFAULT_BRANDING;
 
+// Called from the root layout's generateMetadata and from SiteHeader, both
+// of which render on essentially every page — including fully static ones,
+// where Next.js still resolves metadata/components at build time. A
+// database hiccup here (or no build-time DB access at all, which is normal
+// on most hosts) must degrade to the hardcoded defaults, never crash
+// rendering — this is purely cosmetic content, unlike getStripeSecretKey()
+// etc., which must keep failing loudly since a silent fallback there could
+// mask a real payment-processing outage.
 export async function getBranding(): Promise<Branding> {
-  const settings = await getSettings();
-  return {
-    siteName: settings.siteName?.trim() || DEFAULT_BRANDING.siteName,
-    heroTagline: settings.heroTagline?.trim() || DEFAULT_BRANDING.heroTagline,
-    heroImageUrl: settings.heroImageUrl?.trim() || DEFAULT_BRANDING.heroImageUrl,
-    heroAlt: settings.heroAlt?.trim() || DEFAULT_BRANDING.heroAlt,
-    missionStatement: settings.missionStatement?.trim() || DEFAULT_BRANDING.missionStatement,
-    contactName: settings.contactName?.trim() || DEFAULT_BRANDING.contactName,
-    contactEmail: settings.contactEmail?.trim() || DEFAULT_BRANDING.contactEmail,
-    contactPhone: settings.contactPhone?.trim() || DEFAULT_BRANDING.contactPhone,
-  };
+  try {
+    const settings = await getSettings();
+    return {
+      siteName: settings.siteName?.trim() || DEFAULT_BRANDING.siteName,
+      heroTagline: settings.heroTagline?.trim() || DEFAULT_BRANDING.heroTagline,
+      heroImageUrl: settings.heroImageUrl?.trim() || DEFAULT_BRANDING.heroImageUrl,
+      heroAlt: settings.heroAlt?.trim() || DEFAULT_BRANDING.heroAlt,
+      missionStatement: settings.missionStatement?.trim() || DEFAULT_BRANDING.missionStatement,
+      contactName: settings.contactName?.trim() || DEFAULT_BRANDING.contactName,
+      contactEmail: settings.contactEmail?.trim() || DEFAULT_BRANDING.contactEmail,
+      contactPhone: settings.contactPhone?.trim() || DEFAULT_BRANDING.contactPhone,
+    };
+  } catch {
+    return DEFAULT_BRANDING;
+  }
 }

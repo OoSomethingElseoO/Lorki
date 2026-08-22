@@ -8,13 +8,12 @@ WORKDIR /app
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
 ENV NODE_ENV=production
-# Build-time static generation (app/artists/[slug]) reads Animal/Artist rows
-# via Prisma, so DATABASE_URL must point to a reachable Postgres instance
-# during `docker build` — see docs/DEPLOYMENT.md. Also needed as a real
-# (even if dummy) value so prisma.config.ts's env() lookup doesn't throw
-# during `prisma generate`.
-ARG DATABASE_URL
-ENV DATABASE_URL=${DATABASE_URL}
+# No database connectivity needed during the build: prisma.config.ts falls
+# back to a placeholder URL when DATABASE_URL is unset (prisma generate only
+# reads the schema, it doesn't connect to anything), and every page that
+# queries the database renders dynamically at request time rather than at
+# build time — see docs/DEPLOYMENT.md. DATABASE_URL only needs to be set as
+# a normal runtime environment variable on whatever host runs this image.
 RUN npx prisma generate
 RUN npm run build
 

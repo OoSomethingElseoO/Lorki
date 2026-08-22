@@ -16,6 +16,12 @@ const lora = Lora({
   display: "swap",
 });
 
+// Next.js resolves root-layout metadata for every route during static
+// prerendering, even fully static pages like /_not-found — so this runs
+// during `next build` regardless of whether the visited page itself is
+// static or dynamic. getBranding() already degrades to a hardcoded default
+// if the database isn't reachable (no build-time DB access on most hosts,
+// Render included), so this never needs its own fallback.
 export async function generateMetadata(): Promise<Metadata> {
   const { siteName } = await getBranding();
   return {

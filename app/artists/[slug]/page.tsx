@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import { ArtistGallery } from "@/components/artist-gallery";
 import { SiteHeader } from "@/components/site-header";
 import { getArtistBySlug, getLiveArtworksForArtist } from "@/lib/storefront";
-import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 
 type ArtistPageProps = {
@@ -11,11 +10,12 @@ type ArtistPageProps = {
   }>;
 };
 
-export async function generateStaticParams() {
-  const artists = await prisma.artist.findMany({ select: { slug: true } });
-  return artists.map((artist) => ({ slug: artist.slug }));
-}
-
+// This page already renders dynamically on every request (getCurrentUser()
+// below forces that), so generateStaticParams achieved nothing except
+// querying Postgres during `next build` — which is exactly what broke the
+// Docker build on hosts (Render included) that don't pass secret env vars
+// into the build step. Dropping it removes that dependency entirely;
+// Next.js falls back to on-demand rendering (dynamicParams defaults true).
 export default async function ArtistPage({ params }: ArtistPageProps) {
   const { slug } = await params;
   const artist = await getArtistBySlug(slug);
