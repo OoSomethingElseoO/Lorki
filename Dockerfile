@@ -1,7 +1,15 @@
 FROM node:20-slim AS dependencies
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci
+# --ignore-scripts: this stage only copies package.json/package-lock.json,
+# not prisma/schema.prisma yet (that arrives via `COPY . .` in the builder
+# stage below) — postinstall's `prisma generate` would fail here with
+# "Could not find Prisma Schema" since the schema file doesn't exist in
+# this stage's filesystem. The builder stage's own explicit
+# `RUN npx prisma generate` (after the full COPY . .) already does the
+# real generation; postinstall only exists for hosts without a separate
+# build step to run it themselves (e.g. Vercel).
+RUN npm ci --ignore-scripts
 
 FROM node:20-slim AS builder
 WORKDIR /app
