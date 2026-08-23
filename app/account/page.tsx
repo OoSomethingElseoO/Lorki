@@ -1,8 +1,4 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { PageTitle } from "@/components/page-title";
-import { SiteHeader } from "@/components/site-header";
-import { LogoutButton } from "@/components/logout-button";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -31,41 +27,13 @@ export default async function AccountPage() {
 
   return (
     <>
-      <SiteHeader />
-      <main className="page-main" id="main-content">
-        <PageTitle>My Account</PageTitle>
-        <div className="account-summary">
-          <p>
-            Signed in as <strong>{user.name || user.email}</strong>
-          </p>
-          {user.isAdmin ? (
-            <Link href="/admin" className="button-link">
-              Admin dashboard
-            </Link>
-          ) : null}
-          {user.artist ? (
-            <Link href="/seller" className="button-link">
-              Seller dashboard
-            </Link>
-          ) : (
-            <Link href="/seller/onboarding" className="button-link">
-              Start selling
-            </Link>
-          )}
-          {user.conservancy ? (
-            <Link href="/cause/profile" className="button-link">
-              Cause dashboard
-            </Link>
-          ) : (
-            <Link href="/cause/onboarding" className="button-link">
-              Register a cause
-            </Link>
-          )}
-          <LogoutButton />
-        </div>
+      <h1>My Account</h1>
+      <p className="admin-form__hint">
+        Signed in as <strong>{user.name || user.email}</strong>
+      </p>
 
-        <section className="account-orders" aria-label="Order history">
-          <h2>Order history</h2>
+      <section className="account-orders" aria-label="Order history">
+        <h2>Order history</h2>
           {orders.length === 0 ? (
             <p>You haven&apos;t placed any orders yet.</p>
           ) : (
@@ -87,8 +55,7 @@ export default async function AccountPage() {
               ))}
             </ul>
           )}
-        </section>
-      </main>
+      </section>
     </>
   );
 }
