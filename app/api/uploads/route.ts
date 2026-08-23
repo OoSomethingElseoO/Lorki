@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { NextResponse } from "next/server";
+import { put } from "@vercel/blob";
 import { getCurrentUser } from "@/lib/auth";
 
 const ALLOWED_TYPES: Record<string, string> = {
@@ -20,13 +21,17 @@ const MAX_BYTES = 8 * 1024 * 1024;
 // for any authenticated user (admin, seller, or cause) uploading their own
 // image or document. Auth is checked here instead: some logged-in user,
 // not a specific role — this route performs no role-specific action, it
-// just writes a file to disk and returns its URL.
+// just stores a file and returns its URL.
 //
-// Local-disk storage: files land in public/uploads and are served directly
-// by Next.js as static assets. This is an MVP choice — on a platform with an
-// ephemeral filesystem (most serverless hosts) these files won't survive a
-// redeploy, so swap this for object storage (S3/R2/similar) before deploying
-// there. Fine for a self-hosted single server.
+// Vercel Blob when BLOB_READ_WRITE_TOKEN is set (added automatically once a
+// Blob store is created and linked to the project in the Vercel dashboard),
+// local disk otherwise. This isn't a Vercel-only path — the token works
+// from any host, so Render (or anywhere else) can opt in the same way by
+// just setting the env var. Local disk remains the zero-setup default for
+// a single self-hosted server with a persistent volume; it's NOT viable on
+// Vercel specifically, since serverless functions there have a read-only
+// filesystem outside /tmp — an upload would fail outright, not just vanish
+// on redeploy.
 export async function POST(request: Request) {
   const currentUser = await getCurrentUser();
   if (!currentUser) {
@@ -49,10 +54,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "File is too large (8MB max)" }, { status: 400 });
   }
 
+  const filename = `${randomUUID()}.${extension}`;
+
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    const blob = await put(`uploads/${filename}`, file, { access: "public" });
+    return NextResponse.json({ url: blob.url }, { status: 201 });
+  }
+
   const uploadsDir = path.join(process.cwd(), "public", "uploads");
   await mkdir(uploadsDir, { recursive: true });
 
-  const filename = `${randomUUID()}.${extension}`;
   const buffer = Buffer.from(await file.arrayBuffer());
   await writeFile(path.join(uploadsDir, filename), buffer);
 
