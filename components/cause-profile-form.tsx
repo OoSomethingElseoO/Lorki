@@ -1,9 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { forwardRef, useImperativeHandle, useRef, useState, type FormEvent } from "react";
 import { DocumentUploadField } from "@/components/document-upload-field";
-import { Button } from "@/components/ui/button";
+
+export type SaveFormHandle = { submit: () => Promise<boolean> };
 
 type CauseProfileFormProps = {
   initial: {
@@ -18,19 +18,27 @@ type CauseProfileFormProps = {
   };
 };
 
-export function CauseProfileForm({ initial }: CauseProfileFormProps) {
-  const router = useRouter();
+// Driven by a single combined "Save changes" button one level up (see
+// app/cause/(dashboard)/profile/page.tsx) rather than its own submit
+// button — this form's job is just to hold its own fields/validation and
+// expose an imperative submit() the page can call alongside the payout
+// form's, so one click saves both instead of two separate fragments.
+export const CauseProfileForm = forwardRef<SaveFormHandle, CauseProfileFormProps>(function CauseProfileForm(
+  { initial },
+  ref,
+) {
+  const formRef = useRef<HTMLFormElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function doSubmit(): Promise<boolean> {
+    if (!formRef.current) return false;
     setSubmitting(true);
     setError(null);
     setSuccess(false);
 
-    const form = new FormData(event.currentTarget);
+    const form = new FormData(formRef.current);
     const response = await fetch("/api/cause/profile", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -50,32 +58,56 @@ export function CauseProfileForm({ initial }: CauseProfileFormProps) {
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));
       setError(data.error ?? "Failed to save profile");
-      return;
+      return false;
     }
 
     setSuccess(true);
-    router.refresh();
+    return true;
+  }
+
+  useImperativeHandle(ref, () => ({ submit: doSubmit }));
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    // Enter-in-a-field still dispatches a native submit even though the
+    // page's combined button is the intended entry point — route it
+    // through the same path instead of letting the browser do its own
+    // full-page form submission.
+    event.preventDefault();
+    void doSubmit();
   }
 
   return (
-    <form className="admin-form" onSubmit={handleSubmit}>
+    <form ref={formRef} className="admin-form" onSubmit={handleSubmit}>
       <label htmlFor="name">Organization name</label>
-      <input id="name" name="name" required defaultValue={initial.name} />
+      <input id="name" name="name" required defaultValue={initial.name} disabled={submitting} />
 
       <label htmlFor="region">Region</label>
-      <input id="region" name="region" required defaultValue={initial.region} />
+      <input id="region" name="region" required defaultValue={initial.region} disabled={submitting} />
 
       <label htmlFor="mission">Mission</label>
-      <textarea id="mission" name="mission" required rows={4} defaultValue={initial.mission} />
+      <textarea id="mission" name="mission" required rows={4} defaultValue={initial.mission} disabled={submitting} />
 
       <label htmlFor="website">Website</label>
-      <input id="website" name="website" type="url" required defaultValue={initial.website} />
+      <input id="website" name="website" type="url" required defaultValue={initial.website} disabled={submitting} />
 
       <label htmlFor="contactEmail">Contact email</label>
-      <input id="contactEmail" name="contactEmail" type="email" required defaultValue={initial.contactEmail} />
+      <input
+        id="contactEmail"
+        name="contactEmail"
+        type="email"
+        required
+        defaultValue={initial.contactEmail}
+        disabled={submitting}
+      />
 
       <label htmlFor="registrationNumber">Registration number</label>
-      <input id="registrationNumber" name="registrationNumber" required defaultValue={initial.registrationNumber ?? ""} />
+      <input
+        id="registrationNumber"
+        name="registrationNumber"
+        required
+        defaultValue={initial.registrationNumber ?? ""}
+        disabled={submitting}
+      />
 
       <DocumentUploadField
         name="registrationDocumentUrl"
@@ -90,11 +122,8 @@ export function CauseProfileForm({ initial }: CauseProfileFormProps) {
         </p>
       ) : null}
 
-      {error ? <p className="admin-form__error">{error}</p> : null}
-      {success ? <p className="admin-form__hint">Saved.</p> : null}
-      <Button type="submit" variant="form" className="mt-3" disabled={submitting}>
-        {submitting ? "Saving…" : "Save profile"}
-      </Button>
+      {error ? <p className="admin-form__error">Organization details: {error}</p> : null}
+      {success ? <p className="admin-form__hint">Organization details saved.</p> : null}
     </form>
   );
-}
+});

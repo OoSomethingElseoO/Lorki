@@ -1,8 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { forwardRef, useImperativeHandle, useRef, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
+import type { SaveFormHandle } from "@/components/cause-profile-form";
 
 type PayoutChannel = "MANUAL" | "FLUTTERWAVE" | "STRIPE_CONNECT" | "CRYPTO";
 
@@ -40,28 +40,34 @@ const CHANNEL_LABELS: Record<PayoutChannel, string> = {
   CRYPTO: "Crypto",
 };
 
-export function PayoutSettingsForm({
-  initial,
-  recommendation,
-  endpoint,
-  connectOnboardEndpoint,
-  requireAccountHolderName,
-}: PayoutSettingsFormProps) {
-  const router = useRouter();
+// Driven by the same combined "Save changes" button as the profile form
+// next to it (see app/seller|cause/(dashboard)/profile/page.tsx) for every
+// channel except Stripe — Stripe isn't a savable field, it's a redirect
+// into Stripe's own onboarding, so "Connect with Stripe" stays its own
+// explicit action regardless.
+export const PayoutSettingsForm = forwardRef<SaveFormHandle, PayoutSettingsFormProps>(function PayoutSettingsForm(
+  { initial, recommendation, endpoint, connectOnboardEndpoint, requireAccountHolderName },
+  ref,
+) {
+  const formRef = useRef<HTMLFormElement>(null);
   const [channel, setChannel] = useState<PayoutChannel>(initial.payoutChannel);
   const [usingMobileMoney, setUsingMobileMoney] = useState(Boolean(initial.payoutMobileNetwork));
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [stripeConnecting, setStripeConnecting] = useState(false);
 
-  async function handleSave(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const formElement = event.currentTarget;
+  async function doSubmit(): Promise<boolean> {
+    // Nothing to save here for Stripe — its own state is set by the
+    // redirect flow below, not by this form's fields.
+    if (channel === "STRIPE_CONNECT") return true;
+    if (!formRef.current) return false;
+
     setSubmitting(true);
     setError(null);
     setSuccess(null);
 
-    const form = new FormData(formElement);
+    const form = new FormData(formRef.current);
     const response = await fetch(endpoint, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -83,22 +89,29 @@ export function PayoutSettingsForm({
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));
       setError(data.error ?? "Failed to save payout settings");
-      return;
+      return false;
     }
 
     setSuccess("Payout settings saved.");
-    router.refresh();
+    return true;
+  }
+
+  useImperativeHandle(ref, () => ({ submit: doSubmit }));
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    void doSubmit();
   }
 
   async function handleConnectStripe() {
-    setSubmitting(true);
+    setStripeConnecting(true);
     setError(null);
 
     const response = await fetch(connectOnboardEndpoint, { method: "POST" });
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      setSubmitting(false);
+      setStripeConnecting(false);
       setError(data.error ?? "Failed to start Stripe onboarding");
       return;
     }
@@ -120,6 +133,7 @@ export function PayoutSettingsForm({
         id="payoutChannel"
         value={channel}
         onChange={(event) => setChannel(event.target.value as PayoutChannel)}
+        disabled={submitting}
       >
         <option value="MANUAL">Manual — we'll arrange payment directly</option>
         <option value="FLUTTERWAVE">Mobile money or bank transfer (Flutterwave)</option>
@@ -134,12 +148,12 @@ export function PayoutSettingsForm({
               ? "Stripe is connected — payouts go straight to your bank account."
               : "Not connected yet. You'll be taken to Stripe to securely add your bank details — we never see them."}
           </p>
-          <Button type="button" variant="form" className="mt-3" onClick={handleConnectStripe} disabled={submitting}>
-            {initial.stripeConnectOnboarded ? "Update Stripe details" : "Connect with Stripe"}
+          <Button type="button" variant="form" className="mt-3" onClick={handleConnectStripe} disabled={stripeConnecting}>
+            {stripeConnecting ? "Redirecting…" : initial.stripeConnectOnboarded ? "Update Stripe details" : "Connect with Stripe"}
           </Button>
         </>
       ) : channel === "FLUTTERWAVE" ? (
-        <form onSubmit={handleSave}>
+        <form ref={formRef} onSubmit={handleSubmit}>
           <p className="admin-form__hint">
             Covers mobile money (M-Pesa, MTN, Airtel, and others) or a bank account, across 30+ countries —
             pick whichever applies to you.
@@ -147,11 +161,11 @@ export function PayoutSettingsForm({
           <div className="admin-form__split-row">
             <div>
               <label htmlFor="payoutCountry">Country</label>
-              <input id="payoutCountry" name="payoutCountry" defaultValue={initial.payoutCountry ?? ""} placeholder="e.g. KE, ET, ZA, NG" required />
+              <input id="payoutCountry" name="payoutCountry" defaultValue={initial.payoutCountry ?? ""} placeholder="e.g. KE, ET, ZA, NG" required disabled={submitting} />
             </div>
             <div>
               <label htmlFor="payoutCurrency">Currency</label>
-              <input id="payoutCurrency" name="payoutCurrency" defaultValue={initial.payoutCurrency ?? ""} placeholder="e.g. KES, ETB, ZAR, NGN" required />
+              <input id="payoutCurrency" name="payoutCurrency" defaultValue={initial.payoutCurrency ?? ""} placeholder="e.g. KES, ETB, ZAR, NGN" required disabled={submitting} />
             </div>
           </div>
 
@@ -164,6 +178,7 @@ export function PayoutSettingsForm({
                 defaultValue={initial.payoutAccountHolderName ?? ""}
                 placeholder="Must match your organization's registered name"
                 required
+                disabled={submitting}
               />
             </>
           ) : null}
@@ -173,6 +188,7 @@ export function PayoutSettingsForm({
               type="checkbox"
               checked={usingMobileMoney}
               onChange={(event) => setUsingMobileMoney(event.target.checked)}
+              disabled={submitting}
             />{" "}
             Paid via mobile money (not a bank account)
           </label>
@@ -186,6 +202,7 @@ export function PayoutSettingsForm({
                 defaultValue={initial.payoutMobileNetwork ?? ""}
                 placeholder="e.g. Mpesa, MTN, Airtel"
                 required
+                disabled={submitting}
               />
               <label htmlFor="payoutAccountNumber">Phone number (with country code)</label>
               <input
@@ -194,28 +211,26 @@ export function PayoutSettingsForm({
                 defaultValue={initial.payoutAccountNumber ?? ""}
                 placeholder="e.g. 2547XXXXXXXX"
                 required
+                disabled={submitting}
               />
             </>
           ) : (
             <>
               <label htmlFor="payoutBankCode">Bank code</label>
-              <input id="payoutBankCode" name="payoutBankCode" defaultValue={initial.payoutBankCode ?? ""} required />
+              <input id="payoutBankCode" name="payoutBankCode" defaultValue={initial.payoutBankCode ?? ""} required disabled={submitting} />
               <label htmlFor="payoutAccountNumber">Account number</label>
               <input
                 id="payoutAccountNumber"
                 name="payoutAccountNumber"
                 defaultValue={initial.payoutAccountNumber ?? ""}
                 required
+                disabled={submitting}
               />
             </>
           )}
-
-          <Button type="submit" variant="form" className="mt-3" disabled={submitting}>
-            {submitting ? "Saving…" : "Save"}
-          </Button>
         </form>
       ) : channel === "CRYPTO" ? (
-        <form onSubmit={handleSave}>
+        <form ref={formRef} onSubmit={handleSubmit}>
           <p className="admin-form__hint">
             No automated sending yet — we send this manually from our own wallet/exchange and mark it paid
             once it's sent, so payouts may take a little longer than other channels.
@@ -227,24 +242,19 @@ export function PayoutSettingsForm({
             defaultValue={initial.cryptoNetwork ?? ""}
             placeholder="e.g. USDC on Base, USDC on Polygon"
             required
+            disabled={submitting}
           />
           <label htmlFor="cryptoAddress">Wallet address</label>
-          <input id="cryptoAddress" name="cryptoAddress" defaultValue={initial.cryptoAddress ?? ""} required />
-          <Button type="submit" variant="form" className="mt-3" disabled={submitting}>
-            {submitting ? "Saving…" : "Save"}
-          </Button>
+          <input id="cryptoAddress" name="cryptoAddress" defaultValue={initial.cryptoAddress ?? ""} required disabled={submitting} />
         </form>
       ) : (
-        <form onSubmit={handleSave}>
+        <form ref={formRef} onSubmit={handleSubmit}>
           <p className="admin-form__hint">We'll pay you directly (bank transfer, cash, or as agreed) once a sale settles.</p>
-          <Button type="submit" variant="form" className="mt-3" disabled={submitting}>
-            {submitting ? "Saving…" : "Save"}
-          </Button>
         </form>
       )}
 
-      {error ? <p className="admin-form__error">{error}</p> : null}
+      {error ? <p className="admin-form__error">Payouts: {error}</p> : null}
       {success ? <p className="admin-form__hint">{success}</p> : null}
     </div>
   );
-}
+});

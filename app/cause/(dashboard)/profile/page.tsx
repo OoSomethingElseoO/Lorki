@@ -1,10 +1,7 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CauseProfileForm } from "@/components/cause-profile-form";
-import { PayoutSettingsForm } from "@/components/payout-settings-form";
+import { CauseSettingsPanel } from "@/components/cause-settings-panel";
 import { getCurrentUser } from "@/lib/auth";
 import { recommendPayoutChannel } from "@/lib/payout-recommendations";
-import { buttonVariants } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
@@ -23,43 +20,7 @@ export default async function CauseProfilePage() {
           ? `Verified on ${new Date(cause.verifiedAt).toLocaleDateString()} — artists can select your cause for new campaigns.`
           : "Not verified yet — an admin needs to review your registration details before artists can select your cause for new campaigns."}
       </p>
-      <CauseProfileForm
-        initial={{
-          name: cause.name,
-          region: cause.region,
-          mission: cause.mission,
-          website: cause.website,
-          contactEmail: cause.contactEmail,
-          registrationNumber: cause.registrationNumber,
-          registrationDocumentUrl: cause.registrationDocumentUrl,
-          verifiedAt: cause.verifiedAt,
-        }}
-      />
-      <h2>Payouts</h2>
-      <PayoutSettingsForm
-        initial={{
-          payoutChannel: cause.payoutChannel,
-          payoutCountry: cause.payoutCountry,
-          payoutCurrency: cause.payoutCurrency,
-          payoutMobileNetwork: cause.payoutMobileNetwork,
-          payoutAccountNumber: cause.payoutAccountNumber,
-          payoutBankCode: cause.payoutBankCode,
-          stripeConnectOnboarded: cause.stripeConnectOnboarded,
-          cryptoNetwork: cause.cryptoNetwork,
-          cryptoAddress: cause.cryptoAddress,
-          payoutAccountHolderName: cause.payoutAccountHolderName,
-        }}
-        recommendation={recommendPayoutChannel(cause.region)}
-        endpoint="/api/cause/payout-settings"
-        connectOnboardEndpoint="/api/cause/connect/onboard"
-        requireAccountHolderName
-      />
-
-      <p style={{ marginTop: "2rem" }}>
-        <Link href="/account" className={buttonVariants({ variant: "outline" })}>
-          Back to My Account
-        </Link>
-      </p>
+      <CauseSettingsPanel cause={cause} recommendation={recommendPayoutChannel(cause.region)} />
     </>
   );
 }
