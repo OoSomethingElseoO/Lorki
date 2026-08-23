@@ -1452,6 +1452,37 @@ a:focus-visible {
   width: fit-content;
 }
 
+.admin-search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.admin-search input[type="search"] {
+  flex: 1 1 16rem;
+  max-width: 24rem;
+  padding: 0.5rem;
+  border: 1px solid #c4c4bf;
+  border-radius: 6px;
+  font: inherit;
+}
+
+.admin-search button {
+  padding: 0.5rem 0.9rem;
+  border: 1px solid #1b1b18;
+  border-radius: 6px;
+  background: #1b1b18;
+  color: #f2f2f0;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-search__clear {
+  font-size: 0.85rem;
+  color: #5c5c56;
+}
+
 .admin-table {
   width: 100%;
   border-collapse: collapse;

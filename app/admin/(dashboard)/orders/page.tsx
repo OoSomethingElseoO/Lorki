@@ -3,21 +3,43 @@ import { ShipOrderForm } from "@/components/admin/ship-order-form";
 import { DeliverOrderForm } from "@/components/admin/deliver-order-form";
 import { RefundOrderButton } from "@/components/admin/refund-order-button";
 import { CashSaleForm } from "@/components/admin/cash-sale-form";
+import { AdminSearchForm } from "@/components/admin/search-form";
+import { Pagination } from "@/components/pagination";
 import { getCampaignLabel } from "@/lib/campaigns";
 import { statusBadgeClass } from "@/lib/status-badge";
+import { ADMIN_PAGE_SIZE, adminTotalPages, normalizeAdminPage } from "@/lib/admin-list";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminOrdersPage() {
-  const [orders, availableArtworks] = await Promise.all([
+type PageProps = { searchParams: Promise<{ page?: string; q?: string }> };
+
+export default async function AdminOrdersPage({ searchParams }: PageProps) {
+  const { page, q } = await searchParams;
+  const currentPage = normalizeAdminPage(page);
+  const query = q?.trim();
+
+  const where = query
+    ? {
+        OR: [
+          { buyerEmail: { contains: query, mode: "insensitive" as const } },
+          { artwork: { title: { contains: query, mode: "insensitive" as const } } },
+        ],
+      }
+    : {};
+
+  const [orders, totalCount, availableArtworks] = await Promise.all([
     prisma.order.findMany({
+      where,
       include: {
         artwork: { include: { campaign: { include: { animal: true, conservancy: true, artist: true } } } },
         payouts: true,
         shipment: true,
       },
       orderBy: { createdAt: "desc" },
+      skip: (currentPage - 1) * ADMIN_PAGE_SIZE,
+      take: ADMIN_PAGE_SIZE,
     }),
+    prisma.order.count({ where }),
     prisma.artwork.findMany({
       where: { inventoryState: "AVAILABLE", campaign: { status: "LIVE" } },
       include: { campaign: { include: { animal: true, conservancy: true, artist: true } } },
@@ -42,6 +64,8 @@ export default async function AdminOrdersPage() {
           campaignLabel: getCampaignLabel(artwork.campaign),
         }))}
       />
+
+      <AdminSearchForm placeholder="Search by buyer email or artwork title" defaultValue={query} />
 
       <table className="admin-table">
         <thead>
@@ -111,11 +135,18 @@ export default async function AdminOrdersPage() {
           ))}
           {orders.length === 0 ? (
             <tr>
-              <td colSpan={8}>No orders yet.</td>
+              <td colSpan={8}>{query ? `No orders match "${query}".` : "No orders yet."}</td>
             </tr>
           ) : null}
         </tbody>
       </table>
+
+      <Pagination
+        page={currentPage}
+        totalPages={adminTotalPages(totalCount)}
+        basePath="/admin/orders"
+        extraQuery={query ? `q=${encodeURIComponent(query)}` : undefined}
+      />
     </>
   );
 }

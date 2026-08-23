@@ -2,16 +2,45 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { CoOpForm } from "@/components/admin/co-op-form";
 import { DeleteButton } from "@/components/admin/delete-button";
+import { AdminSearchForm } from "@/components/admin/search-form";
+import { Pagination } from "@/components/pagination";
+import { ADMIN_PAGE_SIZE, adminTotalPages, normalizeAdminPage } from "@/lib/admin-list";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminCoOpsPage() {
-  const coOps = await prisma.coOp.findMany({ orderBy: { createdAt: "desc" } });
+type PageProps = { searchParams: Promise<{ page?: string; q?: string }> };
+
+export default async function AdminCoOpsPage({ searchParams }: PageProps) {
+  const { page, q } = await searchParams;
+  const currentPage = normalizeAdminPage(page);
+  const query = q?.trim();
+
+  const where = query
+    ? {
+        OR: [
+          { name: { contains: query, mode: "insensitive" as const } },
+          { region: { contains: query, mode: "insensitive" as const } },
+          { contactEmail: { contains: query, mode: "insensitive" as const } },
+        ],
+      }
+    : {};
+
+  const [coOps, totalCount] = await Promise.all([
+    prisma.coOp.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip: (currentPage - 1) * ADMIN_PAGE_SIZE,
+      take: ADMIN_PAGE_SIZE,
+    }),
+    prisma.coOp.count({ where }),
+  ]);
 
   return (
     <>
       <h1>Co-ops</h1>
       <CoOpForm />
+
+      <AdminSearchForm placeholder="Search by name, region, or contact email" defaultValue={query} />
 
       <table className="admin-table">
         <thead>
@@ -38,11 +67,18 @@ export default async function AdminCoOpsPage() {
           ))}
           {coOps.length === 0 ? (
             <tr>
-              <td colSpan={4}>No co-ops yet.</td>
+              <td colSpan={4}>{query ? `No co-ops match "${query}".` : "No co-ops yet."}</td>
             </tr>
           ) : null}
         </tbody>
       </table>
+
+      <Pagination
+        page={currentPage}
+        totalPages={adminTotalPages(totalCount)}
+        basePath="/admin/co-ops"
+        extraQuery={query ? `q=${encodeURIComponent(query)}` : undefined}
+      />
     </>
   );
 }

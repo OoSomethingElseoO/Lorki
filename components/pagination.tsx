@@ -4,9 +4,21 @@ type PaginationProps = {
   page: number;
   totalPages: number;
   basePath: string;
+  // Any other query params to carry across page links — e.g. "q=lion"
+  // from an admin search box, so paging forward doesn't drop the search.
+  extraQuery?: string;
 };
 
-export function Pagination({ page, totalPages, basePath }: PaginationProps) {
+function pageHref(basePath: string, page: number, extraQuery?: string) {
+  const params = new URLSearchParams(extraQuery);
+  if (page > 1) {
+    params.set("page", String(page));
+  }
+  const query = params.toString();
+  return query ? `${basePath}?${query}` : basePath;
+}
+
+export function Pagination({ page, totalPages, basePath, extraQuery }: PaginationProps) {
   if (totalPages <= 1) {
     return null;
   }
@@ -14,7 +26,7 @@ export function Pagination({ page, totalPages, basePath }: PaginationProps) {
   return (
     <nav className="pagination" aria-label="Pagination">
       {page > 1 ? (
-        <Link href={page - 1 === 1 ? basePath : `${basePath}?page=${page - 1}`} className="button-link">
+        <Link href={pageHref(basePath, page - 1, extraQuery)} className="button-link">
           Previous
         </Link>
       ) : (
@@ -26,7 +38,7 @@ export function Pagination({ page, totalPages, basePath }: PaginationProps) {
         Page {page} of {totalPages}
       </span>
       {page < totalPages ? (
-        <Link href={`${basePath}?page=${page + 1}`} className="button-link">
+        <Link href={pageHref(basePath, page + 1, extraQuery)} className="button-link">
           Next
         </Link>
       ) : (

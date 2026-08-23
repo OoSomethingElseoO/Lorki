@@ -3,16 +3,45 @@ import { prisma } from "@/lib/prisma";
 import { ConservancyForm } from "@/components/admin/conservancy-form";
 import { DeleteButton } from "@/components/admin/delete-button";
 import { VerifyConservancyChecklist } from "@/components/admin/verify-conservancy-button";
+import { AdminSearchForm } from "@/components/admin/search-form";
+import { Pagination } from "@/components/pagination";
+import { ADMIN_PAGE_SIZE, adminTotalPages, normalizeAdminPage } from "@/lib/admin-list";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminConservanciesPage() {
-  const conservancies = await prisma.conservancy.findMany({ orderBy: { createdAt: "desc" } });
+type PageProps = { searchParams: Promise<{ page?: string; q?: string }> };
+
+export default async function AdminConservanciesPage({ searchParams }: PageProps) {
+  const { page, q } = await searchParams;
+  const currentPage = normalizeAdminPage(page);
+  const query = q?.trim();
+
+  const where = query
+    ? {
+        OR: [
+          { name: { contains: query, mode: "insensitive" as const } },
+          { region: { contains: query, mode: "insensitive" as const } },
+          { contactEmail: { contains: query, mode: "insensitive" as const } },
+        ],
+      }
+    : {};
+
+  const [conservancies, totalCount] = await Promise.all([
+    prisma.conservancy.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip: (currentPage - 1) * ADMIN_PAGE_SIZE,
+      take: ADMIN_PAGE_SIZE,
+    }),
+    prisma.conservancy.count({ where }),
+  ]);
 
   return (
     <>
       <h1>Conservancies</h1>
       <ConservancyForm />
+
+      <AdminSearchForm placeholder="Search by name, region, or contact email" defaultValue={query} />
 
       <table className="admin-table">
         <thead>
@@ -72,11 +101,18 @@ export default async function AdminConservanciesPage() {
           ))}
           {conservancies.length === 0 ? (
             <tr>
-              <td colSpan={7}>No conservancies yet.</td>
+              <td colSpan={7}>{query ? `No conservancies match "${query}".` : "No conservancies yet."}</td>
             </tr>
           ) : null}
         </tbody>
       </table>
+
+      <Pagination
+        page={currentPage}
+        totalPages={adminTotalPages(totalCount)}
+        basePath="/admin/conservancies"
+        extraQuery={query ? `q=${encodeURIComponent(query)}` : undefined}
+      />
     </>
   );
 }

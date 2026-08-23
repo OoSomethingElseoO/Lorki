@@ -2,12 +2,38 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { AnimalForm } from "@/components/admin/animal-form";
 import { DeleteButton } from "@/components/admin/delete-button";
+import { AdminSearchForm } from "@/components/admin/search-form";
+import { Pagination } from "@/components/pagination";
+import { ADMIN_PAGE_SIZE, adminTotalPages, normalizeAdminPage } from "@/lib/admin-list";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminAnimalsPage() {
-  const [animals, conservancies] = await Promise.all([
-    prisma.animal.findMany({ include: { conservancy: true }, orderBy: { createdAt: "desc" } }),
+type PageProps = { searchParams: Promise<{ page?: string; q?: string }> };
+
+export default async function AdminAnimalsPage({ searchParams }: PageProps) {
+  const { page, q } = await searchParams;
+  const currentPage = normalizeAdminPage(page);
+  const query = q?.trim();
+
+  const where = query
+    ? {
+        OR: [
+          { name: { contains: query, mode: "insensitive" as const } },
+          { species: { contains: query, mode: "insensitive" as const } },
+          { region: { contains: query, mode: "insensitive" as const } },
+        ],
+      }
+    : {};
+
+  const [animals, totalCount, conservancies] = await Promise.all([
+    prisma.animal.findMany({
+      where,
+      include: { conservancy: true },
+      orderBy: { createdAt: "desc" },
+      skip: (currentPage - 1) * ADMIN_PAGE_SIZE,
+      take: ADMIN_PAGE_SIZE,
+    }),
+    prisma.animal.count({ where }),
     prisma.conservancy.findMany({ orderBy: { name: "asc" } }),
   ]);
 
@@ -15,6 +41,8 @@ export default async function AdminAnimalsPage() {
     <>
       <h1>Animals</h1>
       <AnimalForm conservancies={conservancies} />
+
+      <AdminSearchForm placeholder="Search by name, species, or region" defaultValue={query} />
 
       <table className="admin-table">
         <thead>
@@ -41,11 +69,18 @@ export default async function AdminAnimalsPage() {
           ))}
           {animals.length === 0 ? (
             <tr>
-              <td colSpan={5}>No animals yet.</td>
+              <td colSpan={5}>{query ? `No animals match "${query}".` : "No animals yet."}</td>
             </tr>
           ) : null}
         </tbody>
       </table>
+
+      <Pagination
+        page={currentPage}
+        totalPages={adminTotalPages(totalCount)}
+        basePath="/admin/animals"
+        extraQuery={query ? `q=${encodeURIComponent(query)}` : undefined}
+      />
     </>
   );
 }

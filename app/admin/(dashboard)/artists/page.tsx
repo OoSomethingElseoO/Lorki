@@ -2,12 +2,37 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { ArtistForm } from "@/components/admin/artist-form";
 import { DeleteButton } from "@/components/admin/delete-button";
+import { AdminSearchForm } from "@/components/admin/search-form";
+import { Pagination } from "@/components/pagination";
+import { ADMIN_PAGE_SIZE, adminTotalPages, normalizeAdminPage } from "@/lib/admin-list";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminArtistsPage() {
-  const [artists, coOps] = await Promise.all([
-    prisma.artist.findMany({ include: { socialLinks: true, coOp: true }, orderBy: { createdAt: "desc" } }),
+type PageProps = { searchParams: Promise<{ page?: string; q?: string }> };
+
+export default async function AdminArtistsPage({ searchParams }: PageProps) {
+  const { page, q } = await searchParams;
+  const currentPage = normalizeAdminPage(page);
+  const query = q?.trim();
+
+  const where = query
+    ? {
+        OR: [
+          { name: { contains: query, mode: "insensitive" as const } },
+          { country: { contains: query, mode: "insensitive" as const } },
+        ],
+      }
+    : {};
+
+  const [artists, totalCount, coOps] = await Promise.all([
+    prisma.artist.findMany({
+      where,
+      include: { socialLinks: true, coOp: true },
+      orderBy: { createdAt: "desc" },
+      skip: (currentPage - 1) * ADMIN_PAGE_SIZE,
+      take: ADMIN_PAGE_SIZE,
+    }),
+    prisma.artist.count({ where }),
     prisma.coOp.findMany({ orderBy: { name: "asc" } }),
   ]);
 
@@ -15,6 +40,8 @@ export default async function AdminArtistsPage() {
     <>
       <h1>Artists</h1>
       <ArtistForm coOps={coOps} />
+
+      <AdminSearchForm placeholder="Search by name or country" defaultValue={query} />
 
       <table className="admin-table">
         <thead>
@@ -49,11 +76,18 @@ export default async function AdminArtistsPage() {
           ))}
           {artists.length === 0 ? (
             <tr>
-              <td colSpan={5}>No artists yet.</td>
+              <td colSpan={5}>{query ? `No artists match "${query}".` : "No artists yet."}</td>
             </tr>
           ) : null}
         </tbody>
       </table>
+
+      <Pagination
+        page={currentPage}
+        totalPages={adminTotalPages(totalCount)}
+        basePath="/admin/artists"
+        extraQuery={query ? `q=${encodeURIComponent(query)}` : undefined}
+      />
     </>
   );
 }

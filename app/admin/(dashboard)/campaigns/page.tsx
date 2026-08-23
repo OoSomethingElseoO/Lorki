@@ -5,16 +5,40 @@ import { CampaignStatusControl } from "@/components/admin/campaign-status-contro
 import { ArtworkForm } from "@/components/admin/artwork-form";
 import { ArtworkRow } from "@/components/admin/artwork-row";
 import { DeleteButton } from "@/components/admin/delete-button";
+import { AdminSearchForm } from "@/components/admin/search-form";
+import { Pagination } from "@/components/pagination";
 import { getCampaignLabel } from "@/lib/campaigns";
+import { ADMIN_PAGE_SIZE, adminTotalPages, normalizeAdminPage } from "@/lib/admin-list";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminCampaignsPage() {
-  const [campaigns, animals, conservancies, artists] = await Promise.all([
+type PageProps = { searchParams: Promise<{ page?: string; q?: string }> };
+
+export default async function AdminCampaignsPage({ searchParams }: PageProps) {
+  const { page, q } = await searchParams;
+  const currentPage = normalizeAdminPage(page);
+  const query = q?.trim();
+
+  const where = query
+    ? {
+        OR: [
+          { slug: { contains: query, mode: "insensitive" as const } },
+          { artist: { name: { contains: query, mode: "insensitive" as const } } },
+          { animal: { name: { contains: query, mode: "insensitive" as const } } },
+          { conservancy: { name: { contains: query, mode: "insensitive" as const } } },
+        ],
+      }
+    : {};
+
+  const [campaigns, totalCount, animals, conservancies, artists] = await Promise.all([
     prisma.campaign.findMany({
+      where,
       include: { animal: true, conservancy: true, artist: true, artworks: true },
       orderBy: { createdAt: "desc" },
+      skip: (currentPage - 1) * ADMIN_PAGE_SIZE,
+      take: ADMIN_PAGE_SIZE,
     }),
+    prisma.campaign.count({ where }),
     prisma.animal.findMany({ orderBy: { name: "asc" } }),
     prisma.conservancy.findMany({ orderBy: { name: "asc" } }),
     prisma.artist.findMany({ orderBy: { name: "asc" } }),
@@ -24,6 +48,8 @@ export default async function AdminCampaignsPage() {
     <>
       <h1>Campaigns</h1>
       <CampaignForm animals={animals} conservancies={conservancies} artists={artists} />
+
+      <AdminSearchForm placeholder="Search by artist, animal, or cause name" defaultValue={query} />
 
       {campaigns.map((campaign) => (
         <section className="admin-campaign-card" key={campaign.id}>
@@ -71,7 +97,14 @@ export default async function AdminCampaignsPage() {
         </section>
       ))}
 
-      {campaigns.length === 0 ? <p>No campaigns yet.</p> : null}
+      {campaigns.length === 0 ? <p>{query ? `No campaigns match "${query}".` : "No campaigns yet."}</p> : null}
+
+      <Pagination
+        page={currentPage}
+        totalPages={adminTotalPages(totalCount)}
+        basePath="/admin/campaigns"
+        extraQuery={query ? `q=${encodeURIComponent(query)}` : undefined}
+      />
     </>
   );
 }
