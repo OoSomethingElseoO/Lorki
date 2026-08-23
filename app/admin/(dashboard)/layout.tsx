@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { ToastProvider } from "@/components/admin/toast-provider";
 import { DashboardShell } from "@/components/dashboard-shell";
 
 const navLinks = [
@@ -18,10 +17,8 @@ const navLinks = [
 
 export default function AdminDashboardLayout({ children }: { children: ReactNode }) {
   return (
-    <ToastProvider>
-      <DashboardShell title="Lorkulup Admin" navLinks={navLinks} variant="admin">
-        {children}
-      </DashboardShell>
-    </ToastProvider>
+    <DashboardShell title="Lorkulup Admin" navLinks={navLinks} variant="admin">
+      {children}
+    </DashboardShell>
   );
 }
