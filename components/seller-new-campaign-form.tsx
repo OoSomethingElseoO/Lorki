@@ -50,7 +50,7 @@ export function SellerNewCampaignForm({ animals, conservancies }: SellerNewCampa
   return (
     <form className="admin-form" onSubmit={handleSubmit}>
       {animals.length > 0 && conservancies.length > 0 ? (
-        <>
+        <div className="admin-form__radio-group">
           <label>
             <input
               type="radio"
@@ -58,7 +58,7 @@ export function SellerNewCampaignForm({ animals, conservancies }: SellerNewCampa
               value="animal"
               checked={causeMode === "animal"}
               onChange={() => setCauseMode("animal")}
-            />{" "}
+            />
             About a specific animal
           </label>
           <label>
@@ -68,10 +68,10 @@ export function SellerNewCampaignForm({ animals, conservancies }: SellerNewCampa
               value="conservancy"
               checked={causeMode === "conservancy"}
               onChange={() => setCauseMode("conservancy")}
-            />{" "}
+            />
             Not about wildlife — pick a cause directly
           </label>
-        </>
+        </div>
       ) : null}
 
       {causeMode === "animal" ? (

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type ChangeEvent } from "react";
+import { statusSelectClass } from "@/lib/status-badge";
 
 type InquiryStatusFormProps = {
   inquiryId: string;
@@ -10,11 +11,12 @@ type InquiryStatusFormProps = {
 
 export function InquiryStatusForm({ inquiryId, status }: InquiryStatusFormProps) {
   const router = useRouter();
+  const [current, setCurrent] = useState(status);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   async function handleChange(event: ChangeEvent<HTMLSelectElement>) {
-    const nextStatus = event.target.value;
+    const nextStatus = event.target.value as InquiryStatusFormProps["status"];
     setSaving(true);
     setError(null);
 
@@ -32,12 +34,13 @@ export function InquiryStatusForm({ inquiryId, status }: InquiryStatusFormProps)
       return;
     }
 
+    setCurrent(nextStatus);
     router.refresh();
   }
 
   return (
     <div>
-      <select defaultValue={status} onChange={handleChange} disabled={saving} aria-label="Inquiry status">
+      <select value={current} onChange={handleChange} disabled={saving} aria-label="Inquiry status" className={statusSelectClass(current)}>
         <option value="NEW">New</option>
         <option value="CONTACTED">Contacted</option>
         <option value="CLOSED">Closed</option>

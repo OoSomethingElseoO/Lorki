@@ -1151,8 +1151,10 @@ a:focus-visible {
 }
 
 .admin-main {
-  padding: 2rem clamp(1rem, 3vw, 2.5rem);
-  max-width: 64rem;
+  padding: 2rem clamp(1.5rem, 4vw, 3.5rem);
+  max-width: 84rem;
+  margin: 0 auto;
+  width: 100%;
 }
 
 .admin-main h1 {
@@ -1163,11 +1165,24 @@ a:focus-visible {
 .admin-form {
   display: grid;
   gap: 0.4rem;
-  max-width: 32rem;
+  max-width: 36rem;
   margin-bottom: 2rem;
-  padding: 1.25rem;
+  padding: 1.5rem;
   border: 1px solid #d0d0cc;
+  border-radius: 8px;
   background: #ffffff;
+  box-shadow: 0 1px 2px rgba(27, 27, 24, 0.04);
+}
+
+/* On a standalone page (.page-main — seller/cause profile, onboarding: no
+   sidebar, nothing else beside the form) the form is the only content, so
+   it should sit centered under the already-centered .page-title above it.
+   On the admin dashboard (.admin-main — sidebar layout) a create/edit form
+   intentionally stays flush left, consistent with the full-width table
+   that sits directly below it. */
+.page-main .admin-form {
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .admin-form label {
@@ -1179,22 +1194,117 @@ a:focus-visible {
 .admin-form input,
 .admin-form select,
 .admin-form textarea {
-  padding: 0.5rem;
+  padding: 0.55rem 0.65rem;
   border: 1px solid #c4c4bf;
+  border-radius: 5px;
   font: inherit;
   background: #ffffff;
   color: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.admin-form input:focus,
+.admin-form select:focus,
+.admin-form textarea:focus {
+  outline: none;
+  border-color: #6b6b64;
+  box-shadow: 0 0 0 3px rgba(27, 27, 24, 0.08);
+}
+
+/* Custom select chevron — a plain OS-default arrow otherwise doesn't match
+   the height/border treatment every other control here gets. */
+.admin-form select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 2rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%234a4a44' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.65rem center;
+  cursor: pointer;
+}
+
+/* Only the button portion of a native file input is reskinnable this way —
+   this keeps full native file-picker behavior/accessibility while matching
+   every other control's visual language instead of the raw browser default. */
+.admin-form input[type="file"] {
+  border: none;
+  padding: 0;
+  background: none;
+  font-size: 0.85rem;
+}
+
+.admin-form input[type="file"]::file-selector-button {
+  padding: 0.5rem 0.85rem;
+  margin-right: 0.75rem;
+  border: 1px solid #c4c4bf;
+  border-radius: 5px;
+  background: #f5f5f2;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.admin-form input[type="file"]::file-selector-button:hover {
+  background: #eaeae5;
+}
+
+.admin-form input[type="radio"],
+.admin-form input[type="checkbox"] {
+  accent-color: #1b1b18;
+  width: 1.05rem;
+  height: 1.05rem;
+  cursor: pointer;
+}
+
+/* A radio-driven either/or (e.g. "about a specific animal" vs "pick a
+   cause directly") reads as a real choice, not two loose bullet points. */
+.admin-form__radio-group {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.15rem 0 0.4rem;
+}
+
+.admin-form__radio-group label {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 0;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #d0d0cc;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.admin-form__radio-group label:has(input:checked) {
+  border-color: #1b1b18;
+  background: #f5f5f2;
+  font-weight: 700;
 }
 
 .admin-form button {
   margin-top: 0.75rem;
-  padding: 0.55rem 0.9rem;
+  padding: 0.6rem 1rem;
   border: 1px solid #1b1b18;
+  border-radius: 6px;
   background: #1b1b18;
   color: #f2f2f0;
   font-weight: 600;
   cursor: pointer;
   width: fit-content;
+  transition: background 0.15s ease, transform 0.05s ease;
+}
+
+.admin-form button:hover:not(:disabled) {
+  background: #33322c;
+}
+
+.admin-form button:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 .admin-form button:disabled {
@@ -1223,10 +1333,55 @@ a:focus-visible {
   margin: 0.3rem 0;
 }
 
+/* Any hint immediately following a submit button reads as feedback about
+   what just happened (e.g. "Saved.") rather than static help copy above a
+   field — upgrade it to a real banner instead of leaving it as a floating
+   line of gray text easy to miss. Plain field-level hints elsewhere are
+   unaffected. */
+.admin-form button + .admin-form__hint {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #b7d3b8;
+  border-radius: 6px;
+  background: #eef6ee;
+  color: #2c5c30;
+  font-weight: 600;
+}
+
+.admin-form button + .admin-form__hint::before {
+  content: "✓";
+  font-weight: 700;
+}
+
 .admin-form__error {
-  font-size: 0.82rem;
-  color: #a13d2f;
-  margin: 0.3rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #e3b3aa;
+  border-radius: 6px;
+  background: #fbeceb;
+  color: #8f2f22;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.admin-form__error::before {
+  content: "!";
+  display: inline-grid;
+  place-items: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #a13d2f;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
 }
 
 .admin-form__split-row {
@@ -1266,19 +1421,116 @@ a:focus-visible {
   border-collapse: collapse;
   margin-bottom: 1.5rem;
   background: #ffffff;
+  border: 1px solid #e2e2de;
+  border-radius: 8px;
+  overflow: hidden;
   font-size: 0.9rem;
 }
 
 .admin-table th,
 .admin-table td {
   text-align: left;
-  padding: 0.55rem 0.7rem;
+  padding: 0.65rem 0.85rem;
   border-bottom: 1px solid #e2e2de;
 }
 
 .admin-table th {
   background: #eeeeea;
   font-weight: 700;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #4a4a44;
+}
+
+.admin-table tbody tr:hover {
+  background: #fafaf8;
+}
+
+/* Status badges — one shared vocabulary for campaign/order/payout/inquiry/
+   verification state, so "is this good, in-progress, or bad" reads at a
+   glance instead of as plain text or a bare <select>. Map a status string
+   to one of these four modifiers via lib/status-badge.ts. */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.status-badge::before {
+  content: "";
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.status-badge--positive {
+  background: #eaf4ea;
+  color: #2c6b30;
+}
+
+.status-badge--pending {
+  background: #fbf3e3;
+  color: #97650f;
+}
+
+.status-badge--negative {
+  background: #fbecea;
+  color: #a13d2f;
+}
+
+.status-badge--neutral {
+  background: #ececea;
+  color: #55554e;
+}
+
+/* A <select> that's itself the status control (e.g. campaign status) gets
+   the same color language applied directly, so it doesn't need a separate
+   read-only badge sitting next to the editable control. */
+.admin-status-select {
+  padding: 0.35rem 1.7rem 0.35rem 0.65rem;
+  border: 1px solid #c4c4bf;
+  border-radius: 999px;
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.82rem;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7' fill='none'%3E%3Cpath d='M1 1.2L5 5.5L9 1.2' stroke='%2355554e' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.55rem center;
+}
+
+.admin-status-select--positive {
+  background-color: #eaf4ea;
+  color: #2c6b30;
+  border-color: #b7d3b8;
+}
+
+.admin-status-select--pending {
+  background-color: #fbf3e3;
+  color: #97650f;
+  border-color: #e6cf9f;
+}
+
+.admin-status-select--negative {
+  background-color: #fbecea;
+  color: #a13d2f;
+  border-color: #e3b3aa;
+}
+
+.admin-status-select--neutral {
+  background-color: #ececea;
+  color: #55554e;
+  border-color: #d0d0cc;
 }
 
 .admin-table__link {

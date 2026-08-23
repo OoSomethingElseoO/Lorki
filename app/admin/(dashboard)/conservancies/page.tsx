@@ -41,7 +41,9 @@ export default async function AdminConservanciesPage() {
               <td>
                 {conservancy.verifiedAt ? (
                   <>
-                    {new Date(conservancy.verifiedAt).toLocaleDateString()}
+                    <span className="status-badge status-badge--positive">
+                      Verified {new Date(conservancy.verifiedAt).toLocaleDateString()}
+                    </span>
                     {conservancy.registrationVerificationMethod ? (
                       <>
                         <br />

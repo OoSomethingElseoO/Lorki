@@ -87,26 +87,28 @@ export function CampaignForm({ animals, conservancies, artists, id, initial }: C
 
   return (
     <form className="admin-form" onSubmit={handleSubmit}>
-      <label>
-        <input
-          type="radio"
-          name="causeMode"
-          value="animal"
-          checked={causeMode === "animal"}
-          onChange={() => setCauseMode("animal")}
-        />{" "}
-        About a specific animal
-      </label>
-      <label>
-        <input
-          type="radio"
-          name="causeMode"
-          value="conservancy"
-          checked={causeMode === "conservancy"}
-          onChange={() => setCauseMode("conservancy")}
-        />{" "}
-        Pick a cause directly (no specific animal)
-      </label>
+      <div className="admin-form__radio-group">
+        <label>
+          <input
+            type="radio"
+            name="causeMode"
+            value="animal"
+            checked={causeMode === "animal"}
+            onChange={() => setCauseMode("animal")}
+          />
+          About a specific animal
+        </label>
+        <label>
+          <input
+            type="radio"
+            name="causeMode"
+            value="conservancy"
+            checked={causeMode === "conservancy"}
+            onChange={() => setCauseMode("conservancy")}
+          />
+          Pick a cause directly (no specific animal)
+        </label>
+      </div>
 
       {causeMode === "animal" ? (
         <>

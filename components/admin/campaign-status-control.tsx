@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { statusSelectClass } from "@/lib/status-badge";
 
 const STATUSES = ["DRAFT", "LIVE", "PAUSED", "ARCHIVED"] as const;
 
@@ -26,7 +27,7 @@ export function CampaignStatusControl({ campaignId, status }: CampaignStatusCont
   }
 
   return (
-    <select value={status} onChange={handleChange} disabled={submitting} className="admin-status-select">
+    <select value={status} onChange={handleChange} disabled={submitting} className={statusSelectClass(status)}>
       {STATUSES.map((option) => (
         <option key={option} value={option}>
           {option}

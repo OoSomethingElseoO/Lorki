@@ -4,6 +4,7 @@ import { DeliverOrderForm } from "@/components/admin/deliver-order-form";
 import { RefundOrderButton } from "@/components/admin/refund-order-button";
 import { CashSaleForm } from "@/components/admin/cash-sale-form";
 import { getCampaignLabel } from "@/lib/campaigns";
+import { statusBadgeClass } from "@/lib/status-badge";
 
 export const dynamic = "force-dynamic";
 
@@ -66,11 +67,14 @@ export default async function AdminOrdersPage() {
               <td>{order.buyerEmail}</td>
               <td>${(order.amountCents / 100).toFixed(2)}</td>
               <td>{order.paymentMethod === "CASH" ? "Cash" : "Card"}</td>
-              <td>{order.status}</td>
+              <td>
+                <span className={statusBadgeClass(order.status)}>{order.status}</span>
+              </td>
               <td>
                 {order.payouts.map((payout) => (
                   <div key={payout.id} className="admin-form__hint">
-                    {payout.recipientType}: ${(payout.amountCents / 100).toFixed(2)} ({payout.status})
+                    {payout.recipientType}: ${(payout.amountCents / 100).toFixed(2)}{" "}
+                    <span className={statusBadgeClass(payout.status)}>{payout.status}</span>
                   </div>
                 ))}
               </td>
@@ -96,7 +100,13 @@ export default async function AdminOrdersPage() {
                   "—"
                 )}
               </td>
-              <td>{order.status === "REFUNDED" ? "Refunded" : <RefundOrderButton orderId={order.id} />}</td>
+              <td>
+                {order.status === "REFUNDED" ? (
+                  <span className={statusBadgeClass("REFUNDED")}>Refunded</span>
+                ) : (
+                  <RefundOrderButton orderId={order.id} />
+                )}
+              </td>
             </tr>
           ))}
           {orders.length === 0 ? (
