@@ -50,6 +50,7 @@ export function ArtistGallery({ artworks, customerEmail }: ArtistGalleryProps) {
         title={selectedArtwork?.title ?? "Artwork preview"}
         isOpen={selectedArtwork !== null}
         onClose={() => setSelectedArtwork(null)}
+        closeLabel="Close enlarged artwork"
       >
         {selectedArtwork ? (
           <div className="modal-artwork">

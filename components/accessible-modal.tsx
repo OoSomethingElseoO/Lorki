@@ -7,9 +7,10 @@ type AccessibleModalProps = {
   isOpen: boolean;
   onClose: () => void;
   children: ReactNode;
+  closeLabel?: string;
 };
 
-export function AccessibleModal({ title, isOpen, onClose, children }: AccessibleModalProps) {
+export function AccessibleModal({ title, isOpen, onClose, children, closeLabel = "Close dialog" }: AccessibleModalProps) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -82,7 +83,7 @@ export function AccessibleModal({ title, isOpen, onClose, children }: Accessible
           <button
             className="icon-button"
             type="button"
-            aria-label="Close enlarged artwork"
+            aria-label={closeLabel}
             onClick={onClose}
             ref={closeButtonRef}
           >

@@ -1174,6 +1174,19 @@ a:focus-visible {
   box-shadow: 0 1px 2px rgba(27, 27, 24, 0.04);
 }
 
+/* Inside a modal (the conservancy verification checklist — see
+   components/admin/verify-conservancy-button.tsx): the modal panel itself
+   already provides the border/frame, so drop this form's own card
+   styling rather than nesting one box inside another, and use the width
+   the modal actually gives it instead of the normal narrow form cap. */
+.admin-form--modal {
+  max-width: none;
+  margin-bottom: 0;
+  padding: 0;
+  border: none;
+  box-shadow: none;
+}
+
 /* On a standalone page (.page-main — seller/cause profile, onboarding: no
    sidebar, nothing else beside the form) the form is the only content, so
    it should sit centered under the already-centered .page-title above it.
