@@ -1,8 +1,10 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SellerProfileForm } from "@/components/seller-profile-form";
 import { PayoutSettingsForm } from "@/components/payout-settings-form";
 import { getCurrentUser } from "@/lib/auth";
 import { recommendPayoutChannel } from "@/lib/payout-recommendations";
+import { buttonVariants } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +38,12 @@ export default async function SellerProfilePage() {
         endpoint="/api/seller/payout-settings"
         connectOnboardEndpoint="/api/seller/connect/onboard"
       />
+
+      <p style={{ marginTop: "2rem" }}>
+        <Link href="/seller" className={buttonVariants({ variant: "outline" })}>
+          Back to Dashboard
+        </Link>
+      </p>
     </>
   );
 }
