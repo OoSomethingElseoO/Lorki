@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/site-header";
+import { buttonVariants } from "@/components/ui/button";
 import { getLiveNewsArticleBySlug } from "@/lib/storefront";
 
 type NewsArticlePageProps = {
@@ -25,7 +26,7 @@ export default async function NewsArticlePage({ params }: NewsArticlePageProps) 
             <h1>{article.title}</h1>
             <p className="news-article__summary">{article.summary}</p>
             <p>{article.body}</p>
-            <Link href="/news" className="button-link">
+            <Link href="/news" className={buttonVariants()}>
               Back to news
             </Link>
           </div>

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { Button } from "@/components/ui/button";
 
 type CashSaleFormProps = {
   artworks: { id: string; title: string; priceCents: number; campaignLabel: string }[];
@@ -104,9 +105,9 @@ export function CashSaleForm({ artworks }: CashSaleFormProps) {
 
       {error ? <p className="admin-form__error">{error}</p> : null}
       {success ? <p className="admin-form__hint">{success}</p> : null}
-      <button type="submit" disabled={submitting}>
+      <Button type="submit" variant="form" className="mt-3" disabled={submitting}>
         {submitting ? "Recording…" : "Record cash sale"}
-      </button>
+      </Button>
     </form>
   );
 }

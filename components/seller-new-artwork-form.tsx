@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { ImageUploadField } from "@/components/admin/image-upload-field";
+import { Button } from "@/components/ui/button";
 
 type SellerNewArtworkFormProps = {
   campaigns: { id: string; label: string }[];
@@ -83,9 +84,9 @@ export function SellerNewArtworkForm({ campaigns, defaultCampaignId }: SellerNew
       <input id="altText" name="altText" required placeholder="Describe the piece for screen readers" />
 
       {error ? <p className="admin-form__error">{error}</p> : null}
-      <button type="submit" disabled={submitting}>
+      <Button type="submit" variant="form" className="mt-3" disabled={submitting}>
         {submitting ? "Listing…" : "Publish listing"}
-      </button>
+      </Button>
       <p className="admin-form__hint">This goes live immediately — no review step.</p>
     </form>
   );

@@ -1,3 +1,5 @@
+import { Button } from "@/components/ui/button";
+
 type AdminSearchFormProps = {
   placeholder: string;
   defaultValue?: string;
@@ -13,7 +15,7 @@ export function AdminSearchForm({ placeholder, defaultValue }: AdminSearchFormPr
   return (
     <form className="admin-search" method="GET">
       <input type="search" name="q" placeholder={placeholder} defaultValue={defaultValue} aria-label={placeholder} />
-      <button type="submit">Search</button>
+      <Button type="submit" variant="form">Search</Button>
       {defaultValue ? (
         <a href="?" className="admin-search__clear">
           Clear

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { DocumentUploadField } from "@/components/document-upload-field";
+import { Button } from "@/components/ui/button";
 
 export function CauseOnboardingForm() {
   const router = useRouter();
@@ -68,9 +69,9 @@ export function CauseOnboardingForm() {
       <DocumentUploadField name="registrationDocumentUrl" label="Registration certificate (optional)" />
 
       {error ? <p className="admin-form__error">{error}</p> : null}
-      <button type="submit" disabled={submitting}>
+      <Button type="submit" variant="form" className="mt-3" disabled={submitting}>
         {submitting ? "Registering…" : "Register cause"}
-      </button>
+      </Button>
     </form>
   );
 }

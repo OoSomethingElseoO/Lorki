@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 
 type ResetPasswordFormProps = {
   token: string;
@@ -47,9 +48,9 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
         onChange={(event) => setPassword(event.target.value)}
       />
       {error ? <p className="buy-form__error">{error}</p> : null}
-      <button type="submit" className="button-link" disabled={submitting}>
+      <Button type="submit" disabled={submitting}>
         {submitting ? "Saving…" : "Save new password"}
-      </button>
+      </Button>
     </form>
   );
 }

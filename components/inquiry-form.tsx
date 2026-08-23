@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { Button } from "@/components/ui/button";
 
 type InquiryFormProps = {
   artworkId: string;
@@ -86,9 +87,9 @@ export function InquiryForm({ artworkId, title, customerName, customerEmail }: I
         onChange={(event) => setMessage(event.target.value)}
       />
 
-      <button type="submit" className="button-link" disabled={submitting}>
+      <Button type="submit" disabled={submitting} className="self-start">
         {submitting ? "Sending…" : "Inquire to purchase"}
-      </button>
+      </Button>
       {error ? <p className="inquiry-form__error">{error}</p> : null}
     </form>
   );

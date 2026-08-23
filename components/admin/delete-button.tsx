@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useToast } from "@/components/admin/toast-provider";
 import { TrashIcon } from "@/components/admin/icons";
+import { Button } from "@/components/ui/button";
 
 type DeleteButtonProps = {
   endpoint: string;
@@ -42,10 +43,10 @@ export function DeleteButton({ endpoint, confirmLabel }: DeleteButtonProps) {
 
   return (
     <span className="admin-delete">
-      <button type="button" className="admin-delete__button" onClick={handleClick} disabled={submitting}>
+      <Button type="button" variant="destructive" size="sm" onClick={handleClick} disabled={submitting}>
         <TrashIcon />
         {submitting ? "Deleting…" : "Delete"}
-      </button>
+      </Button>
       {error ? <span className="admin-form__error">{error}</span> : null}
     </span>
   );

@@ -6,6 +6,7 @@ import { getRegistryLookup } from "@/lib/registry-lookups";
 import { AccessibleModal } from "@/components/accessible-modal";
 import { useToast } from "@/components/admin/toast-provider";
 import { CheckIcon } from "@/components/admin/icons";
+import { Button } from "@/components/ui/button";
 
 type VerifyConservancyChecklistProps = {
   conservancyId: string;
@@ -80,10 +81,10 @@ export function VerifyConservancyChecklist({
 
   return (
     <>
-      <button type="button" className="admin-table__link-button" onClick={() => setIsOpen(true)}>
+      <Button type="button" variant="outline" size="sm" onClick={() => setIsOpen(true)}>
         <CheckIcon />
         Review &amp; verify
-      </button>
+      </Button>
 
       <AccessibleModal
         title={`Verify ${name}`}
@@ -144,10 +145,10 @@ export function VerifyConservancyChecklist({
               </>
             ) : null}
           </label>
-          <button type="button" onClick={handleVerify} disabled={!allChecked || submitting}>
+          <Button type="button" variant="form" className="mt-3" onClick={handleVerify} disabled={!allChecked || submitting}>
             <CheckIcon />
             {submitting ? "Verifying…" : "Verify"}
-          </button>
+          </Button>
           {error ? <p className="admin-form__error">{error}</p> : null}
         </div>
       </AccessibleModal>

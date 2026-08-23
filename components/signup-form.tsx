@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 
 export function SignupForm() {
@@ -54,9 +55,9 @@ export function SignupForm() {
       />
 
       {error ? <p className="buy-form__error">{error}</p> : null}
-      <button type="submit" className="button-link" disabled={submitting}>
+      <Button type="submit" disabled={submitting}>
         {submitting ? "Creating…" : "Create account"}
-      </button>
+      </Button>
       <p className="account-form__hint">
         Already have an account? <Link href="/login">Sign in</Link>
       </p>

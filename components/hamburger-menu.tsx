@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
 
 const menuLinks = [
   { label: "Mission Statement", href: "/mission-statement" },
@@ -43,18 +44,20 @@ export function HamburgerMenu() {
 
   return (
     <div className="menu-container" ref={containerRef}>
-      <button
-        className="icon-button hamburger-button"
+      <Button
+        variant="icon-panel"
+        size="icon"
+        className="grid! place-items-center gap-[0.28rem]"
         type="button"
         aria-label={isMenuOpen ? "Close navigation menu" : "Open navigation menu"}
         aria-controls={menuId}
         aria-expanded={isMenuOpen}
         onClick={() => setIsMenuOpen((current) => !current)}
       >
-        <span aria-hidden="true" />
-        <span aria-hidden="true" />
-        <span aria-hidden="true" />
-      </button>
+        <span aria-hidden="true" className="block h-[0.16rem] w-[1.45rem] bg-current" />
+        <span aria-hidden="true" className="block h-[0.16rem] w-[1.45rem] bg-current" />
+        <span aria-hidden="true" className="block h-[0.16rem] w-[1.45rem] bg-current" />
+      </Button>
 
       <ul className="dropdown-menu" id={menuId} hidden={!isMenuOpen}>
         {menuLinks.map((link) => (

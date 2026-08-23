@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { Button } from "@/components/ui/button";
 
 type BuyButtonProps = {
   artworkId: string;
@@ -56,9 +57,9 @@ export function BuyButton({ artworkId, title, priceCents, customerEmail }: BuyBu
           />
         </>
       )}
-      <button type="submit" className="button-link" disabled={submitting}>
+      <Button type="submit" disabled={submitting}>
         {submitting ? "Redirecting…" : `Buy — $${(priceCents / 100).toFixed(2)}`}
-      </button>
+      </Button>
       {error ? <p className="buy-form__error">{error}</p> : null}
     </form>
   );

@@ -2,6 +2,7 @@
 
 import { Suspense, useState, type FormEvent } from "react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { useRouter, useSearchParams } from "next/navigation";
 
 function LoginFormInner() {
@@ -50,9 +51,9 @@ function LoginFormInner() {
       />
 
       {error ? <p className="buy-form__error">{error}</p> : null}
-      <button type="submit" className="button-link" disabled={submitting}>
+      <Button type="submit" disabled={submitting}>
         {submitting ? "Signing in…" : "Sign in"}
-      </button>
+      </Button>
       <p className="account-form__hint">
         <Link href="/forgot-password">Forgot your password?</Link>
       </p>

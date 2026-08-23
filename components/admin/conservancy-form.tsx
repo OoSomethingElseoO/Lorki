@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { Button } from "@/components/ui/button";
 
 type ConservancyFormProps = {
   id?: string;
@@ -79,9 +80,9 @@ export function ConservancyForm({ id, initial }: ConservancyFormProps) {
       <input id="contactEmail" name="contactEmail" type="email" required defaultValue={initial?.contactEmail} />
 
       {error ? <p className="admin-form__error">{error}</p> : null}
-      <button type="submit" disabled={submitting}>
+      <Button type="submit" variant="form" className="mt-3" disabled={submitting}>
         {submitting ? "Saving…" : isEditing ? "Save changes" : "Add conservancy"}
-      </button>
+      </Button>
     </form>
   );
 }

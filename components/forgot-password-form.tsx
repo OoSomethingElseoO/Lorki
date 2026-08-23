@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { Button } from "@/components/ui/button";
 
 export function ForgotPasswordForm() {
   const [email, setEmail] = useState("");
@@ -33,9 +34,9 @@ export function ForgotPasswordForm() {
     <form className="account-form" onSubmit={handleSubmit}>
       <label htmlFor="email">Email</label>
       <input id="email" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} />
-      <button type="submit" className="button-link" disabled={submitting}>
+      <Button type="submit" disabled={submitting}>
         {submitting ? "Sending…" : "Send reset link"}
-      </button>
+      </Button>
     </form>
   );
 }

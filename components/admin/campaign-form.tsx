@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { Button } from "@/components/ui/button";
 
 type CampaignFormProps = {
   animals: { id: string; name: string }[];
@@ -190,9 +191,9 @@ export function CampaignForm({ animals, conservancies, artists, id, initial }: C
       <p className={total === 100 ? "admin-form__hint" : "admin-form__error"}>Total: {total}% (must equal 100%)</p>
 
       {error ? <p className="admin-form__error">{error}</p> : null}
-      <button type="submit" disabled={submitting || total !== 100}>
+      <Button type="submit" variant="form" className="mt-3" disabled={submitting || total !== 100}>
         {submitting ? "Saving…" : isEditing ? "Save changes" : "Create campaign"}
-      </button>
+      </Button>
     </form>
   );
 }

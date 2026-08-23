@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { ArtworkCard } from "@/components/artwork-card";
 import { ArtistCard } from "@/components/artist-card";
 import { NewsCard } from "@/components/news-card";
@@ -58,7 +60,7 @@ export default async function Home() {
               </h1>
               <p className="hero__tagline">{branding.heroTagline}</p>
               <div className="hero__actions">
-                <Link href="/originals" className="button-link">
+                <Link href="/originals" className={buttonVariants()}>
                   Browse originals
                 </Link>
                 <Link href="/impact" className="hero__actions-link">
@@ -91,7 +93,7 @@ export default async function Home() {
                   <ArtworkCard artwork={artwork} customerEmail={customer?.email} key={artwork.id} />
                 ))}
               </div>
-              <Link href="/originals" className="button-link">
+              <Link href="/originals" className={cn(buttonVariants(), "block w-fit mx-auto")}>
                 {originalsResult.totalCount > 3 ? "View all originals" : "Browse originals"}
               </Link>
             </>
@@ -120,7 +122,7 @@ export default async function Home() {
               <span className="impact-totals__label">Pieces sold</span>
             </div>
           </div>
-          <Link href="/impact" className="button-link">
+          <Link href="/impact" className={cn(buttonVariants(), "block w-fit mx-auto")}>
             See the full breakdown
           </Link>
         </section>
@@ -136,7 +138,7 @@ export default async function Home() {
                 <ArtistCard artist={artist} key={artist.slug} />
               ))}
             </div>
-            <Link href="/artists" className="button-link">
+            <Link href="/artists" className={cn(buttonVariants(), "block w-fit mx-auto")}>
               View all artists
             </Link>
           </section>
@@ -153,7 +155,7 @@ export default async function Home() {
                 <ArtworkCard artwork={artwork} customerEmail={customer?.email} key={artwork.id} />
               ))}
             </div>
-            <Link href="/prints" className="button-link">
+            <Link href="/prints" className={cn(buttonVariants(), "block w-fit mx-auto")}>
               Shop prints
             </Link>
           </section>
@@ -170,7 +172,7 @@ export default async function Home() {
                 <NewsCard article={article} key={article.id} />
               ))}
             </div>
-            <Link href="/news" className="button-link">
+            <Link href="/news" className={cn(buttonVariants(), "block w-fit mx-auto")}>
               Read more news
             </Link>
           </section>

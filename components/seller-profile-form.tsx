@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { ImageUploadField } from "@/components/admin/image-upload-field";
+import { Button } from "@/components/ui/button";
 
 type SellerProfileFormProps = {
   initial: { name: string; country: string; bio: string; imageUrl: string };
@@ -59,9 +60,9 @@ export function SellerProfileForm({ initial }: SellerProfileFormProps) {
 
       {error ? <p className="admin-form__error">{error}</p> : null}
       {success ? <p className="admin-form__hint">Saved.</p> : null}
-      <button type="submit" disabled={submitting}>
+      <Button type="submit" variant="form" className="mt-3" disabled={submitting}>
         {submitting ? "Saving…" : "Save profile"}
-      </button>
+      </Button>
     </form>
   );
 }

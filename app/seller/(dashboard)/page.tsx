@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getCampaignCauseName } from "@/lib/campaigns";
+import { buttonVariants } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
@@ -64,7 +65,7 @@ export default async function SellerDashboardPage() {
       <section aria-label="Your campaigns">
         <div className="admin-campaign-card__controls" style={{ justifyContent: "space-between", display: "flex", marginBottom: "1rem" }}>
           <h2 style={{ margin: 0 }}>Your campaigns</h2>
-          <Link href="/seller/campaigns/new" className="button-link">
+          <Link href="/seller/campaigns/new" className={buttonVariants()}>
             Start a new campaign
           </Link>
         </div>
@@ -85,7 +86,7 @@ export default async function SellerDashboardPage() {
                 <span>{campaign.operationsPercent}% operations</span>
               </p>
               <p>{campaign.artworks.length} listing(s)</p>
-              <Link href={`/seller/artworks/new?campaignId=${campaign.id}`} className="button-link">
+              <Link href={`/seller/artworks/new?campaignId=${campaign.id}`} className={buttonVariants()}>
                 List a new piece
               </Link>
             </article>
@@ -96,7 +97,7 @@ export default async function SellerDashboardPage() {
       <section aria-label="Your listings" style={{ marginTop: "2rem" }}>
         <div className="admin-campaign-card__controls" style={{ justifyContent: "space-between", display: "flex", marginBottom: "1rem" }}>
           <h2 style={{ margin: 0 }}>Your listings</h2>
-          <Link href="/seller/artworks" className="button-link">
+          <Link href="/seller/artworks" className={buttonVariants()}>
             Manage all listings
           </Link>
         </div>

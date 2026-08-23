@@ -4,6 +4,7 @@ import { AdminSearchForm } from "@/components/admin/search-form";
 import { EmptyState } from "@/components/admin/empty-state";
 import { PayoutsBulkForm } from "@/components/admin/payouts-bulk-form";
 import { Pagination } from "@/components/pagination";
+import { buttonVariants } from "@/components/ui/button";
 import { ADMIN_PAGE_SIZE, adminTotalPages, normalizeAdminPage } from "@/lib/admin-list";
 
 export const dynamic = "force-dynamic";
@@ -144,7 +145,7 @@ export default async function AdminPayoutsPage({ searchParams }: PageProps) {
       <AdminSearchForm placeholder="Search by artwork, artist, or cause name" defaultValue={query} />
 
       <a
-        className="admin-table__link-button"
+        className={buttonVariants({ variant: "outline", size: "sm" })}
         href={`/api/admin/export/payouts${query ? `?q=${encodeURIComponent(query)}` : ""}`}
       >
         Export CSV

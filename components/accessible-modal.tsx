@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode } from "react";
+import { Button } from "@/components/ui/button";
 
 type AccessibleModalProps = {
   title: string;
@@ -89,15 +90,16 @@ export function AccessibleModal({ title, isOpen, onClose, children, closeLabel =
       >
         <div className="modal-panel__header">
           <h2 id="modal-title">{title}</h2>
-          <button
-            className="icon-button"
+          <Button
+            variant="icon-panel"
+            size="icon"
             type="button"
             aria-label={closeLabel}
             onClick={onClose}
             ref={closeButtonRef}
           >
             <span aria-hidden="true">X</span>
-          </button>
+          </Button>
         </div>
         {children}
       </section>

@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 type PaginationProps = {
   page: number;
@@ -26,11 +28,11 @@ export function Pagination({ page, totalPages, basePath, extraQuery }: Paginatio
   return (
     <nav className="pagination" aria-label="Pagination">
       {page > 1 ? (
-        <Link href={pageHref(basePath, page - 1, extraQuery)} className="button-link">
+        <Link href={pageHref(basePath, page - 1, extraQuery)} className={buttonVariants()}>
           Previous
         </Link>
       ) : (
-        <span className="button-link button-link--disabled" aria-disabled="true">
+        <span className={cn(buttonVariants(), "opacity-40 cursor-not-allowed")} aria-disabled="true">
           Previous
         </span>
       )}
@@ -38,11 +40,11 @@ export function Pagination({ page, totalPages, basePath, extraQuery }: Paginatio
         Page {page} of {totalPages}
       </span>
       {page < totalPages ? (
-        <Link href={pageHref(basePath, page + 1, extraQuery)} className="button-link">
+        <Link href={pageHref(basePath, page + 1, extraQuery)} className={buttonVariants()}>
           Next
         </Link>
       ) : (
-        <span className="button-link button-link--disabled" aria-disabled="true">
+        <span className={cn(buttonVariants(), "opacity-40 cursor-not-allowed")} aria-disabled="true">
           Next
         </span>
       )}

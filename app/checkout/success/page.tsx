@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PageTitle } from "@/components/page-title";
 import { SiteHeader } from "@/components/site-header";
+import { buttonVariants } from "@/components/ui/button";
 import { getStripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 
@@ -52,7 +53,7 @@ export default async function CheckoutSuccessPage({ searchParams }: SuccessPageP
         <div className="contact-card">
           <p>{heading}</p>
           <p>{detail}</p>
-          <Link href="/originals" className="button-link">
+          <Link href="/originals" className={buttonVariants()}>
             Continue browsing
           </Link>
         </div>

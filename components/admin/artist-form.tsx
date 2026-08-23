@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { ImageUploadField } from "@/components/admin/image-upload-field";
+import { Button } from "@/components/ui/button";
 
 type SocialLinkInput = { platform: string; url: string };
 
@@ -123,20 +124,20 @@ export function ArtistForm({ coOps, id, initial }: ArtistFormProps) {
               value={link.url}
               onChange={(event) => updateSocialLink(index, "url", event.target.value)}
             />
-            <button type="button" onClick={() => removeSocialLink(index)} aria-label="Remove social link">
+            <Button type="button" variant="form" size="sm" onClick={() => removeSocialLink(index)} aria-label="Remove social link">
               &times;
-            </button>
+            </Button>
           </div>
         ))}
-        <button type="button" onClick={addSocialLink} className="admin-form__add-link">
+        <Button type="button" variant="outline" size="sm" onClick={addSocialLink}>
           + Add another link
-        </button>
+        </Button>
       </fieldset>
 
       {error ? <p className="admin-form__error">{error}</p> : null}
-      <button type="submit" disabled={submitting}>
+      <Button type="submit" variant="form" className="mt-3" disabled={submitting}>
         {submitting ? "Saving…" : isEditing ? "Save changes" : "Add artist"}
-      </button>
+      </Button>
     </form>
   );
 }

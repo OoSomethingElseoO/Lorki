@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { Button } from "@/components/ui/button";
 
 type PayoutChannel = "MANUAL" | "FLUTTERWAVE" | "STRIPE_CONNECT" | "CRYPTO";
 
@@ -133,9 +134,9 @@ export function PayoutSettingsForm({
               ? "Stripe is connected — payouts go straight to your bank account."
               : "Not connected yet. You'll be taken to Stripe to securely add your bank details — we never see them."}
           </p>
-          <button type="button" onClick={handleConnectStripe} disabled={submitting}>
+          <Button type="button" variant="form" className="mt-3" onClick={handleConnectStripe} disabled={submitting}>
             {initial.stripeConnectOnboarded ? "Update Stripe details" : "Connect with Stripe"}
-          </button>
+          </Button>
         </>
       ) : channel === "FLUTTERWAVE" ? (
         <form onSubmit={handleSave}>
@@ -209,9 +210,9 @@ export function PayoutSettingsForm({
             </>
           )}
 
-          <button type="submit" disabled={submitting}>
+          <Button type="submit" variant="form" className="mt-3" disabled={submitting}>
             {submitting ? "Saving…" : "Save"}
-          </button>
+          </Button>
         </form>
       ) : channel === "CRYPTO" ? (
         <form onSubmit={handleSave}>
@@ -229,16 +230,16 @@ export function PayoutSettingsForm({
           />
           <label htmlFor="cryptoAddress">Wallet address</label>
           <input id="cryptoAddress" name="cryptoAddress" defaultValue={initial.cryptoAddress ?? ""} required />
-          <button type="submit" disabled={submitting}>
+          <Button type="submit" variant="form" className="mt-3" disabled={submitting}>
             {submitting ? "Saving…" : "Save"}
-          </button>
+          </Button>
         </form>
       ) : (
         <form onSubmit={handleSave}>
           <p className="admin-form__hint">We'll pay you directly (bank transfer, cash, or as agreed) once a sale settles.</p>
-          <button type="submit" disabled={submitting}>
+          <Button type="submit" variant="form" className="mt-3" disabled={submitting}>
             {submitting ? "Saving…" : "Save"}
-          </button>
+          </Button>
         </form>
       )}
 

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { ImageUploadField } from "@/components/admin/image-upload-field";
+import { Button } from "@/components/ui/button";
 
 const SECRET_FIELDS = [
   "stripeSecretKey",
@@ -191,9 +192,9 @@ export function SettingsForm({ initial }: SettingsFormProps) {
 
       {error ? <p className="admin-form__error">{error}</p> : null}
       {success ? <p className="admin-form__hint">Saved.</p> : null}
-      <button type="submit" disabled={submitting}>
+      <Button type="submit" variant="form" className="mt-3" disabled={submitting}>
         {submitting ? "Saving…" : "Save settings"}
-      </button>
+      </Button>
     </form>
   );
 }

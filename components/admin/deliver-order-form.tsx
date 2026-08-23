@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useToast } from "@/components/admin/toast-provider";
 import { CheckIcon } from "@/components/admin/icons";
+import { Button } from "@/components/ui/button";
 
 type DeliverOrderFormProps = {
   orderId: string;
@@ -39,10 +40,10 @@ export function DeliverOrderForm({ orderId }: DeliverOrderFormProps) {
 
   return (
     <form className="admin-form admin-form--inline" onSubmit={(event) => event.preventDefault()}>
-      <button type="button" onClick={handleClick} disabled={submitting}>
+      <Button type="button" variant="form" onClick={handleClick} disabled={submitting}>
         <CheckIcon />
         {submitting ? "Marking…" : "Mark delivered"}
-      </button>
+      </Button>
       {error ? <p className="admin-form__error">{error}</p> : null}
     </form>
   );

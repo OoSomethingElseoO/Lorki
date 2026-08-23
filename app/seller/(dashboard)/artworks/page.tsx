@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { DeleteButton } from "@/components/admin/delete-button";
+import { buttonVariants } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getCampaignCauseName } from "@/lib/campaigns";
@@ -24,7 +25,7 @@ export default async function SellerArtworksPage() {
     <>
       <div className="admin-campaign-card__controls" style={{ justifyContent: "space-between", display: "flex", marginBottom: "1rem" }}>
         <h1 style={{ margin: 0 }}>Your Listings</h1>
-        <Link href="/seller/artworks/new" className="button-link">
+        <Link href="/seller/artworks/new" className={buttonVariants()}>
           List a new piece
         </Link>
       </div>

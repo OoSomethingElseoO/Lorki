@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { ImageUploadField } from "@/components/admin/image-upload-field";
+import { Button } from "@/components/ui/button";
 
 type AnimalFormProps = {
   conservancies: { id: string; name: string }[];
@@ -103,9 +104,9 @@ export function AnimalForm({ conservancies, id, initial }: AnimalFormProps) {
       </select>
 
       {error ? <p className="admin-form__error">{error}</p> : null}
-      <button type="submit" disabled={submitting}>
+      <Button type="submit" variant="form" className="mt-3" disabled={submitting}>
         {submitting ? "Saving…" : isEditing ? "Save changes" : "Add animal"}
-      </button>
+      </Button>
     </form>
   );
 }

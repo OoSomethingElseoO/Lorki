@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useToast } from "@/components/admin/toast-provider";
 import { RefundIcon } from "@/components/admin/icons";
+import { Button } from "@/components/ui/button";
 
 type RefundOrderButtonProps = {
   orderId: string;
@@ -39,10 +40,10 @@ export function RefundOrderButton({ orderId }: RefundOrderButtonProps) {
 
   return (
     <div className="admin-form admin-form--inline">
-      <button type="button" onClick={handleClick} disabled={submitting}>
+      <Button type="button" variant="form" onClick={handleClick} disabled={submitting}>
         <RefundIcon />
         {submitting ? "Refunding…" : "Refund"}
-      </button>
+      </Button>
       {error ? <p className="admin-form__error">{error}</p> : null}
     </div>
   );

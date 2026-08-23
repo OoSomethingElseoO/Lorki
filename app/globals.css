@@ -207,42 +207,9 @@ a:focus-visible {
   white-space: nowrap;
 }
 
-.icon-button {
-  display: inline-grid;
-  place-items: center;
-  width: 3rem;
-  height: 3rem;
-  border: 2px solid var(--line);
-  border-radius: 0;
-  background: color-mix(in srgb, var(--panel) 82%, transparent);
-  color: var(--ink);
-  cursor: pointer;
-}
-
-.icon-button:hover {
-  background: var(--surface);
-}
-
-.icon-button svg {
-  width: 1.45rem;
-  height: 1.45rem;
-  fill: none;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 2;
-}
-
-.hamburger-button {
-  gap: 0.28rem;
-}
-
-.hamburger-button span {
-  display: block;
-  width: 1.45rem;
-  height: 0.16rem;
-  background: currentColor;
-}
+/* .icon-button / .hamburger-button styling now lives in
+   components/ui/button.tsx (variant="icon-panel") — see site-header.tsx
+   and hamburger-menu.tsx. */
 
 .site-actions {
   display: flex;
@@ -342,10 +309,6 @@ a:focus-visible {
   align-items: center;
 }
 
-.hero__actions .button-link {
-  margin-top: 0;
-}
-
 .hero__actions-link {
   font-weight: 700;
   text-decoration: underline;
@@ -432,11 +395,6 @@ a:focus-visible {
   margin-inline: auto;
 }
 
-.home-section > .button-link {
-  display: block;
-  width: fit-content;
-  margin: 0 auto;
-}
 
 .home-section__intro {
   max-width: 44rem;
@@ -534,13 +492,6 @@ a:focus-visible {
   color: var(--ink);
 }
 
-.search-form .button-link {
-  margin-top: 0;
-  border: 2px solid var(--line);
-  cursor: pointer;
-  font: inherit;
-}
-
 .page-main > section h2 {
   max-width: 78rem;
   margin: 0 auto 1rem;
@@ -605,7 +556,6 @@ a:focus-visible {
   font-weight: 700;
 }
 
-.button-link,
 .news-card a,
 .gallery-card a,
 .contact-card a,
@@ -618,11 +568,6 @@ a:focus-visible {
   padding: 0.65rem 0.9rem;
   font-weight: 700;
   text-decoration: none;
-}
-
-.button-link--disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
 }
 
 .pagination {
@@ -638,7 +583,6 @@ a:focus-visible {
   font-weight: 700;
 }
 
-.button-link:hover,
 .gallery-card a:hover,
 .contact-card a:hover,
 .modal-artwork a:hover {
@@ -662,18 +606,6 @@ a:focus-visible {
   padding: 0.6rem 0.7rem;
   font: inherit;
   color: var(--ink);
-}
-
-.buy-form .button-link {
-  margin-top: 0;
-  border: 2px solid var(--line);
-  cursor: pointer;
-  font: inherit;
-}
-
-.buy-form .button-link:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
 }
 
 .buy-form__error {
@@ -703,19 +635,6 @@ a:focus-visible {
 .inquiry-form textarea {
   min-height: 4.5rem;
   resize: vertical;
-}
-
-.inquiry-form .button-link {
-  align-self: flex-start;
-  margin-top: 0;
-  border: 2px solid var(--line);
-  cursor: pointer;
-  font: inherit;
-}
-
-.inquiry-form .button-link:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
 }
 
 .inquiry-form__hint {
@@ -983,12 +902,6 @@ a:focus-visible {
   color: var(--ink);
 }
 
-.account-form .button-link {
-  border: 2px solid var(--line);
-  cursor: pointer;
-  font: inherit;
-  width: fit-content;
-}
 
 .account-form__hint {
   margin: 0.75rem 0 0;
@@ -1325,7 +1238,8 @@ a:focus-visible {
    On the admin dashboard (.admin-main — sidebar layout) a create/edit form
    intentionally stays flush left, consistent with the full-width table
    that sits directly below it. */
-.page-main .admin-form {
+.page-main .admin-form,
+.dashboard-main--brand .admin-form {
   margin-left: auto;
   margin-right: auto;
 }
@@ -1438,31 +1352,10 @@ a:focus-visible {
   font-weight: 700;
 }
 
-.admin-form button {
-  margin-top: 0.75rem;
-  padding: 0.6rem 1rem;
-  border: 1px solid var(--admin-text);
-  border-radius: 6px;
-  background: var(--admin-text);
-  color: var(--admin-bg);
-  font-weight: 600;
-  cursor: pointer;
-  width: fit-content;
-  transition: background 0.15s ease, transform 0.05s ease;
-}
-
-.admin-form button:hover:not(:disabled) {
-  background: #33322c;
-}
-
-.admin-form button:active:not(:disabled) {
-  transform: translateY(1px);
-}
-
-.admin-form button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
+/* .admin-form's own submit-button styling now lives in
+   components/ui/button.tsx (variant="form") — see any admin/seller/cause
+   form component. The adjacent-sibling rules below still apply to it
+   unchanged, since Button renders a real <button> element. */
 
 .admin-form--inline {
   display: flex;
@@ -1690,15 +1583,6 @@ a:focus-visible {
   font: inherit;
 }
 
-.admin-search button {
-  padding: 0.5rem 0.9rem;
-  border: 1px solid var(--admin-text);
-  border-radius: 6px;
-  background: var(--admin-text);
-  color: var(--admin-bg);
-  font-weight: 600;
-  cursor: pointer;
-}
 
 .admin-search__clear {
   font-size: 0.85rem;
@@ -1860,39 +1744,11 @@ a:focus-visible {
   gap: 0.5rem;
 }
 
-.admin-delete__button {
-  padding: 0.3rem 0.6rem;
-  border: 1px solid var(--error-accent);
-  background: var(--admin-surface);
-  color: var(--error-accent);
-  font-weight: 600;
-  font-size: 0.82rem;
-  cursor: pointer;
-}
+/* .admin-delete__button styling now lives in components/ui/button.tsx
+   (variant="destructive") — see components/admin/delete-button.tsx. */
 
-.admin-delete__button:hover {
-  background: var(--error-accent);
-  color: var(--admin-surface);
-}
-
-.admin-delete__button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.admin-table__link-button {
-  padding: 0.3rem 0.6rem;
-  border: 1px solid var(--admin-border);
-  background: var(--admin-surface);
-  color: inherit;
-  font-weight: 600;
-  font-size: 0.82rem;
-  cursor: pointer;
-}
-
-.admin-table__link-button:hover {
-  background: var(--admin-hover);
-}
+/* .admin-table__link-button styling now lives in components/ui/button.tsx
+   (variant="outline" size="sm"). */
 
 .admin-image-field {
   display: grid;

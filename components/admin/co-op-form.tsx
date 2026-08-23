@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { Button } from "@/components/ui/button";
 
 type CoOpFormProps = {
   id?: string;
@@ -69,9 +70,9 @@ export function CoOpForm({ id, initial }: CoOpFormProps) {
       <input id="contactEmail" name="contactEmail" type="email" required defaultValue={initial?.contactEmail} />
 
       {error ? <p className="admin-form__error">{error}</p> : null}
-      <button type="submit" disabled={submitting}>
+      <Button type="submit" variant="form" className="mt-3" disabled={submitting}>
         {submitting ? "Saving…" : isEditing ? "Save changes" : "Add co-op"}
-      </button>
+      </Button>
     </form>
   );
 }

@@ -1,8 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { buttonVariants } from "@/components/ui/button";
 
-export function LogoutButton({ className = "button-link" }: { className?: string }) {
+export function LogoutButton({ className = buttonVariants() }: { className?: string }) {
   const router = useRouter();
 
   async function handleLogout() {

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { useToast } from "@/components/admin/toast-provider";
 import { ShipIcon } from "@/components/admin/icons";
+import { Button } from "@/components/ui/button";
 
 type ShipOrderFormProps = {
   orderId: string;
@@ -54,10 +55,10 @@ export function ShipOrderForm({ orderId }: ShipOrderFormProps) {
         <option value="ORIGINAL_FREIGHT">Original — freight-forwarded</option>
         <option value="PRINT_POD">Print — on-demand</option>
       </select>
-      <button type="submit" disabled={submitting}>
+      <Button type="submit" variant="form" disabled={submitting}>
         <ShipIcon />
         {submitting ? "Marking…" : "Mark shipped"}
-      </button>
+      </Button>
       {error ? <p className="admin-form__error">{error}</p> : null}
     </form>
   );

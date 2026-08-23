@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useRef, useState, type ReactNode } from "react";
 import { useToast } from "@/components/admin/toast-provider";
+import { Button } from "@/components/ui/button";
 
 // A native, uncontrolled <form> wrapping server-rendered rows: each row's
 // own checkbox (`name="payoutIds"`) needs no client-side code of its own —
@@ -68,9 +69,9 @@ export function PayoutsBulkForm({ children }: { children: ReactNode }) {
           Select all
         </label>
         <span className="admin-bulk-bar__count">{selectedCount} selected</span>
-        <button type="button" onClick={handleBulkMarkPaid} disabled={selectedCount === 0 || submitting}>
+        <Button type="button" variant="form" size="sm" onClick={handleBulkMarkPaid} disabled={selectedCount === 0 || submitting}>
           {submitting ? "Marking…" : "Mark selected paid out"}
-        </button>
+        </Button>
       </div>
       {children}
     </form>

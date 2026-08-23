@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { Button } from "@/components/ui/button";
 
 type SellerNewCampaignFormProps = {
   animals: { id: string; name: string; species: string; conservancyName: string }[];
@@ -109,9 +110,9 @@ export function SellerNewCampaignForm({ animals, conservancies }: SellerNewCampa
       </p>
 
       {error ? <p className="admin-form__error">{error}</p> : null}
-      <button type="submit" disabled={submitting}>
+      <Button type="submit" variant="form" className="mt-3" disabled={submitting}>
         {submitting ? "Starting…" : "Start campaign"}
-      </button>
+      </Button>
     </form>
   );
 }

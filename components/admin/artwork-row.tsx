@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ArtworkForm } from "@/components/admin/artwork-form";
 import { DeleteButton } from "@/components/admin/delete-button";
+import { Button } from "@/components/ui/button";
 
 type ArtworkRowProps = {
   campaignId: string;
@@ -48,9 +49,9 @@ export function ArtworkRow({ campaignId, artwork }: ArtworkRowProps) {
       <td>${(artwork.priceCents / 100).toFixed(2)}</td>
       <td>{artwork.inventoryState}</td>
       <td>
-        <button type="button" className="admin-table__link-button" onClick={() => setIsEditing(true)}>
+        <Button type="button" variant="outline" size="sm" onClick={() => setIsEditing(true)}>
           Edit
-        </button>{" "}
+        </Button>{" "}
         <DeleteButton
           endpoint={`/api/admin/campaigns/${campaignId}/artworks/${artwork.id}`}
           confirmLabel={artwork.title}

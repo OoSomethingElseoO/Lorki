@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { Button } from "@/components/ui/button";
 
 export function AdminUserForm() {
   const router = useRouter();
@@ -53,9 +54,9 @@ export function AdminUserForm() {
       <input id="password" name="password" type="password" required minLength={8} />
 
       {error ? <p className="admin-form__error">{error}</p> : null}
-      <button type="submit" disabled={submitting}>
+      <Button type="submit" variant="form" className="mt-3" disabled={submitting}>
         {submitting ? "Saving…" : "Add admin"}
-      </button>
+      </Button>
     </form>
   );
 }

@@ -9,6 +9,7 @@ import { AdminSearchForm } from "@/components/admin/search-form";
 import { EmptyState } from "@/components/admin/empty-state";
 import { EditIcon } from "@/components/admin/icons";
 import { Pagination } from "@/components/pagination";
+import { buttonVariants } from "@/components/ui/button";
 import { getCampaignLabel } from "@/lib/campaigns";
 import { ADMIN_PAGE_SIZE, adminTotalPages, normalizeAdminPage } from "@/lib/admin-list";
 
@@ -58,7 +59,7 @@ export default async function AdminCampaignsPage({ searchParams }: PageProps) {
           <header>
             <h2>{getCampaignLabel(campaign)}</h2>
             <div className="admin-campaign-card__controls">
-              <Link href={`/admin/campaigns/${campaign.id}/edit`} className="admin-table__link-button">
+              <Link href={`/admin/campaigns/${campaign.id}/edit`} className={buttonVariants({ variant: "outline", size: "sm" })}>
                 <EditIcon />
                 Edit
               </Link>

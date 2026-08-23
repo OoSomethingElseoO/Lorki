@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PageTitle } from "@/components/page-title";
 import { SiteHeader } from "@/components/site-header";
+import { buttonVariants } from "@/components/ui/button";
 
 export default function CheckoutCancelledPage() {
   return (
@@ -10,7 +11,7 @@ export default function CheckoutCancelledPage() {
         <PageTitle>Checkout cancelled</PageTitle>
         <div className="contact-card">
           <p>No charge was made. The piece is still available if you'd like to try again.</p>
-          <Link href="/originals" className="button-link">
+          <Link href="/originals" className={buttonVariants()}>
             Back to originals
           </Link>
         </div>

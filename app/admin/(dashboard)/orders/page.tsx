@@ -6,6 +6,7 @@ import { CashSaleForm } from "@/components/admin/cash-sale-form";
 import { AdminSearchForm } from "@/components/admin/search-form";
 import { EmptyState } from "@/components/admin/empty-state";
 import { Pagination } from "@/components/pagination";
+import { buttonVariants } from "@/components/ui/button";
 import { getCampaignLabel } from "@/lib/campaigns";
 import { statusBadgeClass } from "@/lib/status-badge";
 import { ADMIN_PAGE_SIZE, adminTotalPages, normalizeAdminPage } from "@/lib/admin-list";
@@ -69,7 +70,7 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
       <AdminSearchForm placeholder="Search by buyer email or artwork title" defaultValue={query} />
 
       <a
-        className="admin-table__link-button"
+        className={buttonVariants({ variant: "outline", size: "sm" })}
         href={`/api/admin/export/orders${query ? `?q=${encodeURIComponent(query)}` : ""}`}
       >
         Export CSV

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useRef, useState, type ReactNode } from "react";
 import { useToast } from "@/components/admin/toast-provider";
+import { Button } from "@/components/ui/button";
 
 export function InquiriesBulkForm({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -73,9 +74,9 @@ export function InquiriesBulkForm({ children }: { children: ReactNode }) {
           <option value="CONTACTED">Contacted</option>
           <option value="CLOSED">Closed</option>
         </select>
-        <button type="button" onClick={handleBulkApply} disabled={selectedCount === 0 || submitting}>
+        <Button type="button" variant="form" size="sm" onClick={handleBulkApply} disabled={selectedCount === 0 || submitting}>
           {submitting ? "Updating…" : "Apply to selected"}
-        </button>
+        </Button>
       </div>
       {children}
     </form>

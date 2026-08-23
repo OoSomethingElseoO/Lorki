@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { ImageUploadField } from "@/components/admin/image-upload-field";
+import { Button } from "@/components/ui/button";
 
 type NewsArticleFormProps = {
   id?: string;
@@ -73,9 +74,9 @@ export function NewsArticleForm({ id, initial }: NewsArticleFormProps) {
       <ImageUploadField name="imageUrl" label="Image" defaultValue={initial?.imageUrl} />
 
       {error ? <p className="admin-form__error">{error}</p> : null}
-      <button type="submit" disabled={submitting}>
+      <Button type="submit" variant="form" className="mt-3" disabled={submitting}>
         {submitting ? "Saving…" : isEditing ? "Save changes" : "Add article"}
-      </button>
+      </Button>
     </form>
   );
 }

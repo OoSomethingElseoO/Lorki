@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useToast } from "@/components/admin/toast-provider";
 import { CheckIcon } from "@/components/admin/icons";
+import { Button } from "@/components/ui/button";
 
 export function MarkPaidButton({ payoutId }: { payoutId: string }) {
   const router = useRouter();
@@ -33,10 +34,10 @@ export function MarkPaidButton({ payoutId }: { payoutId: string }) {
 
   return (
     <div>
-      <button type="button" onClick={handleClick} disabled={submitting}>
+      <Button type="button" variant="form" onClick={handleClick} disabled={submitting}>
         <CheckIcon />
         {submitting ? "Marking…" : "Mark paid out"}
-      </button>
+      </Button>
       {error ? <p className="admin-form__error">{error}</p> : null}
     </div>
   );

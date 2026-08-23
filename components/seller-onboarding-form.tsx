@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { ImageUploadField } from "@/components/admin/image-upload-field";
+import { Button } from "@/components/ui/button";
 
 export function SellerOnboardingForm() {
   const router = useRouter();
@@ -52,9 +53,9 @@ export function SellerOnboardingForm() {
       <ImageUploadField name="imageUrl" label="Portrait" />
 
       {error ? <p className="admin-form__error">{error}</p> : null}
-      <button type="submit" disabled={submitting}>
+      <Button type="submit" variant="form" className="mt-3" disabled={submitting}>
         {submitting ? "Setting up…" : "Start selling"}
-      </button>
+      </Button>
     </form>
   );
 }
