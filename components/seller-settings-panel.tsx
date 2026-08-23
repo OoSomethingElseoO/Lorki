@@ -44,35 +44,37 @@ export function SellerSettingsPanel({ seller, recommendation }: SellerSettingsPa
 
   return (
     <>
-      <SellerProfileForm
-        ref={profileRef}
-        initial={{ name: seller.name, country: seller.country, bio: seller.bio, imageUrl: seller.imageUrl }}
-      />
+      <div className="admin-form">
+        <SellerProfileForm
+          ref={profileRef}
+          initial={{ name: seller.name, country: seller.country, bio: seller.bio, imageUrl: seller.imageUrl }}
+        />
 
-      <h2>Payouts</h2>
-      <PayoutSettingsForm
-        ref={payoutRef}
-        initial={{
-          payoutChannel: seller.payoutChannel,
-          payoutCountry: seller.payoutCountry,
-          payoutCurrency: seller.payoutCurrency,
-          payoutMobileNetwork: seller.payoutMobileNetwork,
-          payoutAccountNumber: seller.payoutAccountNumber,
-          payoutBankCode: seller.payoutBankCode,
-          stripeConnectOnboarded: seller.stripeConnectOnboarded,
-          cryptoNetwork: seller.cryptoNetwork,
-          cryptoAddress: seller.cryptoAddress,
-        }}
-        recommendation={recommendation}
-        endpoint="/api/seller/payout-settings"
-        connectOnboardEndpoint="/api/seller/connect/onboard"
-      />
+        <h2 style={{ marginTop: "1rem" }}>Payouts</h2>
+        <PayoutSettingsForm
+          ref={payoutRef}
+          initial={{
+            payoutChannel: seller.payoutChannel,
+            payoutCountry: seller.payoutCountry,
+            payoutCurrency: seller.payoutCurrency,
+            payoutMobileNetwork: seller.payoutMobileNetwork,
+            payoutAccountNumber: seller.payoutAccountNumber,
+            payoutBankCode: seller.payoutBankCode,
+            stripeConnectOnboarded: seller.stripeConnectOnboarded,
+            cryptoNetwork: seller.cryptoNetwork,
+            cryptoAddress: seller.cryptoAddress,
+          }}
+          recommendation={recommendation}
+          endpoint="/api/seller/payout-settings"
+          connectOnboardEndpoint="/api/seller/connect/onboard"
+        />
 
-      <Button type="button" variant="form" className="mt-3" onClick={handleSaveAll} disabled={saving}>
-        {saving ? "Saving…" : "Save changes"}
-      </Button>
+        <Button type="button" variant="form" className="mt-3" onClick={handleSaveAll} disabled={saving}>
+          {saving ? "Saving…" : "Save changes"}
+        </Button>
+      </div>
 
-      <p style={{ marginTop: "2rem" }}>
+      <p style={{ marginTop: "1.5rem" }}>
         <Link href="/seller" className={buttonVariants({ variant: "outline" })}>
           Back to Dashboard
         </Link>

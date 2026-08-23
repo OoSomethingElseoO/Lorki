@@ -49,46 +49,48 @@ export function CauseSettingsPanel({ cause, recommendation }: CauseSettingsPanel
 
   return (
     <>
-      <CauseProfileForm
-        ref={profileRef}
-        initial={{
-          name: cause.name,
-          region: cause.region,
-          mission: cause.mission,
-          website: cause.website,
-          contactEmail: cause.contactEmail,
-          registrationNumber: cause.registrationNumber,
-          registrationDocumentUrl: cause.registrationDocumentUrl,
-          verifiedAt: cause.verifiedAt,
-        }}
-      />
+      <div className="admin-form">
+        <CauseProfileForm
+          ref={profileRef}
+          initial={{
+            name: cause.name,
+            region: cause.region,
+            mission: cause.mission,
+            website: cause.website,
+            contactEmail: cause.contactEmail,
+            registrationNumber: cause.registrationNumber,
+            registrationDocumentUrl: cause.registrationDocumentUrl,
+            verifiedAt: cause.verifiedAt,
+          }}
+        />
 
-      <h2>Payouts</h2>
-      <PayoutSettingsForm
-        ref={payoutRef}
-        initial={{
-          payoutChannel: cause.payoutChannel,
-          payoutCountry: cause.payoutCountry,
-          payoutCurrency: cause.payoutCurrency,
-          payoutMobileNetwork: cause.payoutMobileNetwork,
-          payoutAccountNumber: cause.payoutAccountNumber,
-          payoutBankCode: cause.payoutBankCode,
-          stripeConnectOnboarded: cause.stripeConnectOnboarded,
-          cryptoNetwork: cause.cryptoNetwork,
-          cryptoAddress: cause.cryptoAddress,
-          payoutAccountHolderName: cause.payoutAccountHolderName,
-        }}
-        recommendation={recommendation}
-        endpoint="/api/cause/payout-settings"
-        connectOnboardEndpoint="/api/cause/connect/onboard"
-        requireAccountHolderName
-      />
+        <h2 style={{ marginTop: "1rem" }}>Payouts</h2>
+        <PayoutSettingsForm
+          ref={payoutRef}
+          initial={{
+            payoutChannel: cause.payoutChannel,
+            payoutCountry: cause.payoutCountry,
+            payoutCurrency: cause.payoutCurrency,
+            payoutMobileNetwork: cause.payoutMobileNetwork,
+            payoutAccountNumber: cause.payoutAccountNumber,
+            payoutBankCode: cause.payoutBankCode,
+            stripeConnectOnboarded: cause.stripeConnectOnboarded,
+            cryptoNetwork: cause.cryptoNetwork,
+            cryptoAddress: cause.cryptoAddress,
+            payoutAccountHolderName: cause.payoutAccountHolderName,
+          }}
+          recommendation={recommendation}
+          endpoint="/api/cause/payout-settings"
+          connectOnboardEndpoint="/api/cause/connect/onboard"
+          requireAccountHolderName
+        />
 
-      <Button type="button" variant="form" className="mt-3" onClick={handleSaveAll} disabled={saving}>
-        {saving ? "Saving…" : "Save changes"}
-      </Button>
+        <Button type="button" variant="form" className="mt-3" onClick={handleSaveAll} disabled={saving}>
+          {saving ? "Saving…" : "Save changes"}
+        </Button>
+      </div>
 
-      <p style={{ marginTop: "2rem" }}>
+      <p style={{ marginTop: "1.5rem" }}>
         <Link href="/account" className={buttonVariants({ variant: "outline" })}>
           Back to My Account
         </Link>
