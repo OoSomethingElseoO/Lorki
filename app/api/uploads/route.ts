@@ -1,18 +1,15 @@
-import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { NextResponse } from "next/server";
-import { put } from "@vercel/blob";
+import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 
-const ALLOWED_TYPES: Record<string, string> = {
-  "image/png": "png",
-  "image/jpeg": "jpg",
-  "image/webp": "webp",
-  "image/gif": "gif",
-  "image/svg+xml": "svg",
-  "application/pdf": "pdf",
-};
+const ALLOWED_TYPES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/gif",
+  "image/svg+xml",
+  "application/pdf",
+]);
 
 const MAX_BYTES = 8 * 1024 * 1024;
 
@@ -23,15 +20,16 @@ const MAX_BYTES = 8 * 1024 * 1024;
 // not a specific role — this route performs no role-specific action, it
 // just stores a file and returns its URL.
 //
-// Vercel Blob when BLOB_READ_WRITE_TOKEN is set (added automatically once a
-// Blob store is created and linked to the project in the Vercel dashboard),
-// local disk otherwise. This isn't a Vercel-only path — the token works
-// from any host, so Render (or anywhere else) can opt in the same way by
-// just setting the env var. Local disk remains the zero-setup default for
-// a single self-hosted server with a persistent volume; it's NOT viable on
-// Vercel specifically, since serverless functions there have a read-only
-// filesystem outside /tmp — an upload would fail outright, not just vanish
-// on redeploy.
+// Stored directly in Postgres (bytea) — a deliberate choice, not the
+// default recommendation: serving artwork images out of the relational DB
+// instead of a CDN-backed object store is slower for visitors and inflates
+// Neon's storage-based billing for exactly the content that gets browsed
+// most. Chosen anyway to avoid standing up a third-party storage account.
+// Works identically on every host (no filesystem dependency at all, unlike
+// the local-disk approach this replaced, which broke outright on
+// serverless hosts like Vercel with a read-only filesystem outside /tmp) —
+// reconsider real object storage if upload volume/size ever makes this a
+// real cost or performance problem.
 export async function POST(request: Request) {
   const currentUser = await getCurrentUser();
   if (!currentUser) {
@@ -45,8 +43,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "No file provided" }, { status: 400 });
   }
 
-  const extension = ALLOWED_TYPES[file.type];
-  if (!extension) {
+  if (!ALLOWED_TYPES.has(file.type)) {
     return NextResponse.json({ error: "Unsupported file type — use PNG, JPEG, WEBP, GIF, SVG, or PDF" }, { status: 400 });
   }
 
@@ -54,18 +51,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "File is too large (8MB max)" }, { status: 400 });
   }
 
-  const filename = `${randomUUID()}.${extension}`;
-
-  if (process.env.BLOB_READ_WRITE_TOKEN) {
-    const blob = await put(`uploads/${filename}`, file, { access: "public" });
-    return NextResponse.json({ url: blob.url }, { status: 201 });
-  }
-
-  const uploadsDir = path.join(process.cwd(), "public", "uploads");
-  await mkdir(uploadsDir, { recursive: true });
-
   const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(path.join(uploadsDir, filename), buffer);
+  const uploaded = await prisma.uploadedFile.create({
+    data: { data: buffer, contentType: file.type },
+  });
 
-  return NextResponse.json({ url: `/uploads/${filename}` }, { status: 201 });
+  return NextResponse.json({ url: `/api/uploads/${uploaded.id}` }, { status: 201 });
 }

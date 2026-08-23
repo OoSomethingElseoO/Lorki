@@ -393,6 +393,19 @@ enum ShipmentMethod {
   PRINT_POD
 }
 
+// Uploaded images/documents stored directly in Postgres (bytea) rather
+// than object storage — a deliberate choice, not the default recommendation
+// (serving files out of the relational DB instead of a CDN-backed object
+// store is slower for visitors and inflates Neon's storage-based billing
+// for exactly the content — artwork images — that gets browsed most). See
+// app/api/uploads/route.ts. Served back out via GET /api/uploads/[id].
+model UploadedFile {
+  id          String   @id @default(cuid())
+  data        Bytes
+  contentType String
+  createdAt   DateTime @default(now())
+}
+
 // Singleton row (id is always "singleton") holding API keys the admin enters
 // through /admin/settings instead of editing .env by hand. Values here take
 // priority over env vars; env vars remain the fallback for first boot.
