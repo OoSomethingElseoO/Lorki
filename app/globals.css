@@ -1174,6 +1174,16 @@ a:focus-visible {
   box-shadow: 0 1px 2px rgba(27, 27, 24, 0.04);
 }
 
+/* Grid items default to min-width: auto, which sizes the (implicit,
+   single-column) grid track to the max-content width of its widest
+   child — a long sentence's natural unwrapped width — instead of
+   shrinking to fit whatever space .admin-form actually has. Same
+   underlying issue as .admin-nav/.admin-table on mobile, just triggered
+   by grid's own default here rather than flex's. */
+.admin-form > * {
+  min-width: 0;
+}
+
 /* Inside a modal (the conservancy verification checklist — see
    components/admin/verify-conservancy-button.tsx): the modal panel itself
    already provides the border/frame, so drop this form's own card
@@ -1199,6 +1209,13 @@ a:focus-visible {
 }
 
 .admin-form label {
+  /* Explicit, not left to grid's automatic blockification of its direct
+     children — a label nested one level deeper (inside a plain <form> or
+     <div>, as in components/payout-settings-form.tsx's channel-specific
+     branches) isn't a direct grid child of .admin-form and would
+     otherwise stay inline, running straight into whatever text follows
+     it with no line break. */
+  display: block;
   font-size: 0.82rem;
   font-weight: 600;
   margin-top: 0.4rem;
@@ -1400,11 +1417,17 @@ a:focus-visible {
 .admin-form__split-row {
   display: flex;
   gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 .admin-form__split-row > div {
   display: grid;
   gap: 0.25rem;
+  /* Same min-width: auto default as .admin-nav/.admin-table/.admin-form
+     above — without this, the two side-by-side fields refuse to shrink
+     and force the row wider than a phone viewport instead of wrapping. */
+  min-width: 0;
+  flex: 1 1 10rem;
 }
 
 .admin-form__social-links {
@@ -1644,8 +1667,28 @@ a:focus-visible {
 }
 
 @media (max-width: 720px) {
+  /* min-width: 0 overrides the browser default of min-width: auto on grid
+     items, which otherwise refuses to shrink a track below its content's
+     unwrapped intrinsic width — without this, .admin-nav's many links
+     force the whole grid (and every page inside .admin-main) wider than
+     the actual viewport instead of wrapping to fit it. */
   .admin-shell {
     grid-template-columns: 1fr;
+  }
+
+  .admin-shell > * {
+    min-width: 0;
+  }
+
+  /* A multi-column table genuinely doesn't fit a phone width — scroll it
+     within its own box instead of letting it force the whole page wider
+     (the same min-width: auto problem as .admin-nav above, just on a
+     table instead of a grid track). display: block is what lets
+     overflow-x actually apply to a <table> element. */
+  .admin-table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .admin-nav {
