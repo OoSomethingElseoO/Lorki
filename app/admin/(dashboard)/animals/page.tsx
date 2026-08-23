@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { AnimalForm } from "@/components/admin/animal-form";
 import { DeleteButton } from "@/components/admin/delete-button";
 import { AdminSearchForm } from "@/components/admin/search-form";
+import { EmptyState } from "@/components/admin/empty-state";
+import { EditIcon } from "@/components/admin/icons";
 import { Pagination } from "@/components/pagination";
 import { ADMIN_PAGE_SIZE, adminTotalPages, normalizeAdminPage } from "@/lib/admin-list";
 
@@ -62,14 +64,22 @@ export default async function AdminAnimalsPage({ searchParams }: PageProps) {
               <td>{animal.region}</td>
               <td>{animal.conservancy.name}</td>
               <td>
-                <Link href={`/admin/animals/${animal.id}/edit`}>Edit</Link>{" "}
+                <Link href={`/admin/animals/${animal.id}/edit`}>
+                  <EditIcon />
+                  Edit
+                </Link>{" "}
                 <DeleteButton endpoint={`/api/admin/animals/${animal.id}`} confirmLabel={animal.name} />
               </td>
             </tr>
           ))}
           {animals.length === 0 ? (
             <tr>
-              <td colSpan={5}>{query ? `No animals match "${query}".` : "No animals yet."}</td>
+              <td colSpan={5}>
+                <EmptyState
+                  message={query ? `No animals match "${query}".` : "No animals yet."}
+                  hint={query ? "Try a different search term." : "Use the form above to add your first animal."}
+                />
+              </td>
             </tr>
           ) : null}
         </tbody>

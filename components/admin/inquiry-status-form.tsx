@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, type ChangeEvent } from "react";
 import { statusSelectClass } from "@/lib/status-badge";
+import { useToast } from "@/components/admin/toast-provider";
 
 type InquiryStatusFormProps = {
   inquiryId: string;
@@ -11,6 +12,7 @@ type InquiryStatusFormProps = {
 
 export function InquiryStatusForm({ inquiryId, status }: InquiryStatusFormProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [current, setCurrent] = useState(status);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -30,11 +32,14 @@ export function InquiryStatusForm({ inquiryId, status }: InquiryStatusFormProps)
 
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));
-      setError(data.error ?? "Failed to update status");
+      const message = data.error ?? "Failed to update status";
+      setError(message);
+      showToast(message, "error");
       return;
     }
 
     setCurrent(nextStatus);
+    showToast(`Status updated to ${nextStatus}`);
     router.refresh();
   }
 

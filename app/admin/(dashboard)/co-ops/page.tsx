@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { CoOpForm } from "@/components/admin/co-op-form";
 import { DeleteButton } from "@/components/admin/delete-button";
 import { AdminSearchForm } from "@/components/admin/search-form";
+import { EmptyState } from "@/components/admin/empty-state";
+import { EditIcon } from "@/components/admin/icons";
 import { Pagination } from "@/components/pagination";
 import { ADMIN_PAGE_SIZE, adminTotalPages, normalizeAdminPage } from "@/lib/admin-list";
 
@@ -59,6 +61,7 @@ export default async function AdminCoOpsPage({ searchParams }: PageProps) {
               <td>{coOp.contactEmail}</td>
               <td>
                 <Link href={`/admin/co-ops/${coOp.id}/edit`} className="admin-table__link">
+                  <EditIcon />
                   Edit
                 </Link>{" "}
                 <DeleteButton endpoint={`/api/admin/co-ops/${coOp.id}`} confirmLabel={coOp.name} />
@@ -67,7 +70,12 @@ export default async function AdminCoOpsPage({ searchParams }: PageProps) {
           ))}
           {coOps.length === 0 ? (
             <tr>
-              <td colSpan={4}>{query ? `No co-ops match "${query}".` : "No co-ops yet."}</td>
+              <td colSpan={4}>
+                <EmptyState
+                  message={query ? `No co-ops match "${query}".` : "No co-ops yet."}
+                  hint={query ? "Try a different search term." : "Use the form above to add your first co-op."}
+                />
+              </td>
             </tr>
           ) : null}
         </tbody>

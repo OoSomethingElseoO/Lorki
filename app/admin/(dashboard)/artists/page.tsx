@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { ArtistForm } from "@/components/admin/artist-form";
 import { DeleteButton } from "@/components/admin/delete-button";
 import { AdminSearchForm } from "@/components/admin/search-form";
+import { EmptyState } from "@/components/admin/empty-state";
+import { EditIcon } from "@/components/admin/icons";
 import { Pagination } from "@/components/pagination";
 import { ADMIN_PAGE_SIZE, adminTotalPages, normalizeAdminPage } from "@/lib/admin-list";
 
@@ -69,14 +71,22 @@ export default async function AdminArtistsPage({ searchParams }: PageProps) {
                     ))}
               </td>
               <td>
-                <Link href={`/admin/artists/${artist.id}/edit`}>Edit</Link>{" "}
+                <Link href={`/admin/artists/${artist.id}/edit`}>
+                  <EditIcon />
+                  Edit
+                </Link>{" "}
                 <DeleteButton endpoint={`/api/admin/artists/${artist.id}`} confirmLabel={artist.name} />
               </td>
             </tr>
           ))}
           {artists.length === 0 ? (
             <tr>
-              <td colSpan={5}>{query ? `No artists match "${query}".` : "No artists yet."}</td>
+              <td colSpan={5}>
+                <EmptyState
+                  message={query ? `No artists match "${query}".` : "No artists yet."}
+                  hint={query ? "Try a different search term." : "Use the form above to add your first artist."}
+                />
+              </td>
             </tr>
           ) : null}
         </tbody>

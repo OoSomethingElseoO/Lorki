@@ -4,6 +4,7 @@ import { DeliverOrderForm } from "@/components/admin/deliver-order-form";
 import { RefundOrderButton } from "@/components/admin/refund-order-button";
 import { CashSaleForm } from "@/components/admin/cash-sale-form";
 import { AdminSearchForm } from "@/components/admin/search-form";
+import { EmptyState } from "@/components/admin/empty-state";
 import { Pagination } from "@/components/pagination";
 import { getCampaignLabel } from "@/lib/campaigns";
 import { statusBadgeClass } from "@/lib/status-badge";
@@ -66,6 +67,13 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
       />
 
       <AdminSearchForm placeholder="Search by buyer email or artwork title" defaultValue={query} />
+
+      <a
+        className="admin-table__link-button"
+        href={`/api/admin/export/orders${query ? `?q=${encodeURIComponent(query)}` : ""}`}
+      >
+        Export CSV
+      </a>
 
       <table className="admin-table">
         <thead>
@@ -135,7 +143,12 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
           ))}
           {orders.length === 0 ? (
             <tr>
-              <td colSpan={8}>{query ? `No orders match "${query}".` : "No orders yet."}</td>
+              <td colSpan={8}>
+                <EmptyState
+                  message={query ? `No orders match "${query}".` : "No orders yet."}
+                  hint={query ? "Try a different search term." : "Orders show up here once a checkout or cash sale is recorded."}
+                />
+              </td>
             </tr>
           ) : null}
         </tbody>

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useToast } from "@/components/admin/toast-provider";
 
 const STATUSES = ["DRAFT", "LIVE"] as const;
 
@@ -12,16 +13,25 @@ type NewsStatusControlProps = {
 
 export function NewsStatusControl({ articleId, status }: NewsStatusControlProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [submitting, setSubmitting] = useState(false);
 
   async function handleChange(event: React.ChangeEvent<HTMLSelectElement>) {
     setSubmitting(true);
-    await fetch(`/api/admin/news/${articleId}`, {
+    const response = await fetch(`/api/admin/news/${articleId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: event.target.value }),
     });
     setSubmitting(false);
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      showToast(data.error ?? "Failed to update status", "error");
+      return;
+    }
+
+    showToast(`Status updated to ${event.target.value}`);
     router.refresh();
   }
 

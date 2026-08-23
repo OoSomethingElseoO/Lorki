@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { AdminUserForm } from "@/components/admin/admin-user-form";
 import { DeleteButton } from "@/components/admin/delete-button";
 import { AdminSearchForm } from "@/components/admin/search-form";
+import { EmptyState } from "@/components/admin/empty-state";
 import { Pagination } from "@/components/pagination";
 import { ADMIN_PAGE_SIZE, adminTotalPages, normalizeAdminPage } from "@/lib/admin-list";
 
@@ -67,7 +68,12 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
           ))}
           {users.length === 0 ? (
             <tr>
-              <td colSpan={4}>{query ? `No admins match "${query}".` : "No admins yet."}</td>
+              <td colSpan={4}>
+                <EmptyState
+                  message={query ? `No admins match "${query}".` : "No admins yet."}
+                  hint={query ? "Try a different search term." : "Use the form above to add another admin."}
+                />
+              </td>
             </tr>
           ) : null}
         </tbody>

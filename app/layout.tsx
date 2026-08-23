@@ -37,6 +37,17 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${fraunces.variable} ${lora.variable}`}>
+      <head>
+        {/* Runs before paint so a stored theme preference applies
+            immediately — without this, the page would flash the default
+            theme and then snap to the stored one once React hydrates. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              '(function(){try{var t=localStorage.getItem("theme");if(t==="dark"||t==="light"){document.documentElement.setAttribute("data-theme",t);}}catch(e){}})();',
+          }}
+        />
+      </head>
       <body>{children}</body>
     </html>
   );

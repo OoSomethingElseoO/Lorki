@@ -31,9 +31,18 @@ export function AccessibleModal({ title, isOpen, onClose, children, closeLabel =
         return;
       }
 
+      // Recalculated fresh on every keydown (not cached) so a control that
+      // becomes enabled/disabled after the modal opens — e.g. a submit
+      // button gated on checkboxes being checked — is picked up correctly.
       const focusableElements = [
         ...document.querySelectorAll<HTMLElement>(
-          ".modal-panel a[href], .modal-panel button:not([disabled])",
+          [
+            ".modal-panel a[href]",
+            ".modal-panel button:not([disabled])",
+            ".modal-panel input:not([disabled]):not([type='hidden'])",
+            ".modal-panel select:not([disabled])",
+            ".modal-panel textarea:not([disabled])",
+          ].join(", "),
         ),
       ];
 

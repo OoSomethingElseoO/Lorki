@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { LogoutButton } from "@/components/logout-button";
+import { ToastProvider } from "@/components/admin/toast-provider";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const navLinks = [
   { label: "Conservancies", href: "/admin/conservancies" },
@@ -18,19 +20,22 @@ const navLinks = [
 
 export default function AdminDashboardLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="admin-shell">
-      <nav className="admin-nav" aria-label="Admin navigation">
-        <span className="admin-nav__title">Lorkulup Admin</span>
-        <ul>
-          {navLinks.map((link) => (
-            <li key={link.href}>
-              <Link href={link.href}>{link.label}</Link>
-            </li>
-          ))}
-        </ul>
-        <LogoutButton />
-      </nav>
-      <main className="admin-main">{children}</main>
-    </div>
+    <ToastProvider>
+      <div className="admin-shell">
+        <nav className="admin-nav" aria-label="Admin navigation">
+          <span className="admin-nav__title">Lorkulup Admin</span>
+          <ul>
+            {navLinks.map((link) => (
+              <li key={link.href}>
+                <Link href={link.href}>{link.label}</Link>
+              </li>
+            ))}
+          </ul>
+          <ThemeToggle className="admin-nav__theme-toggle" />
+          <LogoutButton />
+        </nav>
+        <main className="admin-main">{children}</main>
+      </div>
+    </ToastProvider>
   );
 }

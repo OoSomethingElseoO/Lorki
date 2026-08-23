@@ -6,6 +6,8 @@ import { ArtworkForm } from "@/components/admin/artwork-form";
 import { ArtworkRow } from "@/components/admin/artwork-row";
 import { DeleteButton } from "@/components/admin/delete-button";
 import { AdminSearchForm } from "@/components/admin/search-form";
+import { EmptyState } from "@/components/admin/empty-state";
+import { EditIcon } from "@/components/admin/icons";
 import { Pagination } from "@/components/pagination";
 import { getCampaignLabel } from "@/lib/campaigns";
 import { ADMIN_PAGE_SIZE, adminTotalPages, normalizeAdminPage } from "@/lib/admin-list";
@@ -57,6 +59,7 @@ export default async function AdminCampaignsPage({ searchParams }: PageProps) {
             <h2>{getCampaignLabel(campaign)}</h2>
             <div className="admin-campaign-card__controls">
               <Link href={`/admin/campaigns/${campaign.id}/edit`} className="admin-table__link-button">
+                <EditIcon />
                 Edit
               </Link>
               <CampaignStatusControl campaignId={campaign.id} status={campaign.status} />
@@ -97,7 +100,12 @@ export default async function AdminCampaignsPage({ searchParams }: PageProps) {
         </section>
       ))}
 
-      {campaigns.length === 0 ? <p>{query ? `No campaigns match "${query}".` : "No campaigns yet."}</p> : null}
+      {campaigns.length === 0 ? (
+        <EmptyState
+          message={query ? `No campaigns match "${query}".` : "No campaigns yet."}
+          hint={query ? "Try a different search term." : "Use the form above to add your first campaign."}
+        />
+      ) : null}
 
       <Pagination
         page={currentPage}

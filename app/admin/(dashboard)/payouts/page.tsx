@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { MarkPaidButton } from "@/components/admin/mark-paid-button";
 import { AdminSearchForm } from "@/components/admin/search-form";
+import { EmptyState } from "@/components/admin/empty-state";
+import { PayoutsBulkForm } from "@/components/admin/payouts-bulk-form";
 import { Pagination } from "@/components/pagination";
 import { ADMIN_PAGE_SIZE, adminTotalPages, normalizeAdminPage } from "@/lib/admin-list";
 
@@ -141,45 +143,65 @@ export default async function AdminPayoutsPage({ searchParams }: PageProps) {
 
       <AdminSearchForm placeholder="Search by artwork, artist, or cause name" defaultValue={query} />
 
-      <table className="admin-table">
-        <thead>
-          <tr>
-            <th>Recipient</th>
-            <th>Artwork</th>
-            <th>Amount</th>
-            <th>Channel</th>
-            <th>Released</th>
-            <th>Paid out</th>
-          </tr>
-        </thead>
-        <tbody>
-          {payouts.map((payout) => (
-            <tr key={payout.id}>
-              <td>
-                {recipientName(payout)}
-                <br />
-                <span className="admin-form__hint">{payout.recipientType}</span>
-              </td>
-              <td>{payout.order.artwork.title}</td>
-              <td>{formatDollars(payout.amountCents)}</td>
-              <td>{channelLabel(payout)}</td>
-              <td>{payout.releasedAt ? new Date(payout.releasedAt).toLocaleDateString() : "—"}</td>
-              <td>
-                {payout.paidOutAt ? (
-                  new Date(payout.paidOutAt).toLocaleDateString()
-                ) : (
-                  <MarkPaidButton payoutId={payout.id} />
-                )}
-              </td>
-            </tr>
-          ))}
-          {payouts.length === 0 ? (
+      <a
+        className="admin-table__link-button"
+        href={`/api/admin/export/payouts${query ? `?q=${encodeURIComponent(query)}` : ""}`}
+      >
+        Export CSV
+      </a>
+
+      <PayoutsBulkForm>
+        <table className="admin-table">
+          <thead>
             <tr>
-              <td colSpan={6}>{query ? `No released payouts match "${query}".` : "No released payouts yet."}</td>
+              <th></th>
+              <th>Recipient</th>
+              <th>Artwork</th>
+              <th>Amount</th>
+              <th>Channel</th>
+              <th>Released</th>
+              <th>Paid out</th>
             </tr>
-          ) : null}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {payouts.map((payout) => (
+              <tr key={payout.id}>
+                <td>
+                  {payout.paidOutAt ? null : (
+                    <input type="checkbox" name="payoutIds" value={payout.id} aria-label={`Select payout for ${recipientName(payout)}`} />
+                  )}
+                </td>
+                <td>
+                  {recipientName(payout)}
+                  <br />
+                  <span className="admin-form__hint">{payout.recipientType}</span>
+                </td>
+                <td>{payout.order.artwork.title}</td>
+                <td>{formatDollars(payout.amountCents)}</td>
+                <td>{channelLabel(payout)}</td>
+                <td>{payout.releasedAt ? new Date(payout.releasedAt).toLocaleDateString() : "—"}</td>
+                <td>
+                  {payout.paidOutAt ? (
+                    new Date(payout.paidOutAt).toLocaleDateString()
+                  ) : (
+                    <MarkPaidButton payoutId={payout.id} />
+                  )}
+                </td>
+              </tr>
+            ))}
+            {payouts.length === 0 ? (
+              <tr>
+                <td colSpan={7}>
+                  <EmptyState
+                    message={query ? `No released payouts match "${query}".` : "No released payouts yet."}
+                    hint={query ? "Try a different search term." : "Payouts show up here once an order is delivered."}
+                  />
+                </td>
+              </tr>
+            ) : null}
+          </tbody>
+        </table>
+      </PayoutsBulkForm>
 
       <Pagination
         page={currentPage}

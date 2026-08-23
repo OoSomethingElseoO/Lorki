@@ -4,6 +4,8 @@ import { ConservancyForm } from "@/components/admin/conservancy-form";
 import { DeleteButton } from "@/components/admin/delete-button";
 import { VerifyConservancyChecklist } from "@/components/admin/verify-conservancy-button";
 import { AdminSearchForm } from "@/components/admin/search-form";
+import { EmptyState } from "@/components/admin/empty-state";
+import { EditIcon } from "@/components/admin/icons";
 import { Pagination } from "@/components/pagination";
 import { ADMIN_PAGE_SIZE, adminTotalPages, normalizeAdminPage } from "@/lib/admin-list";
 
@@ -93,6 +95,7 @@ export default async function AdminConservanciesPage({ searchParams }: PageProps
               </td>
               <td>
                 <Link href={`/admin/conservancies/${conservancy.id}/edit`} className="admin-table__link">
+                  <EditIcon />
                   Edit
                 </Link>{" "}
                 <DeleteButton endpoint={`/api/admin/conservancies/${conservancy.id}`} confirmLabel={conservancy.name} />
@@ -101,7 +104,12 @@ export default async function AdminConservanciesPage({ searchParams }: PageProps
           ))}
           {conservancies.length === 0 ? (
             <tr>
-              <td colSpan={7}>{query ? `No conservancies match "${query}".` : "No conservancies yet."}</td>
+              <td colSpan={7}>
+                <EmptyState
+                  message={query ? `No conservancies match "${query}".` : "No conservancies yet."}
+                  hint={query ? "Try a different search term." : "Use the form above to add your first conservancy."}
+                />
+              </td>
             </tr>
           ) : null}
         </tbody>

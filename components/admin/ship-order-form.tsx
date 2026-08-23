@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { useToast } from "@/components/admin/toast-provider";
+import { ShipIcon } from "@/components/admin/icons";
 
 type ShipOrderFormProps = {
   orderId: string;
@@ -9,6 +11,7 @@ type ShipOrderFormProps = {
 
 export function ShipOrderForm({ orderId }: ShipOrderFormProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -32,10 +35,13 @@ export function ShipOrderForm({ orderId }: ShipOrderFormProps) {
 
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));
-      setError(data.error ?? "Failed to mark shipped");
+      const message = data.error ?? "Failed to mark shipped";
+      setError(message);
+      showToast(message, "error");
       return;
     }
 
+    showToast("Order marked shipped");
     router.refresh();
   }
 
@@ -49,6 +55,7 @@ export function ShipOrderForm({ orderId }: ShipOrderFormProps) {
         <option value="PRINT_POD">Print — on-demand</option>
       </select>
       <button type="submit" disabled={submitting}>
+        <ShipIcon />
         {submitting ? "Marking…" : "Mark shipped"}
       </button>
       {error ? <p className="admin-form__error">{error}</p> : null}

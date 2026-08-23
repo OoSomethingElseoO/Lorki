@@ -4,6 +4,8 @@ import { NewsArticleForm } from "@/components/admin/news-article-form";
 import { NewsStatusControl } from "@/components/admin/news-status-control";
 import { DeleteButton } from "@/components/admin/delete-button";
 import { AdminSearchForm } from "@/components/admin/search-form";
+import { EmptyState } from "@/components/admin/empty-state";
+import { EditIcon } from "@/components/admin/icons";
 import { Pagination } from "@/components/pagination";
 import { ADMIN_PAGE_SIZE, adminTotalPages, normalizeAdminPage } from "@/lib/admin-list";
 
@@ -60,14 +62,22 @@ export default async function AdminNewsPage({ searchParams }: PageProps) {
                 <NewsStatusControl articleId={article.id} status={article.status} />
               </td>
               <td>
-                <Link href={`/admin/news/${article.id}/edit`}>Edit</Link>{" "}
+                <Link href={`/admin/news/${article.id}/edit`}>
+                  <EditIcon />
+                  Edit
+                </Link>{" "}
                 <DeleteButton endpoint={`/api/admin/news/${article.id}`} confirmLabel={article.title} />
               </td>
             </tr>
           ))}
           {articles.length === 0 ? (
             <tr>
-              <td colSpan={4}>{query ? `No articles match "${query}".` : "No articles yet."}</td>
+              <td colSpan={4}>
+                <EmptyState
+                  message={query ? `No articles match "${query}".` : "No articles yet."}
+                  hint={query ? "Try a different search term." : "Use the form above to publish your first article."}
+                />
+              </td>
             </tr>
           ) : null}
         </tbody>

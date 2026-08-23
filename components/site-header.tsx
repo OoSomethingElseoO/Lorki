@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { HamburgerMenu } from "@/components/hamburger-menu";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { getBranding } from "@/lib/settings";
 
 export async function SiteHeader() {
@@ -19,6 +20,7 @@ export async function SiteHeader() {
         </Link>
 
         <div className="site-actions" aria-label="Site tools">
+          <ThemeToggle className="icon-button" />
           <Link className="icon-button" href="/search" aria-label="Search artwork">
             <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
               <path d="m21 21-4.3-4.3m1.3-5.2a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0Z" />

@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { getRegistryLookup } from "@/lib/registry-lookups";
 import { AccessibleModal } from "@/components/accessible-modal";
+import { useToast } from "@/components/admin/toast-provider";
+import { CheckIcon } from "@/components/admin/icons";
 
 type VerifyConservancyChecklistProps = {
   conservancyId: string;
@@ -33,6 +35,7 @@ export function VerifyConservancyChecklist({
   payoutAccountHolderName,
 }: VerifyConservancyChecklistProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [registrationChecked, setRegistrationChecked] = useState(false);
   const [registrationVerificationMethod, setRegistrationVerificationMethod] = useState("");
@@ -64,17 +67,21 @@ export function VerifyConservancyChecklist({
 
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));
-      setError(data.error ?? "Failed to verify");
+      const message = data.error ?? "Failed to verify";
+      setError(message);
+      showToast(message, "error");
       return;
     }
 
     setIsOpen(false);
+    showToast(`Verified ${name}`);
     router.refresh();
   }
 
   return (
     <>
       <button type="button" className="admin-table__link-button" onClick={() => setIsOpen(true)}>
+        <CheckIcon />
         Review &amp; verify
       </button>
 
@@ -138,6 +145,7 @@ export function VerifyConservancyChecklist({
             ) : null}
           </label>
           <button type="button" onClick={handleVerify} disabled={!allChecked || submitting}>
+            <CheckIcon />
             {submitting ? "Verifying…" : "Verify"}
           </button>
           {error ? <p className="admin-form__error">{error}</p> : null}
