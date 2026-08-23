@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Fraunces, Lora } from "next/font/google";
 import "./globals.css";
 import { getBranding } from "@/lib/settings";
+import { StyledComponentsRegistry } from "@/lib/styled-components-registry";
 
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -48,7 +49,9 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <StyledComponentsRegistry>{children}</StyledComponentsRegistry>
+      </body>
     </html>
   );
 }

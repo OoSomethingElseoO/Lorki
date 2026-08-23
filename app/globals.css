@@ -1,3 +1,33 @@
+@import "tailwindcss";
+
+/* Bridges our existing hand-written design tokens (below) into Tailwind's
+   utility classes — e.g. bg-gold, text-ink, border-line — so Tailwind
+   utilities and the existing plain-CSS classes draw from the exact same
+   palette instead of maintaining two color systems side by side. */
+@theme inline {
+  --color-sand: var(--sand);
+  --color-sand-deep: var(--sand-deep);
+  --color-gold: var(--gold);
+  --color-ink: var(--ink);
+  --color-panel: var(--panel);
+  --color-focus: var(--focus);
+  --color-line: var(--line);
+  --color-teal: var(--teal);
+  --color-teal-deep: var(--teal-deep);
+  --color-surface: var(--surface);
+  --color-admin-bg: var(--admin-bg);
+  --color-admin-surface: var(--admin-surface);
+  --color-admin-border: var(--admin-border);
+  --color-admin-border-strong: var(--admin-border-strong);
+  --color-admin-text: var(--admin-text);
+  --color-admin-text-muted: var(--admin-text-muted);
+  --color-admin-hover: var(--admin-hover);
+  --color-error-bg: var(--error-bg);
+  --color-error-border: var(--error-border);
+  --color-error-text: var(--error-text);
+  --color-error-accent: var(--error-accent);
+}
+
 :root {
   --sand: #ead3a9;
   --sand-deep: #d7b87d;
