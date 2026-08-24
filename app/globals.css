@@ -139,6 +139,38 @@ img {
   max-width: 100%;
 }
 
+/* A real, deliberate heading scale everywhere — without this, h2/h3 had
+   no explicit styling at all outside a couple of narrow page-specific
+   rules, so they fell back to whatever the browser's own default
+   cascade produced: inconsistent between pages, sometimes not even
+   bold, occasionally smaller than body text. More specific rules below
+   (.page-title h1, .dashboard-main--brand h1, etc.) still override this
+   for their own contexts; this is just the floor every heading gets. */
+h1,
+h2,
+h3,
+h4 {
+  margin: 0 0 0.75rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+h1 {
+  font-size: 2rem;
+}
+
+h2 {
+  font-size: 1.5rem;
+}
+
+h3 {
+  font-size: 1.15rem;
+}
+
+h4 {
+  font-size: 1rem;
+}
+
 button,
 a {
   -webkit-tap-highlight-color: transparent;
@@ -1184,6 +1216,16 @@ a:focus-visible {
   font-size: 1.6rem;
 }
 
+.dashboard-main h2 {
+  margin: 2rem 0 0.75rem;
+  font-size: 1.3rem;
+}
+
+.dashboard-main h3 {
+  margin: 1.25rem 0 0.5rem;
+  font-size: 1.05rem;
+}
+
 /* Internal admin tool — neutral gray, system font, matches every existing
    .admin-form/.admin-table rule below exactly as before. */
 .dashboard-main--admin {
@@ -1205,6 +1247,11 @@ a:focus-visible {
   font-family: var(--font-display), Georgia, serif;
   font-size: 2.75rem;
   font-weight: 700;
+}
+
+.dashboard-main--brand h2,
+.dashboard-main--brand h3 {
+  font-family: var(--font-display), Georgia, serif;
 }
 
 .admin-form {
