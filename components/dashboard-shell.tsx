@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { LogoutButton } from "@/components/logout-button";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -20,6 +23,8 @@ type DashboardShellProps = {
 };
 
 export function DashboardShell({ title, navLinks, variant, children }: DashboardShellProps) {
+  const pathname = usePathname();
+
   return (
     // Every area (admin/account/seller/cause) uses this shell, and several
     // shared action components (e.g. DeleteButton) call useToast() —
@@ -30,11 +35,23 @@ export function DashboardShell({ title, navLinks, variant, children }: Dashboard
         <nav className="dashboard-nav" aria-label={`${title} navigation`}>
           <span className="dashboard-nav__title">{title}</span>
           <ul>
-            {navLinks.map((link) => (
-              <li key={link.href}>
-                <Link href={link.href}>{link.label}</Link>
-              </li>
-            ))}
+            {navLinks.map((link) => {
+              // Exact match for the shell's own root link (so e.g. "My
+              // Account" only lights up on /account, not on some other
+              // page nested under a similar prefix); prefix match for
+              // everything else so a sub-page like /admin/orders still
+              // highlights the "Orders" link that led there.
+              const isActive = link.href === "/account" || link.href === "/seller" || link.href === "/cause/profile"
+                ? pathname === link.href
+                : pathname === link.href || pathname.startsWith(`${link.href}/`);
+              return (
+                <li key={link.href}>
+                  <Link href={link.href} aria-current={isActive ? "page" : undefined} className={isActive ? "dashboard-nav__link--active" : undefined}>
+                    {link.label}
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
           <ThemeToggle className={cn(buttonVariants({ variant: "sidebar", size: "icon" }), "mt-auto")} />
           <LogoutButton className={buttonVariants({ variant: "sidebar", size: "sm" })} />

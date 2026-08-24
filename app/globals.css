@@ -1157,6 +1157,16 @@ a:focus-visible {
   background: rgba(255, 255, 255, 0.1);
 }
 
+/* The current page's own nav link — without this every link looked
+   identical regardless of where you actually were, which was a real
+   source of "wait, where am I / did that click do anything" confusion. */
+.dashboard-nav a.dashboard-nav__link--active {
+  background: rgba(255, 255, 255, 0.16);
+  border-left: 3px solid var(--gold);
+  padding-left: calc(0.6rem - 3px);
+  font-weight: 700;
+}
+
 /* Logout/theme-toggle in the sidebar are now styled via the shared Button
    component's "sidebar" variant (components/ui/button.tsx), not a
    dedicated CSS class — see DashboardShell. */
