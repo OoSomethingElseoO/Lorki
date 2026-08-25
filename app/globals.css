@@ -753,7 +753,7 @@ a:focus-visible {
   padding: 1.25rem 1.5rem;
 }
 
-.campaign-card h2 {
+.campaign-card h3 {
   margin: 0 0 0.5rem;
   font-family: var(--font-display), Georgia, serif;
   font-size: 1.4rem;
