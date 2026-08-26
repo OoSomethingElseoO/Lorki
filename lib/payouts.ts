@@ -1,4 +1,4 @@
-import type { Campaign } from "@prisma/client";
+import type { Campaign, PayoutStatus } from "@prisma/client";
 
 // A campaign benefits exactly one cause, reached one of two ways: through
 // a specific Animal (derived as animal.conservancyId — the wildlife-
@@ -45,4 +45,13 @@ export function computeSplit(
   const operationsCents = amountCents - artistCents - conservancyCents;
 
   return { artistCents, conservancyCents, operationsCents };
+}
+
+// A payout can only be revived (see the revive route) from FAILED — that's
+// the only status a payout ever ends up "stuck" in through no further
+// action of its own (see the comment in the revive route for how FAILED
+// happens). Pulled out of the route as a pure check so the decision itself
+// is unit-testable without spinning up Next.js request/response machinery.
+export function isPayoutRevivable(status: PayoutStatus): boolean {
+  return status === "FAILED";
 }

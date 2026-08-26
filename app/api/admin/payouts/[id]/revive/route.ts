@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { attemptAutomaticPayout } from "@/lib/payout-channels";
+import { isPayoutRevivable } from "@/lib/payouts";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -41,7 +42,7 @@ export async function POST(_request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: "Payout not found" }, { status: 404 });
   }
 
-  if (payout.status !== "FAILED") {
+  if (!isPayoutRevivable(payout.status)) {
     return NextResponse.json(
       { error: `Cannot revive — payout status is ${payout.status}, not FAILED` },
       { status: 409 },

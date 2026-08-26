@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { computeSplit } from "@/lib/payouts";
+import { computeSplit, isPayoutRevivable } from "@/lib/payouts";
 
 const defaultCampaign = { artistPercent: 50, conservancyPercent: 25, operationsPercent: 25 };
 
@@ -38,4 +38,10 @@ test("respects a non-default split ratio", () => {
 test("zero amount produces zero everywhere", () => {
   const split = computeSplit(0, defaultCampaign);
   assert.deepEqual(split, { artistCents: 0, conservancyCents: 0, operationsCents: 0 });
+});
+
+test("only a FAILED payout is revivable", () => {
+  assert.equal(isPayoutRevivable("FAILED"), true);
+  assert.equal(isPayoutRevivable("PENDING"), false);
+  assert.equal(isPayoutRevivable("RELEASED"), false);
 });
