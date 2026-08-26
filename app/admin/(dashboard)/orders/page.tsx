@@ -3,6 +3,7 @@ import { ShipOrderForm } from "@/components/admin/ship-order-form";
 import { DeliverOrderForm } from "@/components/admin/deliver-order-form";
 import { RefundOrderButton } from "@/components/admin/refund-order-button";
 import { CashSaleForm } from "@/components/admin/cash-sale-form";
+import { RevivePayoutButton } from "@/components/admin/revive-payout-button";
 import { AdminSearchForm } from "@/components/admin/search-form";
 import { EmptyState } from "@/components/admin/empty-state";
 import { Pagination } from "@/components/pagination";
@@ -113,7 +114,8 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
                 {order.payouts.map((payout) => (
                   <div key={payout.id} className="admin-form__hint">
                     {payout.recipientType}: ${(payout.amountCents / 100).toFixed(2)}{" "}
-                    <span className={statusBadgeClass(payout.status)}>{payout.status}</span>
+                    <span className={statusBadgeClass(payout.status)}>{payout.status}</span>{" "}
+                    {payout.status === "FAILED" ? <RevivePayoutButton payoutId={payout.id} /> : null}
                   </div>
                 ))}
               </td>

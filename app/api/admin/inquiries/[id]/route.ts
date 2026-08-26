@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isNotFoundError } from "@/lib/prisma-errors";
+import { releaseReservationIfHeld } from "@/lib/reservations";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -23,6 +24,14 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       where: { id },
       data: { status: body.status },
     });
+
+    // Closing an inquiry is a definite "not turning into a sale" signal —
+    // no reason to make the piece wait out the rest of its reservation
+    // hold once that's known. No-ops if the piece already moved on (e.g.
+    // the admin recorded the sale first and is closing the inquiry after).
+    if (body.status === "CLOSED") {
+      await releaseReservationIfHeld(inquiry.artworkId);
+    }
 
     return NextResponse.json({ inquiry });
   } catch (error) {
