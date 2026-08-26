@@ -293,7 +293,16 @@ model Order {
 }
 
 enum OrderStatus {
-  PENDING    // checkout started
+  // Declared but never actually produced: an Order row is only ever
+  // created once payment is already confirmed — handleCheckoutCompleted
+  // in the Stripe webhook and the cash-sale route both create rows
+  // directly at PAID (or DELIVERED, for an in-person handoff), never at
+  // checkout-session-creation time. Nothing currently sets this. Left in
+  // the enum as an honest placeholder for "checkout started but not yet
+  // confirmed" rather than silently dropped — wiring it up for real would
+  // mean creating an Order when a Stripe Checkout session starts instead
+  // of when it completes, which is real payment-pipeline work.
+  PENDING
   PAID       // payment confirmed (Stripe webhook, or an admin recording cash), payouts not yet released
   SHIPPED    // buyer doesn't have it yet — payout release still waits for DELIVERED
   DELIVERED  // triggers payout release
