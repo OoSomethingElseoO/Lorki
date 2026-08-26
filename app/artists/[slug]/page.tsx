@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArtistGallery } from "@/components/artist-gallery";
 import { SiteHeader } from "@/components/site-header";
+import { buttonVariants } from "@/components/ui/button";
 import { getArtistBySlug, getLiveArtworksForArtist } from "@/lib/storefront";
 import { getCurrentUser } from "@/lib/auth";
 
@@ -56,6 +58,9 @@ export default async function ArtistPage({ params }: ArtistPageProps) {
                 ))}
               </ul>
             ) : null}
+            <Link href="/artists" className={buttonVariants()} style={{ marginTop: "1rem" }}>
+              Back to artists
+            </Link>
           </div>
         </section>
         <ArtistGallery artworks={artistArtworks} customerEmail={customer?.email} />
