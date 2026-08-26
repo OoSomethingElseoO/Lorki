@@ -1269,6 +1269,19 @@ a:focus-visible {
   grid-template-columns: 14rem minmax(0, 1fr);
 }
 
+/* body's own background is the brand sand color (see body { background:
+   var(--sand) } above) — .dashboard-main paints its own background, but
+   only across its own centered, max-width-capped box. Anywhere in the
+   second grid column that box doesn't reach (the margin outside it on a
+   wide screen), body's sand color was showing straight through behind an
+   internal admin tool that's supposed to be neutral gray throughout. This
+   fills the whole shell (both columns) with the right base color first;
+   .dashboard-nav's own opaque dark background still paints over column
+   one on top of it. */
+.dashboard-shell--admin {
+  background: var(--admin-bg);
+}
+
 .dashboard-nav {
   display: flex;
   flex-direction: column;

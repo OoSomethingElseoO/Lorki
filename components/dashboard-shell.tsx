@@ -58,7 +58,7 @@ export function DashboardShell({ title, navLinks, variant, layout = "sidebar", c
     // wrapping it here once means no area's layout can forget to provide
     // it and crash on render.
     <ToastProvider>
-      <div className={cn("dashboard-shell", isTabs && "dashboard-shell--tabs")}>
+      <div className={cn("dashboard-shell", `dashboard-shell--${variant}`, isTabs && "dashboard-shell--tabs")}>
         <nav className={cn("dashboard-nav", isTabs && "dashboard-nav--tabs")} aria-label={`${title} navigation`}>
           {isTabs ? (
             <>
