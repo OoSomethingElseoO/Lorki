@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { DeleteButton } from "@/components/admin/delete-button";
+import { SellerArtworkRow } from "@/components/seller-artwork-row";
 import { buttonVariants } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -43,20 +43,7 @@ export default async function SellerArtworksPage() {
         </thead>
         <tbody>
           {artworks.map((artwork) => (
-            <tr key={artwork.id}>
-              <td>{artwork.title}</td>
-              <td>{getCampaignCauseName(artwork.campaign)}</td>
-              <td>{artwork.kind}</td>
-              <td>${(artwork.priceCents / 100).toFixed(2)}</td>
-              <td>{artwork.inventoryState}</td>
-              <td>
-                {artwork.inventoryState === "SOLD" ? (
-                  "—"
-                ) : (
-                  <DeleteButton endpoint={`/api/seller/artworks/${artwork.id}`} confirmLabel={artwork.title} />
-                )}
-              </td>
-            </tr>
+            <SellerArtworkRow key={artwork.id} artwork={artwork} causeName={getCampaignCauseName(artwork.campaign)} />
           ))}
           {artworks.length === 0 ? (
             <tr>

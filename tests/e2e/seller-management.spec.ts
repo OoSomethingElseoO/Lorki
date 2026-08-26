@@ -10,17 +10,6 @@
 // pattern admin-crud.spec.ts uses for createConservancyFixture({ verified:
 // true })) when a scenario needs a non-default starting inventory state.
 //
-// NOTE on the "edit an existing listing" scenario: /seller/artworks (read
-// before writing this file) only ever renders a title/price/status row
-// plus a Delete button per artwork — there is no edit link, no per-row
-// edit form, and no /seller/artworks/[id]/edit page anywhere in the app,
-// even though /api/seller/artworks/[id] has a real PATCH handler a seller
-// simply has no UI path to reach. So "edit via /seller/artworks" is
-// exercised here as a real HTTP PATCH against that real endpoint (through
-// page.request, which shares the seller's session cookie with the browser
-// context) rather than a UI click — there's no UI click to make. What IS
-// asserted through the real UI is that the result actually shows up on
-// /seller/artworks afterward.
 import { createSellerFixture, expect, prisma, test } from "./fixtures/test-fixtures";
 
 test.describe("Seller profile", () => {
@@ -76,17 +65,15 @@ test.describe("Seller listings", () => {
       expect(loggedInSeller.artwork.inventoryState).toBe("AVAILABLE");
     });
 
-    await test.step("When they edit its title/price (via the real PATCH endpoint — see file header, no seller-side edit UI exists)", async () => {
-      const response = await page.request.patch(`/api/seller/artworks/${loggedInSeller.artwork.id}`, {
-        data: {
-          title: newTitle,
-          kind: loggedInSeller.artwork.kind,
-          priceCents: newPriceCents,
-          imageUrl: loggedInSeller.artwork.imageUrl,
-          altText: loggedInSeller.artwork.altText,
-        },
-      });
-      expect(response.ok()).toBe(true);
+    await test.step("When they click Edit, change the title/price, and save", async () => {
+      const row = page.locator("tr", { hasText: loggedInSeller.artwork.title });
+      await row.getByRole("button", { name: "Edit" }).click();
+
+      const form = page.locator('form:has(input[name="title"])');
+      await form.locator('input[name="title"]').fill(newTitle);
+      await form.locator('input[name="priceDollars"]').fill((newPriceCents / 100).toFixed(2));
+      await form.getByRole("button", { name: "Save changes" }).click();
+      await expect(form).not.toBeVisible();
     });
 
     await test.step("Then the change is reflected on /seller/artworks and in the DB", async () => {
@@ -120,6 +107,7 @@ test.describe("Seller listings", () => {
         await expect(row).toBeVisible();
         await expect(row.getByText("SOLD")).toBeVisible();
         await expect(row.getByText("Delete")).toHaveCount(0);
+        await expect(row.getByText("Edit")).toHaveCount(0);
         await expect(row.getByText("—")).toBeVisible();
       });
 
