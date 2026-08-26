@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { getCampaignCauseName } from "@/lib/campaigns";
 import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";
+import { statusBadgeClass } from "@/lib/status-badge";
 
 export const dynamic = "force-dynamic";
 
@@ -81,7 +82,15 @@ export default async function SellerDashboardPage() {
         ) : (
           campaigns.map((campaign) => (
             <article className="campaign-card" key={campaign.id} style={{ marginBottom: "1rem" }}>
-              <h3>{getCampaignCauseName(campaign)}</h3>
+              <h3>
+                {getCampaignCauseName(campaign)}
+                {campaign.status !== "LIVE" ? (
+                  <>
+                    {" "}
+                    <span className={statusBadgeClass(campaign.status)}>{campaign.status}</span>
+                  </>
+                ) : null}
+              </h3>
               <p>
                 <span className="detail-label">Conservancy:</span>{" "}
                 {campaign.animal?.conservancy.name ?? campaign.conservancy?.name ?? "Unknown cause"}
@@ -92,9 +101,15 @@ export default async function SellerDashboardPage() {
                 <span>{campaign.operationsPercent}% operations</span>
               </p>
               <p>{campaign.artworks.length} listing(s)</p>
-              <Link href={`/seller/artworks/new?campaignId=${campaign.id}`} className={buttonVariants()}>
-                List a new piece
-              </Link>
+              {campaign.status === "LIVE" ? (
+                <Link href={`/seller/artworks/new?campaignId=${campaign.id}`} className={buttonVariants()}>
+                  List a new piece
+                </Link>
+              ) : (
+                <p className="admin-form__hint">
+                  {`This campaign is ${campaign.status.toLowerCase()} — an admin paused or archived it, so new listings aren't accepted right now. Your existing listings aren't affected.`}
+                </p>
+              )}
             </article>
           ))
         )}

@@ -63,6 +63,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
   }
 
+  // A self-service campaign is always born LIVE (see the comment above),
+  // but an admin can PAUSE or ARCHIVE it afterward — without this check,
+  // a seller could keep listing new artwork under it with no error at
+  // all, and it would just silently never appear anywhere (every
+  // storefront query filters on campaign.status === "LIVE"). Reject it
+  // here instead of letting that happen invisibly.
+  if (campaign.status !== "LIVE") {
+    return NextResponse.json(
+      { error: `This campaign is ${campaign.status.toLowerCase()} — new listings aren't accepted until it's live again.` },
+      { status: 409 },
+    );
+  }
+
   const artwork = await prisma.artwork.create({
     data: {
       campaignId: campaign.id,
