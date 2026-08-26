@@ -17,11 +17,19 @@ export function NewsStatusControl({ articleId, status }: NewsStatusControlProps)
   const [submitting, setSubmitting] = useState(false);
 
   async function handleChange(event: React.ChangeEvent<HTMLSelectElement>) {
+    // Captured up front, not re-read off `event.target` after the `await`
+    // below: this <select>'s value is bound straight to the `status` prop
+    // (no local state), so the `setSubmitting(true)` re-render resets the
+    // DOM element back to the OLD status before the fetch resolves —
+    // reading event.target.value again after that point silently returns
+    // the previous status instead of the one just chosen. Same pattern
+    // InquiryStatusForm already uses correctly.
+    const nextStatus = event.target.value;
     setSubmitting(true);
     const response = await fetch(`/api/admin/news/${articleId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: event.target.value }),
+      body: JSON.stringify({ status: nextStatus }),
     });
     setSubmitting(false);
 
@@ -31,7 +39,7 @@ export function NewsStatusControl({ articleId, status }: NewsStatusControlProps)
       return;
     }
 
-    showToast(`Status updated to ${event.target.value}`);
+    showToast(`Status updated to ${nextStatus}`);
     router.refresh();
   }
 
