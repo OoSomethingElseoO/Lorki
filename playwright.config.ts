@@ -1,5 +1,20 @@
 import { defineConfig, devices } from "@playwright/test";
 
+// Every process invocation of `npx playwright test` (i.e. every
+// `npm run test:e2e`) gets its own synthetic x-forwarded-for so repeated
+// runs — during iteration, or stacked back-to-back — never collide with
+// each other, or with any other traffic that has no real reverse proxy in
+// front of it (getRequestIp falls back to "unknown" with nothing set —
+// see lib/rate-limit.ts), against the rate-limited /api/login (5/5min)
+// and /api/inquiries (5/5min) routes. A real reverse proxy in front of
+// production assigns a distinct x-forwarded-for per real visitor; this
+// reproduces that for test traffic instead of every run sharing one
+// "unknown" bucket that never has room to breathe.
+function randomOctet() {
+  return Math.floor(Math.random() * 254) + 1;
+}
+const TEST_RUN_IP = `10.${randomOctet()}.${randomOctet()}.${randomOctet()}`;
+
 // First-class Playwright E2E suite for this app — see tests/e2e/. Talks to
 // the real running Next.js app over HTTP and the real local dev Postgres
 // (DATABASE_URL from .env) via Prisma, never a mock. NEVER point this at
@@ -30,6 +45,7 @@ export default defineConfig({
     baseURL: "http://localhost:3000",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
+    extraHTTPHeaders: { "x-forwarded-for": TEST_RUN_IP },
   },
 
   webServer: {
