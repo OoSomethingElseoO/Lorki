@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "tsx --test lib/__tests__/*.test.ts"
+    "test": "tsx --test lib/__tests__/*.test.ts",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",
@@ -30,6 +31,7 @@
     "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@types/node": "latest",
     "@types/pg": "^8.23.1",
     "@types/react": "latest",
