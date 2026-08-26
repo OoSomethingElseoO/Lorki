@@ -102,6 +102,10 @@ export function SellerNewCampaignForm({ animals, conservancies }: SellerNewCampa
               </option>
             ))}
           </select>
+          <p className="admin-form__hint">
+            Only causes an admin has verified are listed here. If a cause you're looking for was just
+            registered, it'll show up once that review is done.
+          </p>
         </>
       )}
 
