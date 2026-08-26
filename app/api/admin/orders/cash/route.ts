@@ -45,7 +45,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Artwork not found" }, { status: 404 });
   }
 
-  if (artwork.inventoryState !== "AVAILABLE") {
+  // RESERVED is expected and fine here, not a block — it's exactly the
+  // state an original ends up in the moment someone submits an inquiry
+  // (see /api/inquiries), and recording the resulting cash sale is how
+  // that reservation is meant to resolve. Only an already-SOLD piece
+  // should actually refuse a second sale.
+  if (artwork.inventoryState === "SOLD") {
     return NextResponse.json({ error: "Artwork is not available" }, { status: 409 });
   }
 

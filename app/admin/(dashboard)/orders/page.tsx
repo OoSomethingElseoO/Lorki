@@ -42,8 +42,14 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
       take: ADMIN_PAGE_SIZE,
     }),
     prisma.order.count({ where }),
+    // RESERVED (an original mid-inquiry — see /api/inquiries) is a valid
+    // pick here too, not just AVAILABLE: recording the cash sale is how
+    // that reservation is meant to resolve, and excluding it would make
+    // the exact piece an admin needs to sell disappear from this list
+    // right when someone's actually trying to buy it. Only SOLD is
+    // actually excluded.
     prisma.artwork.findMany({
-      where: { inventoryState: "AVAILABLE", campaign: { status: "LIVE" } },
+      where: { inventoryState: { not: "SOLD" }, campaign: { status: "LIVE" } },
       include: { campaign: { include: { animal: true, conservancy: true, artist: true } } },
       orderBy: { createdAt: "desc" },
     }),

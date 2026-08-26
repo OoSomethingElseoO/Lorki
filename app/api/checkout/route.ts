@@ -10,9 +10,11 @@ type CheckoutBody = {
   buyerEmail?: string;
 };
 
-// Caps how often one IP can start a checkout, full stop — this is what stops
-// someone from repeatedly RESERVEing (and thus hiding) a one-of-one original
-// without ever paying, since each reservation locks it for 30 minutes.
+// Caps how often one IP can create a Stripe Checkout session, full stop —
+// this route only ever sells PRINTs (originals are rejected below and go
+// through /api/inquiries instead, which has its own reservation and its
+// own separate rate limit), so there's no one-of-one inventory at stake
+// here; this just bounds how fast one visitor can spin up sessions.
 const CHECKOUT_RATE_LIMIT = 5;
 const CHECKOUT_RATE_WINDOW_MS = 5 * 60 * 1000;
 

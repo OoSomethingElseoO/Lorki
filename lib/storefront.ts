@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { releaseExpiredReservations } from "@/lib/reservations";
 
 // Shape every storefront component renders — decoupled from Prisma's nested
 // campaign/artist include shape so components don't need to know the join.
@@ -64,6 +65,11 @@ export async function getLiveArtworksByKind(
   kind: "ORIGINAL" | "PRINT",
   page?: number,
 ): Promise<PaginatedResult<StorefrontArtwork>> {
+  // Lazy cleanup on read: a reservation older than RESERVATION_TTL_MS (an
+  // inquiry that never turned into a recorded sale) needs to fall back to
+  // AVAILABLE before the query below filters on that column, or the piece
+  // would stay invisible here indefinitely — nothing else calls this.
+  await releaseExpiredReservations();
   const currentPage = normalizePage(page);
   const where = {
     kind,
@@ -119,6 +125,7 @@ export async function getArtistBySlug(slug: string) {
 }
 
 export async function getLiveArtworksForArtist(artistId: string): Promise<StorefrontArtwork[]> {
+  await releaseExpiredReservations();
   const artworks = await prisma.artwork.findMany({
     where: {
       inventoryState: "AVAILABLE",
@@ -167,6 +174,7 @@ export async function searchStorefront(query: string) {
     return { artworks: [] as StorefrontArtwork[], artists: [] as Awaited<ReturnType<typeof getArtists>>["items"] };
   }
 
+  await releaseExpiredReservations();
   const [artworks, artists] = await Promise.all([
     prisma.artwork.findMany({
       where: {
