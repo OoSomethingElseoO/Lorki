@@ -1317,6 +1317,73 @@ a:focus-visible {
    component's "sidebar" variant (components/ui/button.tsx), not a
    dedicated CSS class — see DashboardShell. */
 
+/* Tabs layout (currently admin only — 11 sections is too many for a
+   persistent sidebar to stay scannable): the nav becomes a horizontal
+   strip above the content instead of a column beside it. */
+.dashboard-shell--tabs {
+  grid-template-columns: 1fr;
+}
+
+.dashboard-nav--tabs {
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem 0;
+  /* Same "min-width: auto refuses to shrink below content size" trap as
+     .dashboard-shell's own grid track (see the mobile media query below) —
+     here it's the flex column's cross axis: without this, .dashboard-nav__tabs's
+     11 nowrap links push this whole column (and the row above it) wider
+     than the viewport instead of scrolling within their own bounds. */
+  min-width: 0;
+}
+
+.dashboard-nav__top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.dashboard-nav__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* .dashboard-nav ul (the sidebar's own list rule) is .dashboard-nav + a
+   type selector, which outranks a single class — nest under .dashboard-nav
+   here too so this actually wins instead of silently losing to it. */
+.dashboard-nav .dashboard-nav__tabs {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: 0.25rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  /* min-width: 0 alone isn't enough — this is itself a flex container
+     (row of tab links) nested inside the column flex nav, and its own
+     content-driven preferred size still wins over align-items: stretch.
+     An explicit width pins it to the nav's actual width so it scrolls
+     within that bound instead of pushing the nav wider. */
+  width: 100%;
+  min-width: 0;
+}
+
+.dashboard-nav--tabs a {
+  white-space: nowrap;
+  border-radius: 4px 4px 0 0;
+}
+
+/* Higher specificity than the sidebar's .dashboard-nav a.dashboard-nav__link--active
+   (both are 2 classes + 1 type) so the tab-style active state wins here — a
+   bottom border reads as "current tab", not a left border like the sidebar. */
+.dashboard-nav.dashboard-nav--tabs a.dashboard-nav__link--active {
+  border-left: none;
+  padding-left: 0.6rem;
+  border-bottom: 3px solid var(--gold);
+  border-radius: 4px 4px 0 0;
+}
+
 .dashboard-main {
   padding: 2rem clamp(1.5rem, 4vw, 3.5rem);
   max-width: 84rem;
@@ -1998,6 +2065,19 @@ a:focus-visible {
 
   .dashboard-nav .mt-auto {
     margin-top: 0;
+  }
+
+  /* The tabs layout already has its own top-row/tabs-row split that works
+     at any width (the tabs row scrolls horizontally instead of wrapping) —
+     keep that instead of falling back to the sidebar's mobile behavior
+     above, which would break the two-row structure. */
+  .dashboard-nav--tabs {
+    flex-direction: column;
+    flex-wrap: nowrap;
+  }
+
+  .dashboard-nav--tabs .dashboard-nav__tabs {
+    flex-wrap: nowrap;
   }
 }
 

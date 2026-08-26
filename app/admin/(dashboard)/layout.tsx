@@ -17,7 +17,7 @@ const navLinks = [
 
 export default function AdminDashboardLayout({ children }: { children: ReactNode }) {
   return (
-    <DashboardShell title="Lorkulup Admin" navLinks={navLinks} variant="admin">
+    <DashboardShell title="Lorkulup Admin" navLinks={navLinks} variant="admin" layout="tabs">
       {children}
     </DashboardShell>
   );
