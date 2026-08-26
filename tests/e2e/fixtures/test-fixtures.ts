@@ -8,9 +8,11 @@ import {
   ADMIN_PASSWORD,
   cleanupUserByEmail,
   createArtistFixture,
+  createCauseAccountFixture,
   createConservancyFixture,
   createFailedPayoutFixture,
   createOriginalArtworkFixture,
+  createSellerFixture,
   createUserFixture,
   prisma,
   testEmail,
@@ -21,6 +23,8 @@ type OriginalArtworkFixture = Awaited<ReturnType<typeof createOriginalArtworkFix
 type FailedPayoutFixture = Awaited<ReturnType<typeof createFailedPayoutFixture>>;
 type UserFixture = Awaited<ReturnType<typeof createUserFixture>>;
 type ConservancyFixture = Awaited<ReturnType<typeof createConservancyFixture>>;
+type SellerFixture = Awaited<ReturnType<typeof createSellerFixture>>;
+type CauseAccountFixture = Awaited<ReturnType<typeof createCauseAccountFixture>>;
 
 type Fixtures = {
   // An ORIGINAL artwork on a LIVE campaign, AVAILABLE, with nothing else
@@ -43,6 +47,17 @@ type Fixtures = {
   // self-registered cause — the starting state for the admin
   // verify-checklist scenario in admin-crud.spec.ts.
   unverifiedConservancy: ConservancyFixture;
+  // A logged-in seller — a real User+session cookie linked to an Artist,
+  // with one LIVE campaign and one AVAILABLE artwork — the starting state
+  // for seller self-management scenarios in seller-management.spec.ts.
+  loggedInSeller: SellerFixture;
+  // A logged-in cause representative — a real User+session cookie linked
+  // to an unverified Conservancy — the starting state for cause
+  // self-management scenarios in cause-management.spec.ts. The verified
+  // variant is seeded directly via createCauseAccountFixture({ verified:
+  // true }) in the test body, same pattern admin-crud.spec.ts uses for
+  // createConservancyFixture({ verified: true }).
+  loggedInCause: CauseAccountFixture;
 };
 
 export const test = base.extend<Fixtures>({
@@ -84,6 +99,20 @@ export const test = base.extend<Fixtures>({
     await use(fixture);
     await fixture.cleanup();
   },
+
+  loggedInSeller: async ({ context }, use) => {
+    const fixture = await createSellerFixture();
+    await context.addCookies([fixture.sessionCookie]);
+    await use(fixture);
+    await fixture.cleanup();
+  },
+
+  loggedInCause: async ({ context }, use) => {
+    const fixture = await createCauseAccountFixture();
+    await context.addCookies([fixture.sessionCookie]);
+    await use(fixture);
+    await fixture.cleanup();
+  },
 });
 
 export {
@@ -93,7 +122,9 @@ export {
   ADMIN_PASSWORD,
   cleanupUserByEmail,
   createArtistFixture,
+  createCauseAccountFixture,
   createConservancyFixture,
+  createSellerFixture,
   createUserFixture,
   testEmail,
   testTag,

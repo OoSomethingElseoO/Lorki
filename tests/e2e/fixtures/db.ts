@@ -310,6 +310,122 @@ export async function createArtistFixture(options: { name?: string } = {}) {
   return { tag, artist, cleanup };
 }
 
+type SellerFixtureOptions = { artworkInventoryState?: InventoryState };
+
+// A logged-in seller: a real User (scrypt hash + signed session token, same
+// as createUserFixture) with a linked Artist (Artist.userId), one LIVE
+// Campaign, and one Artwork on it — the "already a working seller account"
+// precondition for the seller self-management scenarios (profile edit,
+// listing edit, SOLD-listing lockout), which need more than the bare
+// Artist createArtistFixture gives (no User to log in as, no campaign, no
+// listing). No animal/conservancy is attached to the campaign — same as
+// createFailedPayoutFixture's campaign — since none of these scenarios
+// touch the cause side.
+export async function createSellerFixture(options: SellerFixtureOptions = {}) {
+  const tag = testTag("seller");
+  const email = testEmail("seller");
+  const password = "e2e-test-password-1";
+
+  const user = await prisma.user.create({
+    data: {
+      email,
+      passwordHash: await hashPassword(password),
+      name: `E2E Test Seller ${tag}`,
+    },
+  });
+
+  const artist = await prisma.artist.create({
+    data: {
+      slug: tag,
+      name: `E2E Test Artist ${tag}`,
+      country: "Kenya",
+      bio: "Throwaway artist created by the Playwright E2E suite.",
+      imageUrl: "https://example.com/artist.jpg",
+      userId: user.id,
+    },
+  });
+
+  const campaign = await prisma.campaign.create({
+    data: {
+      slug: tag,
+      artistId: artist.id,
+      artistPercent: 50,
+      conservancyPercent: 25,
+      operationsPercent: 25,
+      status: "LIVE",
+    },
+  });
+
+  const artwork = await prisma.artwork.create({
+    data: {
+      campaignId: campaign.id,
+      title: `E2E Test Listing ${tag}`,
+      kind: "ORIGINAL" as ArtworkKind,
+      priceCents: 150_000,
+      imageUrl: "https://example.com/artwork.jpg",
+      altText: "Throwaway artwork created by the Playwright E2E suite.",
+      inventoryState: options.artworkInventoryState ?? "AVAILABLE",
+    },
+  });
+
+  const sessionToken = await createSessionToken(SESSION_PURPOSE, user.id);
+  const sessionCookie = { name: SESSION_COOKIE, value: sessionToken, url: "http://localhost:3000" };
+
+  async function cleanup() {
+    await prisma.artwork.deleteMany({ where: { campaignId: campaign.id } });
+    await prisma.campaign.delete({ where: { id: campaign.id } }).catch(() => {});
+    await prisma.artist.delete({ where: { id: artist.id } }).catch(() => {});
+    await prisma.user.delete({ where: { id: user.id } }).catch(() => {});
+  }
+
+  return { tag, user, artist, campaign, artwork, email, password, sessionCookie, cleanup };
+}
+
+type CauseAccountFixtureOptions = { verified?: boolean };
+
+// A logged-in cause representative: a real User linked (Conservancy.userId)
+// to a Conservancy, mirroring createSellerFixture's shape on the cause
+// side. Unlike createConservancyFixture (no User at all — used for
+// admin-side scenarios where nobody needs to log in as the cause), this is
+// for /cause/profile scenarios that need "already logged in as this
+// cause's rep" as a precondition.
+export async function createCauseAccountFixture(options: CauseAccountFixtureOptions = {}) {
+  const tag = testTag("cause-account");
+  const email = testEmail("cause-account");
+  const password = "e2e-test-password-1";
+
+  const user = await prisma.user.create({
+    data: {
+      email,
+      passwordHash: await hashPassword(password),
+      name: `E2E Test Cause Rep ${tag}`,
+    },
+  });
+
+  const conservancy = await prisma.conservancy.create({
+    data: {
+      name: `E2E Test Conservancy ${tag}`,
+      region: "Test Region",
+      mission: "Throwaway conservancy created by the Playwright E2E suite.",
+      website: "https://example.com",
+      contactEmail: `${tag}-conservancy@e2e.test`,
+      registrationNumber: `REG-${tag}`,
+      verifiedAt: options.verified ? new Date() : null,
+      userId: user.id,
+    },
+  });
+
+  const sessionToken = await createSessionToken(SESSION_PURPOSE, user.id);
+  const sessionCookie = { name: SESSION_COOKIE, value: sessionToken, url: "http://localhost:3000" };
+
+  async function cleanup() {
+    await prisma.conservancy.delete({ where: { id: conservancy.id } }).catch(() => {});
+    await prisma.user.delete({ where: { id: user.id } }).catch(() => {});
+  }
+
+  return { tag, user, conservancy, email, password, sessionCookie, cleanup };
+}
+
 type ConservancyFixtureOptions = { verified?: boolean };
 
 // A throwaway Conservancy seeded directly via Prisma, verifiedAt left null
