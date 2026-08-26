@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 
 type AccessibleModalProps = {
@@ -79,7 +80,19 @@ export function AccessibleModal({ title, isOpen, onClose, children, closeLabel =
     return null;
   }
 
-  return (
+  // Portaled straight to <body> instead of rendering inline wherever the
+  // caller happens to put it: .modal-backdrop is position: fixed, and a
+  // fixed element repositions relative to the nearest ancestor that has a
+  // CSS transform (per spec) instead of the viewport. ArtworkCard's own
+  // lightbox call site sits inside .artwork-card, which gets
+  // transform: translateY(...) on :hover — without the portal, hovering
+  // the enlarged image made :hover on .artwork-card true, which shifted
+  // the whole modal out from under the cursor, dropping :hover, shifting
+  // it back, and repeating in a flicker loop the user couldn't click
+  // through. A portal makes the modal immune to this regardless of what
+  // hover/transform styling any future call site's ancestors happen to
+  // have.
+  return createPortal(
     <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
       <section
         className="modal-panel"
@@ -103,6 +116,7 @@ export function AccessibleModal({ title, isOpen, onClose, children, closeLabel =
         </div>
         {children}
       </section>
-    </div>
+    </div>,
+    document.body,
   );
 }
