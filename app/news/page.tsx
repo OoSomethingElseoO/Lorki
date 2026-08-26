@@ -1,6 +1,8 @@
+import { Newspaper } from "lucide-react";
 import { NewsCard } from "@/components/news-card";
 import { PageTitle } from "@/components/page-title";
 import { SiteHeader } from "@/components/site-header";
+import { EmptyState } from "@/components/empty-state";
 import { getLiveNewsArticles } from "@/lib/storefront";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +20,9 @@ export default async function NewsPage() {
             <NewsCard article={article} key={article.id} />
           ))}
         </section>
-        {articles.length === 0 ? <p className="centered-copy">No news yet — check back soon.</p> : null}
+        {articles.length === 0 ? (
+          <EmptyState icon={<Newspaper />} title="No news yet" description="Check back soon for studio updates." />
+        ) : null}
       </main>
     </>
   );

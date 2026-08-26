@@ -410,12 +410,35 @@ a:focus-visible {
   }
 }
 
+.reveal {
+  opacity: 0;
+  transform: translateY(1.5rem);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.reveal--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
 .home-section {
   padding: 4.5rem clamp(1rem, 4vw, 3rem);
   background: #fff8ec;
 }
 
-.home-section:nth-of-type(even) {
+/* Each section is now wrapped by a Reveal div for the scroll-in
+   animation, so it's no longer a direct sibling of the other
+   .home-section elements — :nth-of-type(even) would never match.
+   Alternation is assigned explicitly in app/page.tsx instead. */
+.home-section--alt {
   background: var(--sand);
 }
 
@@ -497,6 +520,48 @@ a:focus-visible {
   font-size: 1.25rem;
 }
 
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 30rem;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem;
+  border: 2px dashed var(--line);
+  background: var(--panel);
+  text-align: center;
+}
+
+.empty-state__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  margin-bottom: 0.25rem;
+  border: 2px solid var(--line);
+  color: var(--gold);
+}
+
+.empty-state__icon svg {
+  width: 1.4rem;
+  height: 1.4rem;
+}
+
+.empty-state__title {
+  margin: 0;
+}
+
+.empty-state__description {
+  margin: 0;
+  opacity: 0.8;
+}
+
+.empty-state__action {
+  margin-top: 0.5rem;
+}
+
 .card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(20rem, 22rem));
@@ -539,6 +604,22 @@ a:focus-visible {
   border: 2px solid var(--line);
   background: var(--panel);
   box-shadow: 0 0.85rem 1.8rem rgba(82, 48, 12, 0.14);
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.artist-card:hover,
+.artwork-card:hover,
+.news-card:hover,
+.gallery-card:hover {
+  transform: translateY(-0.3rem);
+  box-shadow: 0 1.25rem 2.4rem rgba(82, 48, 12, 0.22);
+}
+
+.artist-card:hover .artist-card__image,
+.artwork-card:hover .artwork-card__image,
+.news-card:hover .news-card__image {
+  transform: scale(1.04);
 }
 
 .artist-card a {
@@ -558,6 +639,38 @@ a:focus-visible {
   height: 19rem;
   object-fit: cover;
   border-bottom: 2px solid var(--line);
+  transition: transform 0.25s ease;
+}
+
+.artwork-card__image-button {
+  display: block;
+  position: relative;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: inherit;
+  cursor: pointer;
+}
+
+.artwork-card__image-hint {
+  position: absolute;
+  right: 0.6rem;
+  bottom: 0.6rem;
+  border: 2px solid var(--line);
+  background: var(--panel);
+  padding: 0.25rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.artwork-card__image-button:hover .artwork-card__image-hint,
+.artwork-card__image-button:focus-visible .artwork-card__image-hint {
+  opacity: 1;
 }
 
 .artist-card__body,
@@ -858,6 +971,7 @@ a:focus-visible {
   min-height: 14rem;
   object-fit: cover;
   border-right: 2px solid var(--line);
+  transition: transform 0.25s ease;
 }
 
 .news-article {

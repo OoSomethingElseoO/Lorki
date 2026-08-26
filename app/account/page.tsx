@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Package } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { buttonVariants } from "@/components/ui/button";
+import { EmptyState } from "@/components/empty-state";
 
 export const dynamic = "force-dynamic";
 
@@ -69,7 +71,16 @@ export default async function AccountPage() {
       <section className="account-orders" aria-label="Order history">
         <h2>Order history</h2>
           {orders.length === 0 ? (
-            <p>You haven&apos;t placed any orders yet.</p>
+            <EmptyState
+              icon={<Package />}
+              title="No orders yet"
+              description="Once you buy a piece, you'll be able to track it here."
+              action={
+                <Link href="/originals" className={buttonVariants()}>
+                  Browse originals
+                </Link>
+              }
+            />
           ) : (
             <ul className="account-orders__list">
               {orders.map((order) => (

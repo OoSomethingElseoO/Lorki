@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Megaphone, ShoppingBag } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getCampaignCauseName } from "@/lib/campaigns";
 import { buttonVariants } from "@/components/ui/button";
+import { EmptyState } from "@/components/empty-state";
 
 export const dynamic = "force-dynamic";
 
@@ -71,7 +73,11 @@ export default async function SellerDashboardPage() {
         </div>
 
         {campaigns.length === 0 ? (
-          <p>You don&apos;t have any campaigns yet — start one to begin listing artwork.</p>
+          <EmptyState
+            icon={<Megaphone />}
+            title="No campaigns yet"
+            description="Start a campaign to pick a cause and begin listing artwork."
+          />
         ) : (
           campaigns.map((campaign) => (
             <article className="campaign-card" key={campaign.id} style={{ marginBottom: "1rem" }}>
@@ -106,7 +112,11 @@ export default async function SellerDashboardPage() {
       <section className="account-orders" aria-label="Your sales" style={{ marginTop: "2rem" }}>
         <h2>Your sales</h2>
         {orders.length === 0 ? (
-          <p>No sales yet.</p>
+          <EmptyState
+            icon={<ShoppingBag />}
+            title="No sales yet"
+            description="Once someone buys one of your pieces, it'll show up here."
+          />
         ) : (
           <ul className="account-orders__list">
             {orders.map((order) => (

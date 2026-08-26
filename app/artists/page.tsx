@@ -1,7 +1,9 @@
+import { Users } from "lucide-react";
 import { ArtistCard } from "@/components/artist-card";
 import { PageTitle } from "@/components/page-title";
 import { SiteHeader } from "@/components/site-header";
 import { Pagination } from "@/components/pagination";
+import { EmptyState } from "@/components/empty-state";
 import { getArtists } from "@/lib/storefront";
 
 type ArtistsPageProps = {
@@ -22,7 +24,9 @@ export default async function ArtistsPage({ searchParams }: ArtistsPageProps) {
             <ArtistCard artist={artist} key={artist.slug} />
           ))}
         </section>
-        {items.length === 0 ? <p className="centered-copy">No artists listed yet.</p> : null}
+        {items.length === 0 ? (
+          <EmptyState icon={<Users />} title="No artists listed yet" description="Check back soon." />
+        ) : null}
         <Pagination page={currentPage} totalPages={totalPages} basePath="/artists" />
       </main>
     </>

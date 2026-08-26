@@ -1,5 +1,7 @@
+import { HeartHandshake } from "lucide-react";
 import { PageTitle } from "@/components/page-title";
 import { SiteHeader } from "@/components/site-header";
+import { EmptyState } from "@/components/empty-state";
 import { prisma } from "@/lib/prisma";
 import { getImpactTotals } from "@/lib/storefront";
 import { getCampaignLabel } from "@/lib/campaigns";
@@ -67,7 +69,13 @@ export default async function ImpactPage() {
             </article>
             );
           })}
-          {campaigns.length === 0 ? <p>No campaigns are live yet.</p> : null}
+          {campaigns.length === 0 ? (
+            <EmptyState
+              icon={<HeartHandshake />}
+              title="No campaigns are live yet"
+              description="Check back soon to see where sales are making an impact."
+            />
+          ) : null}
         </section>
       </main>
     </>
