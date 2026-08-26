@@ -1413,6 +1413,14 @@ a:focus-visible {
   background: var(--admin-bg);
   color: var(--admin-text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  /* .dashboard-main's own 84rem cap is sized for a wide data table — most
+     admin pages open with a narrow .admin-form (capped at 36rem for input
+     readability) above that table, and on any screen wider than ~1400px
+     that left the form stranded with several hundred px of empty space to
+     its right for no reason. A narrower column keeps the form and table
+     sharing the same left edge (neither is centered) while giving the
+     form noticeably less dead space beside it. */
+  max-width: 68rem;
 }
 
 /* Customer-facing (account/seller/cause) — keeps the public site's warm
