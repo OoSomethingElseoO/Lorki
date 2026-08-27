@@ -16,14 +16,27 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
   }
 
-  const user = await prisma.user.findUnique({ where: { email: body.email.toLowerCase().trim() } });
+  const user = await prisma.user.findUnique({
+    where: { email: body.email.toLowerCase().trim() },
+    include: { artist: true, conservancy: true },
+  });
 
   if (!user || !(await verifyPassword(body.password, user.passwordHash))) {
     return NextResponse.json({ error: "Incorrect email or password" }, { status: 401 });
   }
 
   const token = await createUserSessionToken(user.id);
-  const response = NextResponse.json({ ok: true });
+  // Booleans only, not the actual Artist/Conservancy rows — just enough
+  // for the client to pick a sensible post-login landing page (see
+  // LoginForm) without a second round trip. Never used for authorization
+  // decisions; every protected route still re-checks the real thing via
+  // getCurrentUser().
+  const response = NextResponse.json({
+    ok: true,
+    isAdmin: user.isAdmin,
+    hasArtist: Boolean(user.artist),
+    hasConservancy: Boolean(user.conservancy),
+  });
   response.cookies.set(SESSION_COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",

@@ -4,6 +4,7 @@ import { Suspense, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useRouter, useSearchParams } from "next/navigation";
+import { resolvePostLoginRedirect } from "@/lib/post-login-redirect";
 
 function LoginFormInner() {
   const router = useRouter();
@@ -26,13 +27,21 @@ function LoginFormInner() {
 
     setSubmitting(false);
 
+    const data = await response.json().catch(() => ({}));
+
     if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
       setError(data.error ?? "Login failed");
       return;
     }
 
-    router.push(searchParams.get("next") || "/account");
+    router.push(
+      resolvePostLoginRedirect({
+        next: searchParams.get("next"),
+        isAdmin: Boolean(data.isAdmin),
+        hasArtist: Boolean(data.hasArtist),
+        hasConservancy: Boolean(data.hasConservancy),
+      }),
+    );
     router.refresh();
   }
 

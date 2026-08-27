@@ -145,8 +145,14 @@ test.describe("Admin CRUD: users", () => {
         await page.getByLabel("Password").fill(password);
         await page.getByRole("button", { name: "Sign in" }).click();
 
-        await page.waitForURL("**/account");
-        await expect(page.getByText("Signed in as")).toBeVisible();
+        // An admin now lands straight on /admin (see
+        // lib/post-login-redirect.ts), not the generic /account hub — and
+        // reaching it at all is a stronger proof of a genuinely working
+        // admin account than the old "Signed in as" check on /account
+        // ever was: proxy.ts's middleware would redirect a non-admin away
+        // from /admin before this URL ever resolved.
+        await page.waitForURL("**/admin/**");
+        await expect(page.getByText("Lorkulup Admin")).toBeVisible();
       });
     } finally {
       if (userId) {

@@ -16,9 +16,11 @@ setup("authenticate as admin", async ({ page }) => {
   await page.getByLabel("Password").fill(ADMIN_PASSWORD);
   await page.getByRole("button", { name: "Sign in" }).click();
 
-  // LoginForm redirects to /account (no ?next= was set) on success — the
-  // clearest signal the session cookie actually got issued.
-  await page.waitForURL("**/account");
+  // LoginForm redirects an admin straight to /admin on success now (see
+  // lib/post-login-redirect.ts) — the clearest signal the session cookie
+  // actually got issued. Was "**/account" before that redirect existed,
+  // when every login landed there regardless of role.
+  await page.waitForURL("**/admin/**");
 
   await page.context().storageState({ path: ADMIN_STORAGE_STATE });
 });
