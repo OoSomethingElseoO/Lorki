@@ -440,7 +440,13 @@ a:focus-visible {
 
 .home-section {
   padding: 4.5rem clamp(1rem, 4vw, 3rem);
-  background: #fff8ec;
+  /* Was a hardcoded light cream (#fff8ec) — never adapted to dark mode, so
+     in dark mode this stayed a bright cream panel while its own text
+     (inheriting --ink, which flips to a near-white color in dark mode)
+     went nearly unreadable against it. var(--panel) already carries the
+     correct value in both themes — same fix already applied to
+     .dropdown-menu earlier for the identical bug. */
+  background: var(--panel);
 }
 
 /* Each section is now wrapped by a Reveal div for the scroll-in
@@ -714,7 +720,13 @@ a:focus-visible {
   margin-top: 0.85rem;
   border: 2px solid var(--line);
   background: var(--ink);
-  color: #fff8ec;
+  /* Was a hardcoded #fff8ec — background is var(--ink), which flips to a
+     near-white color in dark mode, so a fixed light text color went
+     nearly unreadable against it there too. var(--panel) flips in step
+     with --ink (they're a coordinated pair), matching the same bg-ink/
+     text-panel pairing components/ui/button.tsx's default variant
+     already uses for the identical dark-fill-light-text look. */
+  color: var(--panel);
   padding: 0.65rem 0.9rem;
   font-weight: 700;
   text-decoration: none;
