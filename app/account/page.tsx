@@ -39,9 +39,21 @@ export default async function AccountPage() {
       {!user.artist || !user.conservancy ? (
         <section aria-label="Get involved" style={{ marginTop: "1.5rem", marginBottom: "2rem" }}>
           <h2>Get involved</h2>
-          <div style={{ display: "grid", gap: "1rem", gridTemplateColumns: "repeat(auto-fit, minmax(16rem, 1fr))" }}>
+          {/* flexbox, not CSS grid with auto-fit: auto-fit's "collapse empty
+              tracks" behavior doesn't redistribute their space to a single
+              remaining item the way it looks like it should — a lone card
+              (the common case: an artist-only or cause-only user only ever
+              sees ONE of these two) ends up centered in a ~16rem column
+              instead of spanning the row. flex-grow on each card fills the
+              full width alone, or shares it evenly when both render — each
+              card also needs maxWidth: "none" below, overriding the 36rem
+              cap .admin-form normally applies for input-field readability,
+              since that cap isn't relevant to a heading+paragraph+button
+              card and was capping the single-card case at 36rem instead of
+              letting it actually grow. */}
+          <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
             {!user.artist ? (
-              <div className="admin-form">
+              <div className="admin-form" style={{ flex: "1 1 16rem", maxWidth: "none" }}>
                 <h3 style={{ marginTop: 0 }}>Are you an artist?</h3>
                 <p className="admin-form__hint">
                   Sell your original work and prints — each sale splits proceeds between you and the wildlife
@@ -53,7 +65,7 @@ export default async function AccountPage() {
               </div>
             ) : null}
             {!user.conservancy ? (
-              <div className="admin-form">
+              <div className="admin-form" style={{ flex: "1 1 16rem", maxWidth: "none" }}>
                 <h3 style={{ marginTop: 0 }}>Represent a conservation cause?</h3>
                 <p className="admin-form__hint">
                   Register your organization so artists can pick your cause for new campaigns — you'll receive
