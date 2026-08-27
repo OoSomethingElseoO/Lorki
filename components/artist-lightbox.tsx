@@ -5,25 +5,20 @@ import Link from "next/link";
 import { gsap } from "gsap";
 import { Flip } from "gsap/Flip";
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
-import type { StorefrontArtwork } from "@/lib/storefront";
 import { AccessibleModal } from "@/components/accessible-modal";
-import { BuyButton } from "@/components/buy-button";
-import { InquiryForm } from "@/components/inquiry-form";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 gsap.registerPlugin(Flip);
 
-export type ArtworkLightboxProps = {
-  artwork: StorefrontArtwork | null;
+export type ArtistLightboxProps = {
+  artist: { slug: string; name: string; country: string; bio: string; imageUrl: string } | null; // null = closed
   // The clicked card's on-screen rect, for the grow-from transition.
   // Optional — if absent, just fade/scale in from center, no origin morph.
   originRect?: DOMRect | null;
   onClose: () => void;
-  customerEmail?: string;
   // Both omitted (undefined) when there's nothing to browse to — e.g. a
-  // single-item set — so the arrows/keyboard handling simply don't render
-  // rather than wrapping around a set of one.
+  // single-item set — so the arrows/keyboard handling simply don't render.
   onNext?: () => void;
   onPrevious?: () => void;
 };
@@ -49,24 +44,17 @@ function isRectStillUsable(rect: DOMRect): boolean {
   );
 }
 
-export function ArtworkLightbox({
-  artwork,
-  originRect,
-  onClose,
-  customerEmail,
-  onNext,
-  onPrevious,
-}: ArtworkLightboxProps) {
+export function ArtistLightbox({ artist, originRect, onClose, onNext, onPrevious }: ArtistLightboxProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   // The rect to morph back into on close, captured at open time — `originRect`
   // itself may change identity (or the page may scroll) by the time close fires.
   const closeRectRef = useRef<DOMRect | null>(null);
-  const isOpen = artwork !== null;
+  const isOpen = artist !== null;
 
-  // Left/Right browse to the adjacent piece without closing. Scoped to a
-  // plain window listener rather than AccessibleModal's own onKeyDown (that
-  // one only handles Escape/Tab) — only attached while actually open, so it
-  // can't fire against a stray arrow-key press anywhere else on the page.
+  // Left/Right browse to the adjacent artist without closing — same
+  // reasoning as ArtworkLightbox's identical effect: a plain window
+  // listener, only attached while open, since AccessibleModal's own
+  // onKeyDown only covers Escape/Tab.
   useEffect(() => {
     if (!isOpen) return;
     function onKeyDown(event: KeyboardEvent) {
@@ -83,8 +71,8 @@ export function ArtworkLightbox({
   }, [isOpen, onNext, onPrevious]);
 
   // Runs once per null -> real-value transition (see `isOpen` dependency),
-  // matching the spec's "when artwork transitions from null to a real
-  // value" trigger rather than firing on every artwork/originRect change
+  // matching the spec's "when artist transitions from null to a real
+  // value" trigger rather than firing on every artist/originRect change
   // while the lightbox stays open.
   useLayoutEffect(() => {
     if (!isOpen) {
@@ -116,7 +104,11 @@ export function ArtworkLightbox({
     // Snap the panel to the clicked card's exact screen box (before the
     // browser paints), capture that as the Flip "from" state, then release
     // it back to its natural full-size layout and let Flip tween smoothly
-    // between the two — the "grow from where you clicked" effect.
+    // between the two — the "grow from where you clicked" effect. The
+    // clicked card's rect comes from a plain getBoundingClientRect() taken
+    // outside CardStack's 3D fan transforms, so it's an honest flat 2D
+    // rect — safe for Flip, unlike trying to Flip something still inside
+    // the fan's own rotateZ/rotateX/translateZ space.
     gsap.set(panel, {
       position: "fixed",
       top: originRect.top,
@@ -160,19 +152,19 @@ export function ArtworkLightbox({
 
   return (
     <AccessibleModal
-      title={artwork?.title ?? ""}
+      title={artist?.name ?? ""}
       isOpen={isOpen}
       onClose={handleClose}
-      closeLabel={artwork ? `Close ${artwork.title}` : "Close dialog"}
+      closeLabel={artist ? `Close ${artist.name}` : "Close dialog"}
     >
-      {artwork ? (
+      {artist ? (
         <div ref={contentRef}>
           <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
             <div className="relative flex items-center justify-center border-2 border-line bg-panel/80 p-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={artwork.imageUrl}
-                alt={artwork.altText}
+                src={artist.imageUrl}
+                alt={`Portrait of ${artist.name}`}
                 loading="eager"
                 decoding="async"
                 className="max-h-[75vh] w-auto max-w-full object-contain"
@@ -181,7 +173,7 @@ export function ArtworkLightbox({
                 <button
                   type="button"
                   onClick={onPrevious}
-                  aria-label="Previous artwork"
+                  aria-label="Previous artist"
                   className="absolute left-2 top-1/2 -translate-y-1/2 rounded-none border-2 border-line bg-panel/80 p-2 text-ink backdrop-blur transition hover:bg-panel focus-visible:outline-none focus-visible:ring-2 ring-focus"
                 >
                   <ChevronLeft size={20} />
@@ -191,7 +183,7 @@ export function ArtworkLightbox({
                 <button
                   type="button"
                   onClick={onNext}
-                  aria-label="Next artwork"
+                  aria-label="Next artist"
                   className="absolute right-2 top-1/2 -translate-y-1/2 rounded-none border-2 border-line bg-panel/80 p-2 text-ink backdrop-blur transition hover:bg-panel focus-visible:outline-none focus-visible:ring-2 ring-focus"
                 >
                   <ChevronRight size={20} />
@@ -201,59 +193,23 @@ export function ArtworkLightbox({
 
             <div className="flex flex-col gap-5">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">
-                  {artwork.kind === "ORIGINAL" ? "Original" : "Print"}
-                </p>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">Artist</p>
                 <h3 className="mt-2 font-[family-name:var(--font-display)] text-3xl leading-tight text-ink">
-                  {artwork.title}
+                  {artist.name}
                 </h3>
-                <p className="mt-2 text-muted">
-                  <Link
-                    href={`/artists/${artwork.artistSlug}`}
-                    className="underline decoration-line underline-offset-4 hover:text-ink"
-                  >
-                    {artwork.artistName}
-                  </Link>
-                  {" · "}
-                  {artwork.artistCountry}
-                </p>
+                <p className="mt-2 text-muted">{artist.country}</p>
               </div>
-
-              {artwork.story ? (
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">About this piece</p>
-                  <p className="mt-2 whitespace-pre-line leading-relaxed text-ink">{artwork.story}</p>
-                </div>
-              ) : null}
-
-              <p className="text-2xl font-bold text-ink">${(artwork.priceCents / 100).toFixed(2)}</p>
 
               <div className="border-t-2 border-line pt-5">
-                {artwork.kind === "ORIGINAL" ? (
-                  // Keyed by artworkId: Next/Previous swaps `artwork` without
-                  // this component ever unmounting, and InquiryForm/BuyButton
-                  // both hold their own name/email/sent state internally — a
-                  // stable key across pieces would carry that state (or a
-                  // just-submitted "Sent!" confirmation) over onto whichever
-                  // piece is showing next.
-                  <InquiryForm key={artwork.id} artworkId={artwork.id} title={artwork.title} customerEmail={customerEmail} />
-                ) : (
-                  <BuyButton
-                    key={artwork.id}
-                    artworkId={artwork.id}
-                    title={artwork.title}
-                    priceCents={artwork.priceCents}
-                    customerEmail={customerEmail}
-                  />
-                )}
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">About the artist</p>
+                <p className="mt-2 whitespace-pre-line leading-relaxed text-ink">{artist.bio}</p>
               </div>
 
-              {artwork.artistBio ? (
-                <div className="border-t-2 border-line pt-5">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">About the artist</p>
-                  <p className="mt-2 whitespace-pre-line leading-relaxed text-ink">{artwork.artistBio}</p>
-                </div>
-              ) : null}
+              <div className="border-t-2 border-line pt-5">
+                <Link href={`/artists/${artist.slug}`} className={cn(buttonVariants(), "w-fit")}>
+                  View full profile
+                </Link>
+              </div>
             </div>
           </div>
 

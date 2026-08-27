@@ -27,9 +27,12 @@ type CreateBody = { animalId?: string; conservancyId?: string };
 // wildlife-portrait case this app started as — or, for anything else,
 // picks a registered cause directly (no animal involved at all; see the
 // schema comment on Campaign). Exactly one of the two, never both/neither.
-// Published LIVE immediately — no admin approval step either way. The
-// split ratio is fixed (DEFAULT_SPLIT), never settable here; see
-// lib/payouts.ts for why.
+// Born DRAFT, not LIVE — the artist can submit artwork into it right away
+// (see /api/seller/artworks), but nothing here reaches a buyer until an
+// admin reviews it, sets the real price, and flips it to LIVE via the
+// existing admin status control — no separate "pending" concept needed,
+// DRAFT already means exactly this. The split ratio is fixed
+// (DEFAULT_SPLIT), never settable here; see lib/payouts.ts for why.
 export async function POST(request: Request) {
   const currentUser = await getCurrentUser();
   const seller = currentUser?.artist;
@@ -78,7 +81,7 @@ export async function POST(request: Request) {
         conservancyId: conservancy?.id ?? null,
         artistId: seller.id,
         ...DEFAULT_SPLIT,
-        status: "LIVE",
+        status: "DRAFT",
       },
     });
 

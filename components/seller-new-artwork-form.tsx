@@ -34,6 +34,7 @@ export function SellerNewArtworkForm({ campaigns, defaultCampaignId }: SellerNew
         priceCents: Math.round(priceDollars * 100),
         imageUrl: form.get("imageUrl"),
         altText: form.get("altText"),
+        story: form.get("story") || null,
       }),
     });
 
@@ -75,7 +76,7 @@ export function SellerNewArtworkForm({ campaigns, defaultCampaignId }: SellerNew
         <option value="PRINT">Print</option>
       </select>
 
-      <label htmlFor="priceDollars">Price (USD)</label>
+      <label htmlFor="priceDollars">Your asking price (USD)</label>
       <input id="priceDollars" name="priceDollars" type="number" min={1} step="0.01" required />
 
       <ImageUploadField name="imageUrl" label="Image" />
@@ -83,11 +84,17 @@ export function SellerNewArtworkForm({ campaigns, defaultCampaignId }: SellerNew
       <label htmlFor="altText">Alt text</label>
       <input id="altText" name="altText" required placeholder="Describe the piece for screen readers" />
 
+      <label htmlFor="story">Story (optional)</label>
+      <textarea id="story" name="story" rows={4} placeholder="The story behind this piece — shown on its detail view" />
+
       {error ? <p className="admin-form__error">{error}</p> : null}
       <Button type="submit" variant="form" className="mt-3" disabled={submitting}>
-        {submitting ? "Listing…" : "Publish listing"}
+        {submitting ? "Submitting…" : "Submit for review"}
       </Button>
-      <p className="admin-form__hint">This goes live immediately — no review step.</p>
+      <p className="admin-form__hint">
+        We&apos;ll review this, confirm the final price with you, and publish it — it won&apos;t be visible to buyers
+        until then.
+      </p>
     </form>
   );
 }

@@ -13,6 +13,7 @@ type SellerArtworkFormProps = {
     priceCents: number;
     imageUrl: string;
     altText: string;
+    story: string | null;
   };
   onSaved: () => void;
 };
@@ -44,6 +45,7 @@ export function SellerArtworkForm({ id, initial, onSaved }: SellerArtworkFormPro
         priceCents: Math.round(priceDollars * 100),
         imageUrl: form.get("imageUrl"),
         altText: form.get("altText"),
+        story: form.get("story") || null,
       }),
     });
 
@@ -77,6 +79,7 @@ export function SellerArtworkForm({ id, initial, onSaved }: SellerArtworkFormPro
       />
       <ImageUploadField name="imageUrl" label="Image" defaultValue={initial.imageUrl} />
       <input name="altText" placeholder="Alt text" required defaultValue={initial.altText} />
+      <textarea name="story" placeholder="Story (optional)" rows={4} defaultValue={initial.story ?? ""} />
       <Button type="submit" variant="form" className="mt-3" disabled={submitting}>
         {submitting ? "Saving…" : "Save changes"}
       </Button>

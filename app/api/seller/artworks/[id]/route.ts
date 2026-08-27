@@ -12,6 +12,7 @@ type UpdateBody = {
   priceCents: number;
   imageUrl: string;
   altText: string;
+  story?: string | null;
 };
 
 async function loadOwnArtwork(sellerId: string, artworkId: string) {
@@ -63,6 +64,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       priceCents: body.priceCents,
       imageUrl: body.imageUrl,
       altText: body.altText,
+      story: body.story || null,
     },
   });
 

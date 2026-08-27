@@ -10,6 +10,7 @@ type CreateBody = {
   priceCents: number;
   imageUrl: string;
   altText: string;
+  story?: string | null;
 };
 
 export async function POST(request: Request, { params }: RouteParams) {
@@ -44,6 +45,7 @@ export async function POST(request: Request, { params }: RouteParams) {
       priceCents: body.priceCents,
       imageUrl: body.imageUrl,
       altText: body.altText,
+      story: body.story || null,
     },
   });
 

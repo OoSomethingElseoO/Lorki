@@ -101,7 +101,13 @@ export default async function SellerDashboardPage() {
                 <span>{campaign.operationsPercent}% operations</span>
               </p>
               <p>{campaign.artworks.length} listing(s)</p>
-              {campaign.status === "LIVE" ? (
+              {campaign.status === "DRAFT" ? (
+                <p className="admin-form__hint">
+                  Awaiting review — we&apos;ll set the final price and publish once it&apos;s approved. You can keep
+                  submitting pieces in the meantime.
+                </p>
+              ) : null}
+              {campaign.status === "LIVE" || campaign.status === "DRAFT" ? (
                 <Link href={`/seller/artworks/new?campaignId=${campaign.id}`} className={buttonVariants()}>
                   List a new piece
                 </Link>

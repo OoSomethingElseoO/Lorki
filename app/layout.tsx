@@ -37,7 +37,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${fraunces.variable} ${lora.variable}`}>
+    // suppressHydrationWarning: the theme-init script below deliberately
+    // mutates this element's data-theme attribute before hydration (to
+    // apply a stored preference without a flash of the default theme) —
+    // without this, React treats that expected, intentional divergence
+    // from the server-rendered markup as a hydration error.
+    <html lang="en" className={`${fraunces.variable} ${lora.variable}`} suppressHydrationWarning>
       <head>
         {/* Runs before paint so a stored theme preference applies
             immediately — without this, the page would flash the default

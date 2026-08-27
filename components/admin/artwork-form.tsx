@@ -14,6 +14,7 @@ type ArtworkFormProps = {
     priceCents: number;
     imageUrl: string;
     altText: string;
+    story?: string | null;
   };
   onSaved?: () => void;
 };
@@ -50,6 +51,7 @@ export function ArtworkForm({ campaignId, id, initial, onSaved }: ArtworkFormPro
         priceCents: Math.round(priceDollars * 100),
         imageUrl: form.get("imageUrl"),
         altText: form.get("altText"),
+        story: form.get("story") || null,
       }),
     });
 
@@ -89,6 +91,12 @@ export function ArtworkForm({ campaignId, id, initial, onSaved }: ArtworkFormPro
       />
       <ImageUploadField name="imageUrl" label="Image" defaultValue={initial?.imageUrl} />
       <input name="altText" placeholder="Alt text" required defaultValue={initial?.altText} />
+      <textarea
+        name="story"
+        placeholder="Story (optional) — the curatorial write-up shown on the piece's detail view"
+        rows={4}
+        defaultValue={initial?.story ?? ""}
+      />
       <Button type="submit" variant="form" className="mt-3" disabled={submitting}>
         {submitting ? "Saving…" : isEditing ? "Save changes" : "Add artwork"}
       </Button>

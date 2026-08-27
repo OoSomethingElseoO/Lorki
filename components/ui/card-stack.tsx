@@ -63,6 +63,15 @@ export type CardStackProps<T extends CardStackItem> = {
   /** Hooks */
   onChangeIndex?: (index: number, item: T) => void;
 
+  /**
+   * Fired when a card is "selected" for a detail view: clicking the
+   * already-active (front) card, since a receded side card's click is
+   * spent re-centering the fan instead (see the card's onClick below).
+   * Reports the clicked card's real on-screen rect (post-transform, via
+   * getBoundingClientRect) so a caller can grow a lightbox from it.
+   */
+  onSelect?: (index: number, originRect: DOMRect) => void;
+
   /** Custom renderer (optional) */
   renderCard?: (item: T, state: { active: boolean }) => React.ReactNode;
 };
@@ -113,6 +122,7 @@ export function CardStack<T extends CardStackItem>({
   className,
 
   onChangeIndex,
+  onSelect,
   renderCard,
 }: CardStackProps<T>) {
   const reduceMotion = useReducedMotion();
@@ -138,6 +148,104 @@ export function CardStack<T extends CardStackItem>({
 
   const cardSpacing = Math.max(10, Math.round(cardWidth * (1 - overlap)));
   const stepDeg = maxOffset > 0 ? spreadDeg / maxOffset : 0;
+
+  // cardWidth/cardSpacing are fixed pixel props with no awareness of the
+  // actual container width — at the defaults (520px cards, maxOffset 3),
+  // the outermost card's nominal center sits ~810px off-center, needing
+  // ~2140px of horizontal room regardless of viewport. Any narrower stage
+  // (every real one here) hard-clips the outer cards against the stage's
+  // own overflow-hidden edge — confirmed via getBoundingClientRect diffing,
+  // outer cards extended ~450px past the clip edge at a 1400px viewport.
+  // Measuring the stage's real width and uniformly scaling card size +
+  // spacing down to fit (never up past the nominal size) fixes this for
+  // any prop combination, the same approach used for the rotunda carousel's
+  // analogous large/small-screen spread problem.
+  const stageRef = React.useRef<HTMLDivElement>(null);
+  const [stageWidth, setStageWidth] = React.useState(0);
+
+  React.useEffect(() => {
+    const el = stageRef.current;
+    if (!el) return;
+    const measure = () => setStageWidth(el.offsetWidth);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const fitScale = React.useMemo(() => {
+    if (!stageWidth || maxOffset === 0) return 1;
+    const margin = 24; // breathing room off the clip edge
+    const availableHalf = Math.max(0, stageWidth / 2 - margin);
+    const nominalHalfSpread = maxOffset * cardSpacing + cardWidth / 2;
+    if (nominalHalfSpread <= 0) return 1;
+    return Math.min(1, availableHalf / nominalHalfSpread);
+  }, [stageWidth, maxOffset, cardSpacing, cardWidth]);
+
+  const effectiveCardWidth = cardWidth * fitScale;
+  const effectiveCardHeight = cardHeight * fitScale;
+  const effectiveSpacing = cardSpacing * fitScale;
+
+  // Cards anchor at `bottom: 0` of the perspective wrapper (the wrapper's
+  // padding box, since it's the nearest positioned ancestor) — that anchor
+  // point sits exactly on the stage's own overflow-hidden clip edge. A
+  // rotateZ fan angle mixes cardWidth into a card's on-screen vertical
+  // footprint (a wide, short card rotated diagonally reads much taller
+  // than cardHeight), and the downward "arc" offset pushes receded cards
+  // further still — so outer cards' real bounding boxes extend well past
+  // both the stage's top AND bottom edges. Simply growing the stage's
+  // `height` cannot fix the bottom overflow: since the anchor IS the clip
+  // edge, more height only buys room above the anchor, never below it.
+  // The real fix is two-part: reserve a bottom buffer (via padding-bottom
+  // on the wrapper, which shifts the bottom:0 anchor up off the true clip
+  // edge) sized to the worst-case downward bulge, and size the stage's
+  // total height to the worst-case upward reach plus that buffer.
+  const stageMetrics = React.useMemo(() => {
+    let minTop = 0;
+    let maxBottom = 0;
+
+    for (let abs = 0; abs <= maxOffset; abs++) {
+      const isActiveCard = abs === 0;
+      const scale = isActiveCard ? activeScale : inactiveScale;
+      const rotateZdeg = abs * stepDeg;
+      const rotateXdeg = isActiveCard ? 0 : tiltXDeg;
+      const rad = (rotateZdeg * Math.PI) / 180;
+
+      // rotateZ mixes width into the vertical AABB extent of a rotated
+      // rectangle: h*|cos| + w*|sin|. rotateX's perspective-projected
+      // contribution isn't a clean closed form (it depends on the
+      // perspective depth too), so it's approximated as a modest
+      // widening rather than modeled exactly — cheap, and errs toward
+      // extra headroom rather than under-sizing.
+      const tiltFactor = 1 + Math.sin((rotateXdeg * Math.PI) / 180) * 0.35;
+      const bboxHeight =
+        scale *
+        tiltFactor *
+        (effectiveCardHeight * Math.abs(Math.cos(rad)) + effectiveCardWidth * Math.abs(Math.sin(rad)));
+
+      const arcY = abs * 10; // matches the arc-down offset used below
+      const lift = isActiveCard ? -activeLiftPx : 0;
+      const centerY = -effectiveCardHeight / 2 + arcY + lift; // relative to the bottom:0 anchor
+      const halfBox = bboxHeight / 2;
+
+      minTop = Math.min(minTop, centerY - halfBox);
+      maxBottom = Math.max(maxBottom, centerY + halfBox);
+    }
+
+    const buffer = 20; // rounding / sub-pixel slack
+    const bottomPad = Math.max(0, maxBottom) + buffer;
+    const height = Math.max(380, effectiveCardHeight + 80, -minTop + bottomPad + buffer);
+    return { height, bottomPad };
+  }, [
+    maxOffset,
+    stepDeg,
+    effectiveCardWidth,
+    effectiveCardHeight,
+    activeScale,
+    inactiveScale,
+    tiltXDeg,
+    activeLiftPx,
+  ]);
 
   const canGoPrev = loop || active > 0;
   const canGoNext = loop || active < len - 1;
@@ -199,12 +307,18 @@ export function CardStack<T extends CardStackItem>({
     >
       {/* Stage */}
       <div
-        // Fanned-out cards sit at x = offset * cardSpacing — the outer
-        // ones extend well past the container's own width. Without
-        // clipping that, they inflate the whole page's scrollable width
-        // and the entire site scrolls sideways, not just this section.
+        ref={stageRef}
+        // Fanned-out cards sit at x = offset * effectiveSpacing, scaled by
+        // fitScale above to fit this stage's own measured width — without
+        // that, outer cards would extend well past the container and get
+        // hard-clipped by overflow-hidden below (confirmed: ~450px past the
+        // clip edge at 1400px wide, using the nominal unscaled spacing).
+        // overflow-hidden itself still matters even with fitScale in place
+        // (mid-transition drag/spring overshoot, a future prop combination,
+        // etc.) — without it, any overflow inflates the whole page's
+        // scrollable width and the entire site scrolls sideways.
         className="relative w-full overflow-hidden"
-        style={{ height: Math.max(380, cardHeight + 80) }}
+        style={{ height: stageMetrics.height }}
         tabIndex={0}
         onKeyDown={onKeyDown}
       >
@@ -235,7 +349,7 @@ export function CardStack<T extends CardStackItem>({
 
               // fan geometry
               const rotateZ = off * stepDeg;
-              const x = off * cardSpacing;
+              const x = off * effectiveSpacing;
               const y = abs * 10; // subtle arc-down feel
               const z = -abs * depthPx;
 
@@ -261,7 +375,7 @@ export function CardStack<T extends CardStackItem>({
                       if (reduceMotion) return;
                       const travel = info.offset.x;
                       const v = info.velocity.x;
-                      const threshold = Math.min(160, cardWidth * 0.22);
+                      const threshold = Math.min(160, effectiveCardWidth * 0.22);
 
                       // swipe logic
                       if (travel > threshold || v > 650) prev();
@@ -274,15 +388,22 @@ export function CardStack<T extends CardStackItem>({
                 <motion.div
                   key={item.id}
                   className={cn(
-                    "absolute bottom-0 rounded-none border-2 border-line overflow-hidden shadow-xl",
+                    "absolute rounded-none border-2 border-line overflow-hidden shadow-xl",
                     "will-change-transform select-none",
                     isActive
                       ? "cursor-grab active:cursor-grabbing"
                       : "cursor-pointer",
                   )}
                   style={{
-                    width: cardWidth,
-                    height: cardHeight,
+                    width: effectiveCardWidth,
+                    height: effectiveCardHeight,
+                    // Not `bottom: 0` — that anchors the card's unrotated
+                    // box flush to the stage's own overflow-hidden clip
+                    // edge, so any downward bulge (fan rotation + arc
+                    // offset) has nowhere to go but clipped. Anchoring
+                    // `stageMetrics.bottomPad` above that edge instead
+                    // reserves exactly the room the worst-case card needs.
+                    bottom: stageMetrics.bottomPad,
                     zIndex,
                     transformStyle: "preserve-3d",
                   }}
@@ -315,7 +436,22 @@ export function CardStack<T extends CardStackItem>({
                   }}
                   // translateZ via style transform (kept stable w/ motion values above)
                   // We apply translateZ by using a CSS transform in a child wrapper.
-                  onClick={() => setActive(i)}
+                  //
+                  // The front card is already focused, so its own click means
+                  // "open the detail view"; a receded side card's click still
+                  // means "bring it to front" first — a second click (now
+                  // active) is what opens it. Cards here aren't continuously
+                  // animating (no autoplay by default), so a plain click event
+                  // and a plain getBoundingClientRect() are both reliable —
+                  // unlike RotundaCarousel, no elementFromPoint workaround
+                  // needed.
+                  onClick={(event) => {
+                    if (isActive) {
+                      onSelect?.(i, event.currentTarget.getBoundingClientRect());
+                    } else {
+                      setActive(i);
+                    }
+                  }}
                   {...dragProps}
                 >
                   <div

@@ -3,13 +3,12 @@
 import * as React from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { Flip } from "gsap/Flip";
 import { Pause, Play } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
 if (typeof window !== "undefined") {
-  gsap.registerPlugin(ScrollTrigger, Flip);
+  gsap.registerPlugin(ScrollTrigger);
 }
 
 const useIsoLayoutEffect =
@@ -35,8 +34,8 @@ export type RotundaCarouselProps = {
 
 // Everything else (radius, perspective) is derived from these, so the whole
 // rig scales together instead of one dimension outrunning the other.
-const CARD_W = "clamp(150px, 16vw, 240px)";
-const CARD_H = "clamp(190px, 20vw, 300px)";
+const CARD_W = "clamp(150px, 16vw, 440px)";
+const CARD_H = "clamp(190px, 20vw, 550px)";
 
 /** Fold a rotation into -180..180 — the shorter way round the ring. */
 function foldAngle(deg: number) {
@@ -71,7 +70,6 @@ export function RotundaCarousel({
 
   const isGridRef = React.useRef(false);
   const inViewRef = React.useRef(true);
-  const hoverPausedRef = React.useRef(false);
   const manualPausedRef = React.useRef(false);
   const activeIndexRef = React.useRef(0);
   const movedRef = React.useRef(false);
@@ -86,12 +84,13 @@ export function RotundaCarousel({
   } | null>(null);
 
   const [isGrid, setIsGrid] = React.useState(false);
-  const [hoverPaused, setHoverPaused] = React.useState(false);
   const [manualPaused, setManualPaused] = React.useState(false);
   const [reducedMotion, setReducedMotion] = React.useState(false);
   const [activeIndex, setActiveIndex] = React.useState(0);
 
-  const paused = hoverPaused || manualPaused;
+  // Pause is deliberate, button-only — the visitor chooses, not a hover
+  // side-effect that fights them for control.
+  const paused = manualPaused;
 
   // Paint straight to the DOM — sixty rotation updates a second have no
   // business round-tripping through React.
@@ -138,7 +137,7 @@ export function RotundaCarousel({
   const playAmbient = React.useCallback(() => {
     if (reducedMotion) return;
     if (isGridRef.current) return;
-    if (hoverPausedRef.current || manualPausedRef.current) return;
+    if (manualPausedRef.current) return;
     if (!inViewRef.current) return;
     if (dragRef.current) return;
     if (!radiusRef.current) return;
@@ -155,7 +154,8 @@ export function RotundaCarousel({
   }, [reducedMotion, speed, paint]);
 
   // Mount / speed changes own the ambient tween's lifecycle; every other
-  // pause/resume path (hover, IO, drag, Flip) just calls playAmbient again.
+  // pause/resume path (hover, IO, drag, the crossfade) just calls
+  // playAmbient again.
   React.useEffect(() => {
     if (!reducedMotion) playAmbient();
     return () => {
@@ -180,8 +180,18 @@ export function RotundaCarousel({
     return () => mq.removeEventListener("change", apply);
   }, []);
 
-  // Card width drives the ring radius, so remeasure whenever the box
-  // actually changes and repaint the (possibly-paused) frame either way.
+  // Card width alone used to drive the ring radius, which pinned the ring's
+  // total spread to a near-constant ~18% slice of the frame no matter how
+  // wide the frame got — cards grew with the viewport, but the *ring*
+  // didn't, so wide screens read as a small centered cluster adrift in
+  // empty margins. Radius is now the larger of two candidates: the
+  // geometric minimum that just keeps cards from overlapping (still
+  // card-width-driven, and what fully governs small screens, where it's
+  // always the bigger of the two), and a target tied to the frame's own
+  // width that ramps the ring's spread from ~30% of frame width up to ~60%
+  // between 1440px and 2560px. Below 1440px the ramp is floored at 30%,
+  // under which the no-overlap minimum wins anyway — so mobile/tablet is
+  // unaffected and only wide desktop frames actually open up.
   useIsoLayoutEffect(() => {
     const frame = frameRef.current;
     if (!frame || !count) return;
@@ -194,7 +204,21 @@ export function RotundaCarousel({
       // ~0 and stacks the cards on top of each other — floor the divisor
       // at 3 cards' worth of spacing so a small catalog still fans out.
       const denom = Math.tan(Math.PI / Math.max(count, 3));
-      radiusRef.current = denom ? widthRef.current / 2 / denom : 0;
+      const noOverlapRadius = denom ? widthRef.current / 2 / denom : 0;
+
+      const frameWidth = frame.offsetWidth;
+      const spreadFraction = gsap.utils.clamp(0.3, 0.6, 0.3 + ((frameWidth - 1440) / (2560 - 1440)) * 0.3);
+      const spreadRadius = (frameWidth * spreadFraction) / 2;
+
+      radiusRef.current = Math.max(noOverlapRadius, spreadRadius);
+      // Perspective as a fixed multiple of radius (rather than of card
+      // width) keeps the front card's perspective-magnification ratio
+      // constant regardless of how far the spread above pushes the ring
+      // out — otherwise a bigger radius against an unchanged perspective
+      // would inflate the near card further and reopen the vertical
+      // clipping this multiple was tuned against (see the frame's
+      // paddingBlock below).
+      frame.style.perspective = radiusRef.current ? `${radiusRef.current * 6}px` : "";
       paint();
       if (!ambientTweenRef.current) playAmbient();
     };
@@ -217,7 +241,7 @@ export function RotundaCarousel({
       onUpdate: (self) => {
         if (!self.isActive) return;
         if (!ambientTweenRef.current) return;
-        if (isGridRef.current || hoverPausedRef.current || manualPausedRef.current) return;
+        if (isGridRef.current || manualPausedRef.current) return;
         if (dragRef.current) return;
 
         const velocity = Math.abs(self.getVelocity());
@@ -258,93 +282,69 @@ export function RotundaCarousel({
     return () => observer.disconnect();
   }, [playAmbient]);
 
-  // Pause (hover or the explicit control) morphs the ring into a flat grid
-  // via Flip; unpausing morphs it back and hands off to the ambient tween.
+  // Pause (hover or the explicit control) swaps the ring for a flat grid;
+  // unpausing swaps it back and hands off to the ambient tween. This is a
+  // crossfade, not a Flip-driven position morph — a card's on-screen
+  // bounding box in ring mode is warped by perspective/rotateY/translateZ,
+  // often to a tiny foreshortened sliver for anything not facing the
+  // camera. Flip.getState() honestly captures that sliver as the "from"
+  // rect, then animates it toward the grid's full flat size — which reads
+  // as cards visibly shrinking to fragments mid-transition, confirmed on
+  // video. A 3D-projected element and a flat grid element don't have
+  // comparable bounding boxes, so Flip is the wrong tool for this specific
+  // jump; fading out, swapping layout while invisible, and fading in
+  // sidesteps the mismatch entirely instead of fighting it.
   //
-  // This used to capture Flip.getState() and flip `isGrid` inside the same
-  // synchronous flushSync() call, right here in a passive effect. React
-  // throws "flushSync was called from inside a lifecycle method" for that —
-  // a regular useEffect still counts as a lifecycle method as far as
-  // flushSync is concerned, even though it runs after commit. The fix is
-  // the standard two-phase pattern: capture the "before" Flip state and
-  // request the isGrid change normally here (no flushSync), then run
-  // Flip.from() in a separate useLayoutEffect keyed on `isGrid` — that
-  // fires synchronously right after the new layout commits but before the
-  // browser paints, which is exactly when Flip needs to run.
-  const pendingFlipRef = React.useRef<{ state: ReturnType<typeof Flip.getState>; toGrid: boolean } | null>(null);
-
+  // Still GSAP throughout (gsap.to for both the fade-out and fade-in) —
+  // only the Flip plugin specifically is gone from this one transition.
   React.useEffect(() => {
     if (!didMountFlipRef.current) {
       didMountFlipRef.current = true;
       return;
     }
-    if (reducedMotion || !count) return;
-
-    const cards = cardRefs.current.filter((c): c is HTMLDivElement => !!c);
-    if (!cards.length) return;
+    if (reducedMotion || !count || !frameRef.current) return;
 
     if (paused) {
       ambientTweenRef.current?.kill();
       inertiaTweenRef.current?.kill();
     }
 
-    pendingFlipRef.current = { state: Flip.getState(cards), toGrid: paused };
-    isGridRef.current = paused;
-    setIsGrid(paused);
+    gsap.to(frameRef.current, {
+      opacity: 0,
+      duration: 0.22,
+      ease: "power1.in",
+      onComplete: () => {
+        isGridRef.current = paused;
+        setIsGrid(paused);
+      },
+    });
   }, [paused, reducedMotion, count]);
 
   useIsoLayoutEffect(() => {
-    const pending = pendingFlipRef.current;
-    if (!pending) return;
-    pendingFlipRef.current = null;
+    if (!frameRef.current) return;
 
     const cards = cardRefs.current.filter((c): c is HTMLDivElement => !!c);
-    if (!cards.length) return;
-
-    if (pending.toGrid) {
+    if (isGrid) {
       cards.forEach((c) => {
         c.style.transform = "";
         c.style.opacity = "";
         c.style.zIndex = "";
       });
     } else {
-      // Paint the ring targets immediately so Flip has somewhere real to
-      // fly to, instead of everything converging on the centre first.
+      // Paint the ring targets immediately so the fade-in reveals cards
+      // already in their spun positions, not converging from the centre.
       paint();
     }
 
-    Flip.from(pending.state, {
-      duration: 0.6,
-      ease: "power2.inOut",
-      absolute: true,
-      stagger: 0.02,
+    gsap.to(frameRef.current, {
+      opacity: 1,
+      duration: 0.28,
+      ease: "power1.out",
       onComplete: () => {
-        if (pending.toGrid) {
-          cards.forEach((c) => {
-            c.style.transform = "";
-            c.style.opacity = "";
-            c.style.zIndex = "";
-          });
-        } else {
-          paint();
-          playAmbient();
-        }
+        if (!isGrid) playAmbient();
       },
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isGrid]);
-
-  const onMouseEnter = () => {
-    if (reducedMotion) return;
-    hoverPausedRef.current = true;
-    setHoverPaused(true);
-  };
-
-  const onMouseLeave = () => {
-    if (reducedMotion) return;
-    hoverPausedRef.current = false;
-    setHoverPaused(false);
-  };
 
   const togglePause = () => {
     if (reducedMotion) return;
@@ -392,6 +392,28 @@ export function RotundaCarousel({
     if (!drag || drag.id !== event.pointerId) return;
     dragRef.current = null;
 
+    // A card's on-screen box keeps moving every frame while the ambient
+    // tween runs. The browser's native `click` event only fires when
+    // pointerdown and pointerup land on the same element — for a
+    // continuously-animating 3D card, the coordinate a real mousedown used
+    // can already be stale by the time pointerup fires a beat later, so the
+    // click silently lands on nothing (confirmed: dispatching a click
+    // programmatically works fine — it's specifically the native
+    // down/up-must-match-target semantics that fails here). Resolving the
+    // target from the pointer's actual release position, independent of
+    // what pointerdown hit, sidesteps that entirely — pointerdown already
+    // killed the ambient tween above, so nothing moves between down and up.
+    if (!movedRef.current && !isGridRef.current) {
+      const target = document.elementFromPoint(event.clientX, event.clientY);
+      const cardEl = target instanceof Element ? target.closest<HTMLElement>("[data-slide-index]") : null;
+      if (cardEl) {
+        const index = Number(cardEl.dataset.slideIndex);
+        if (Number.isInteger(index)) {
+          onSelect?.(index, cardEl.getBoundingClientRect());
+        }
+      }
+    }
+
     // Let a flick carry and settle, then hand back to the ambient spin.
     const carried = gsap.utils.clamp(-900, 900, drag.v * 0.28);
     inertiaTweenRef.current?.kill();
@@ -426,8 +448,6 @@ export function RotundaCarousel({
       style={{ ["--rc-card-w" as string]: CARD_W, ["--rc-card-h" as string]: CARD_H }}
       role="region"
       aria-label={label}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
     >
       <div className="relative">
         <div
@@ -443,11 +463,25 @@ export function RotundaCarousel({
             // past the frame's own box — without clipping that, they
             // inflate the page's scrollable width and the whole site
             // scrolls sideways. Grid mode has nothing to clip.
-            !isGrid && "cursor-grab select-none overflow-hidden py-10 active:cursor-grabbing",
+            !isGrid && "cursor-grab select-none overflow-hidden active:cursor-grabbing",
           )}
           style={{
-            perspective: isGrid ? undefined : `calc(var(--rc-card-w) * 3)`,
+            // Set imperatively (frame.style.perspective) in the measure()
+            // effect below, as a multiple of the JS-computed radius rather
+            // than of CARD_W — see that effect's comment. This is just the
+            // pre-measure fallback for the very first layout pass.
+            perspective: isGrid ? undefined : `calc(var(--rc-card-w) * 6)`,
             touchAction: isGrid ? undefined : "pan-y",
+            // The card nearest the camera sits closer to the eye than z=0,
+            // so perspective projection scales it up beyond CARD_H — not a
+            // bug, just how translateZ + perspective render. That growth is
+            // a fixed fraction of CARD_H (bigger rings, i.e. more slides,
+            // push the near card further forward and inflate it more), so
+            // the vertical gutter has to be proportional to CARD_H rather
+            // than a flat py- value, or overflow-hidden clips the top/bottom
+            // of that front card. 14% a side covers today's catalog with
+            // headroom; a large enough slide count could still outgrow it.
+            paddingBlock: isGrid ? undefined : "calc(var(--rc-card-h) * 0.14)",
           }}
         >
           <div
@@ -471,7 +505,13 @@ export function RotundaCarousel({
                 aria-roledescription="slide"
                 aria-label={slide.title ? `${slide.title}, ${index + 1} of ${count}` : `${index + 1} of ${count}`}
                 tabIndex={0}
+                data-slide-index={index}
                 onClick={(event) => {
+                  // Ring mode's selection is handled in endDrag (see its
+                  // comment) — a continuously-animating card can't rely on
+                  // the browser's native click-target-matching. Grid mode
+                  // is static, so the plain click works fine there.
+                  if (!isGrid) return;
                   if (movedRef.current) return;
                   onSelect?.(index, event.currentTarget.getBoundingClientRect());
                 }}

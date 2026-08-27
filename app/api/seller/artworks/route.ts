@@ -26,11 +26,13 @@ type CreateBody = {
   priceCents: number;
   imageUrl: string;
   altText: string;
+  story?: string | null;
 };
 
-// Full self-service: goes live the instant it's created — the campaign it
-// belongs to is already LIVE (self-service campaigns always are), so there
-// is no separate publish/approval step for the artwork itself.
+// A self-service campaign is born DRAFT — pending review — not LIVE. An
+// artist can still submit artwork into it while it's DRAFT (that's the
+// whole point: submit, then we set the real price and publish). Only
+// PAUSED/ARCHIVED, an admin's deliberate stop, blocks new submissions.
 export async function POST(request: Request) {
   const currentUser = await getCurrentUser();
   const seller = currentUser?.artist;
@@ -63,15 +65,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
   }
 
-  // A self-service campaign is always born LIVE (see the comment above),
-  // but an admin can PAUSE or ARCHIVE it afterward — without this check,
-  // a seller could keep listing new artwork under it with no error at
-  // all, and it would just silently never appear anywhere (every
-  // storefront query filters on campaign.status === "LIVE"). Reject it
-  // here instead of letting that happen invisibly.
-  if (campaign.status !== "LIVE") {
+  // DRAFT (pending review) and LIVE both accept new submissions. Only a
+  // deliberate admin stop — PAUSED or ARCHIVED — rejects here instead of
+  // letting a listing get created that would then silently never appear
+  // anywhere (every storefront query filters on campaign.status === "LIVE").
+  if (campaign.status === "PAUSED" || campaign.status === "ARCHIVED") {
     return NextResponse.json(
-      { error: `This campaign is ${campaign.status.toLowerCase()} — new listings aren't accepted until it's live again.` },
+      { error: `This campaign is ${campaign.status.toLowerCase()} — new listings aren't accepted right now.` },
       { status: 409 },
     );
   }
@@ -84,6 +84,7 @@ export async function POST(request: Request) {
       priceCents: body.priceCents,
       imageUrl: body.imageUrl,
       altText: body.altText,
+      story: body.story || null,
     },
   });
 

@@ -14,6 +14,7 @@ type ArtworkRowProps = {
     priceCents: number;
     imageUrl: string;
     altText: string;
+    story: string | null;
     inventoryState: string;
   };
 };
@@ -34,6 +35,7 @@ export function ArtworkRow({ campaignId, artwork }: ArtworkRowProps) {
               priceCents: artwork.priceCents,
               imageUrl: artwork.imageUrl,
               altText: artwork.altText,
+              story: artwork.story,
             }}
             onSaved={() => setIsEditing(false)}
           />

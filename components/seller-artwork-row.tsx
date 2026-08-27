@@ -13,6 +13,7 @@ type SellerArtworkRowProps = {
     priceCents: number;
     imageUrl: string;
     altText: string;
+    story: string | null;
     inventoryState: string;
   };
   causeName: string;
@@ -39,6 +40,7 @@ export function SellerArtworkRow({ artwork, causeName }: SellerArtworkRowProps) 
               priceCents: artwork.priceCents,
               imageUrl: artwork.imageUrl,
               altText: artwork.altText,
+              story: artwork.story,
             }}
             onSaved={() => setIsEditing(false)}
           />

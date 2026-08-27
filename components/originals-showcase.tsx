@@ -14,7 +14,13 @@ type OriginalsShowcaseProps = {
 // (wants the full artwork + that rect) — the two were built independently
 // against a shared props contract, this is the only place that joins them.
 export function OriginalsShowcase({ artworks, customerEmail }: OriginalsShowcaseProps) {
-  const [selected, setSelected] = useState<{ artwork: StorefrontArtwork; originRect: DOMRect } | null>(null);
+  // Index, not the artwork object itself — Next/Previous need to walk this
+  // same bounded `artworks` array (the homepage's carousel preview, capped
+  // at 24 by getCarouselArtworks — see that function's own comment; this
+  // never touches the full catalog, which lives on the paginated
+  // /originals route instead).
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [originRect, setOriginRect] = useState<DOMRect | null>(null);
 
   const slides: RotundaSlide[] = artworks.map((artwork) => ({
     id: artwork.id,
@@ -24,18 +30,31 @@ export function OriginalsShowcase({ artworks, customerEmail }: OriginalsShowcase
     subtitle: artwork.artistName,
   }));
 
+  const hasMultiple = artworks.length > 1;
+
   return (
     <>
       <RotundaCarousel
         slides={slides}
         label="Original artworks"
-        onSelect={(index, originRect) => setSelected({ artwork: artworks[index], originRect })}
+        onSelect={(index, rect) => {
+          setSelectedIndex(index);
+          setOriginRect(rect);
+        }}
       />
       <ArtworkLightbox
-        artwork={selected?.artwork ?? null}
-        originRect={selected?.originRect ?? null}
-        onClose={() => setSelected(null)}
+        artwork={selectedIndex !== null ? artworks[selectedIndex] : null}
+        originRect={originRect}
+        onClose={() => setSelectedIndex(null)}
         customerEmail={customerEmail}
+        onNext={
+          hasMultiple ? () => setSelectedIndex((i) => (i === null ? null : (i + 1) % artworks.length)) : undefined
+        }
+        onPrevious={
+          hasMultiple
+            ? () => setSelectedIndex((i) => (i === null ? null : (i - 1 + artworks.length) % artworks.length))
+            : undefined
+        }
       />
     </>
   );

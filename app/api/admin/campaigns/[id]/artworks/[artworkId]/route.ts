@@ -11,6 +11,7 @@ type UpdateBody = {
   priceCents: number;
   imageUrl: string;
   altText: string;
+  story?: string | null;
 };
 
 export async function PATCH(request: Request, { params }: RouteParams) {
@@ -46,6 +47,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         priceCents: body.priceCents,
         imageUrl: body.imageUrl,
         altText: body.altText,
+        story: body.story || null,
       },
     });
 

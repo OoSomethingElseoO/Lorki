@@ -2,7 +2,7 @@ import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import { buttonVariants } from "@/components/ui/button";
 import { OriginalsShowcase } from "@/components/originals-showcase";
-import { CardStack } from "@/components/ui/card-stack";
+import { ArtistsShowcase } from "@/components/artists-showcase";
 import { cn } from "@/lib/utils";
 import { ArtworkCard } from "@/components/artwork-card";
 import { NewsCard } from "@/components/news-card";
@@ -46,12 +46,12 @@ export default async function Home() {
   const news = newsArticles.slice(0, 3);
   const featured = originals[0];
 
-  const artistStackItems = artists.map((artist) => ({
-    id: artist.slug,
-    title: artist.name,
-    description: `${artist.country} — ${artist.bio}`,
-    imageSrc: artist.imageUrl,
-    href: `/artists/${artist.slug}`,
+  const artistShowcaseItems = artists.map((artist) => ({
+    slug: artist.slug,
+    name: artist.name,
+    country: artist.country,
+    bio: artist.bio,
+    imageUrl: artist.imageUrl,
   }));
 
   // An admin-chosen hero image always wins; otherwise show whatever's
@@ -146,7 +146,7 @@ export default async function Home() {
                 <h2>Meet the artists</h2>
                 <p>Every piece is painted by an artist local to the animal it depicts.</p>
               </div>
-              <CardStack items={artistStackItems} showDots={artistStackItems.length > 1} className="mt-8" />
+              <ArtistsShowcase artists={artistShowcaseItems} />
               <Link href="/artists" className={cn(buttonVariants(), "mt-8 block w-fit mx-auto")}>
                 View all artists
               </Link>

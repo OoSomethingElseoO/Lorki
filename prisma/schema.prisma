@@ -220,6 +220,11 @@ model Artwork {
   currency       String       @default("usd")
   imageUrl       String
   altText        String
+  // The curatorial write-up shown on the detail view (ArtworkLightbox) —
+  // distinct from Artist.bio, which is about the person, not this specific
+  // piece. Optional: existing rows predate this field, and a quick print
+  // reissue may not need one.
+  story          String?
   inventoryState InventoryState @default(AVAILABLE)
   reservedAt     DateTime?
   orders         Order[]
