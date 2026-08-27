@@ -2,7 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { CampaignForm } from "@/components/admin/campaign-form";
 import { CampaignStatusControl } from "@/components/admin/campaign-status-control";
-import { ArtworkForm } from "@/components/admin/artwork-form";
+import { AddArtworkToggle } from "@/components/admin/add-artwork-toggle";
 import { ArtworkRow } from "@/components/admin/artwork-row";
 import { DeleteButton } from "@/components/admin/delete-button";
 import { AdminSearchForm } from "@/components/admin/search-form";
@@ -97,7 +97,7 @@ export default async function AdminCampaignsPage({ searchParams }: PageProps) {
             </tbody>
           </table>
 
-          <ArtworkForm campaignId={campaign.id} />
+          <AddArtworkToggle campaignId={campaign.id} />
         </section>
       ))}
 
