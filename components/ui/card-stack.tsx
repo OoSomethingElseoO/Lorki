@@ -76,6 +76,26 @@ export type CardStackProps<T extends CardStackItem> = {
   renderCard?: (item: T, state: { active: boolean }) => React.ReactNode;
 };
 
+// Below this stage width, the fan switches to a distinct "mobile" mode:
+// only the active card + one partial peek on each side (maxOffset 1, so
+// 3 cards total) rather than the same maxVisible fan shrunk down to fit.
+// Matches the existing `@media (max-width: 720px)` convention used
+// elsewhere in app/globals.css for the phone/tablet cutoff.
+const MOBILE_BREAKPOINT_PX = 720;
+const MOBILE_MAX_VISIBLE = 3;
+// Peek fraction of a card's width left showing beyond the active card's
+// edge works out to exactly `1 - overlap` (fitScale multiplies both the
+// card width and the spacing by the same factor, so it cancels out) —
+// 0.82 overlap here gives an ~18% sliver on each side, enough to read as
+// "there's more, swipe" without looking like a second full card.
+const MOBILE_OVERLAP = 0.82;
+// A wide spreadDeg/tiltXDeg is what makes a 7-card desktop fan look like
+// a deliberate gallery arc; with only 3 cards on a phone the same tilt
+// reads as crooked/glitchy rather than intentional, so mobile mode uses
+// a much shallower fan and near-flat 3D tilt instead.
+const MOBILE_SPREAD_DEG = 14;
+const MOBILE_TILT_X_DEG = 4;
+
 function wrapIndex(n: number, len: number) {
   if (len <= 0) return 0;
   return ((n % len) + len) % len;
@@ -144,11 +164,6 @@ export function CardStack<T extends CardStackItem>({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active]);
 
-  const maxOffset = Math.max(0, Math.floor(maxVisible / 2));
-
-  const cardSpacing = Math.max(10, Math.round(cardWidth * (1 - overlap)));
-  const stepDeg = maxOffset > 0 ? spreadDeg / maxOffset : 0;
-
   // cardWidth/cardSpacing are fixed pixel props with no awareness of the
   // actual container width — at the defaults (520px cards, maxOffset 3),
   // the outermost card's nominal center sits ~810px off-center, needing
@@ -159,7 +174,9 @@ export function CardStack<T extends CardStackItem>({
   // Measuring the stage's real width and uniformly scaling card size +
   // spacing down to fit (never up past the nominal size) fixes this for
   // any prop combination, the same approach used for the rotunda carousel's
-  // analogous large/small-screen spread problem.
+  // analogous large/small-screen spread problem. The same measurement also
+  // drives the mobile-mode switch below, rather than adding a second,
+  // separate observer just for that.
   const stageRef = React.useRef<HTMLDivElement>(null);
   const [stageWidth, setStageWidth] = React.useState(0);
 
@@ -172,6 +189,30 @@ export function CardStack<T extends CardStackItem>({
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
+
+  // stageWidth starts at 0 before the first ResizeObserver callback fires;
+  // treat "not yet measured" as desktop so there's no flash of mobile
+  // geometry before the real width is known (mirrors fitScale's own
+  // `!stageWidth` guard below).
+  const isMobileMode = stageWidth > 0 && stageWidth < MOBILE_BREAKPOINT_PX;
+
+  // On mobile this caps at MOBILE_MAX_VISIBLE (3: one active + one peek
+  // each side) regardless of what the caller passed — but Math.min still
+  // lets a caller ask for fewer than 3, it just can never get more.
+  const effectiveMaxVisible = isMobileMode
+    ? Math.min(maxVisible, MOBILE_MAX_VISIBLE)
+    : maxVisible;
+  const effectiveOverlap = isMobileMode ? MOBILE_OVERLAP : overlap;
+  const effectiveSpreadDeg = isMobileMode ? MOBILE_SPREAD_DEG : spreadDeg;
+  const effectiveTiltXDeg = isMobileMode ? MOBILE_TILT_X_DEG : tiltXDeg;
+
+  const maxOffset = Math.max(0, Math.floor(effectiveMaxVisible / 2));
+
+  const cardSpacing = Math.max(
+    10,
+    Math.round(cardWidth * (1 - effectiveOverlap)),
+  );
+  const stepDeg = maxOffset > 0 ? effectiveSpreadDeg / maxOffset : 0;
 
   const fitScale = React.useMemo(() => {
     if (!stageWidth || maxOffset === 0) return 1;
@@ -208,7 +249,7 @@ export function CardStack<T extends CardStackItem>({
       const isActiveCard = abs === 0;
       const scale = isActiveCard ? activeScale : inactiveScale;
       const rotateZdeg = abs * stepDeg;
-      const rotateXdeg = isActiveCard ? 0 : tiltXDeg;
+      const rotateXdeg = isActiveCard ? 0 : effectiveTiltXDeg;
       const rad = (rotateZdeg * Math.PI) / 180;
 
       // rotateZ mixes width into the vertical AABB extent of a rotated
@@ -243,7 +284,7 @@ export function CardStack<T extends CardStackItem>({
     effectiveCardHeight,
     activeScale,
     inactiveScale,
-    tiltXDeg,
+    effectiveTiltXDeg,
     activeLiftPx,
   ]);
 
@@ -358,7 +399,7 @@ export function CardStack<T extends CardStackItem>({
               const scale = isActive ? activeScale : inactiveScale;
               const lift = isActive ? -activeLiftPx : 0;
 
-              const rotateX = isActive ? 0 : tiltXDeg;
+              const rotateX = isActive ? 0 : effectiveTiltXDeg;
 
               const zIndex = 100 - abs;
 

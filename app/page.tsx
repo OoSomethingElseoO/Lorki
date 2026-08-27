@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { ArtworkCard } from "@/components/artwork-card";
 import { NewsCard } from "@/components/news-card";
 import { Reveal } from "@/components/reveal";
+import { Hero, type HeroImage } from "@/components/hero";
 import {
   getArtists,
   getCarouselArtworks,
@@ -55,37 +56,28 @@ export default async function Home() {
     imageUrl: artist.imageUrl,
   }));
 
-  // An admin-chosen hero image always wins; otherwise show whatever's
-  // actually for sale right now rather than a generic placeholder.
-  const heroImage = settings.heroImageUrl || featured?.imageUrl || branding.heroImageUrl;
-  const heroAlt = settings.heroImageUrl ? branding.heroAlt : (featured?.altText ?? branding.heroAlt);
+  // An admin-chosen hero image always wins — shown as a single static
+  // image, no rotation. Otherwise rotate through whatever's actually for
+  // sale right now (via the hero's slow crossfade) rather than a single
+  // generic placeholder; a single live artwork or no live inventory at all
+  // both naturally collapse to a one-entry array, which the hero also
+  // renders statically.
+  const heroImages: HeroImage[] = settings.heroImageUrl
+    ? [{ src: settings.heroImageUrl, alt: branding.heroAlt }]
+    : carouselArtworks.length > 0
+      ? carouselArtworks.slice(0, 6).map((artwork) => ({ src: artwork.imageUrl, alt: artwork.altText }))
+      : [{ src: branding.heroImageUrl, alt: branding.heroAlt }];
 
   return (
     <>
       <SiteHeader />
       <main id="main-content">
-        <section className="hero" aria-labelledby="home-title">
-          <div className="hero__content">
-            <div className="hero__copy">
-              <span className="hero__eyebrow">Original art, real impact</span>
-              <h1 className="hero__title" id="home-title">
-                {branding.siteName}
-              </h1>
-              <p className="hero__tagline">{branding.heroTagline}</p>
-              <div className="hero__actions">
-                <Link href="/originals" className={buttonVariants()}>
-                  Browse originals
-                </Link>
-                <Link href="/impact" className="hero__actions-link">
-                  See where the money goes
-                </Link>
-              </div>
-            </div>
-            <div className="hero__frame">
-              <img className="hero__artwork" src={heroImage} alt={heroAlt} />
-            </div>
-          </div>
-        </section>
+        <Hero
+          eyebrow="Original art, real impact"
+          title={branding.siteName}
+          tagline={branding.heroTagline}
+          images={heroImages}
+        />
 
         <Reveal>
           <section className="home-section" aria-label="Originals">

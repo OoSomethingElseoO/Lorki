@@ -288,29 +288,30 @@ a:focus-visible {
   text-decoration: underline;
 }
 
+/* Full-bleed editorial split: .hero__copy and .hero__frame are direct
+   grid children (no centered/max-width wrapper) so the image column
+   genuinely touches the section's edge — on large screens that's the
+   viewport's right edge, not an inset, bordered box. */
 .hero {
+  position: relative;
   min-height: 100vh;
+  overflow: hidden;
   background:
     radial-gradient(ellipse 60% 50% at 78% 45%, rgba(43, 90, 92, 0.14), transparent 70%),
     radial-gradient(ellipse 55% 60% at 15% 30%, rgba(166, 95, 0, 0.1), transparent 65%),
     var(--sand);
-  padding: 9rem 1.5rem 4rem;
-  display: flex;
-  align-items: center;
-}
-
-.hero__content {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  align-items: center;
-  gap: clamp(2rem, 5vw, 5rem);
-  max-width: 80rem;
-  margin: 0 auto;
-  width: 100%;
+  grid-template-rows: minmax(100vh, 1fr);
+  align-items: stretch;
 }
 
 .hero__copy {
+  position: relative;
+  z-index: 2;
+  align-self: center;
   max-width: 32rem;
+  padding: 9rem clamp(1.5rem, 6vw, 4rem) 4rem clamp(1.5rem, 6vw, 5rem);
 }
 
 .hero__eyebrow {
@@ -333,6 +334,12 @@ a:focus-visible {
   line-height: 1.02;
   letter-spacing: -0.01em;
   text-wrap: balance;
+}
+
+/* SplitText's line-mask wrapper clips overflow tightly to the line box —
+   a small bottom pad keeps descenders (g, y, p) from being shaved off. */
+.hero__title-line {
+  padding-bottom: 0.12em;
 }
 
 .hero__tagline {
@@ -358,46 +365,37 @@ a:focus-visible {
 
 .hero__frame {
   position: relative;
-  justify-self: center;
+  height: 100%;
+  overflow: hidden;
 }
 
-.hero__frame::before {
-  content: "";
-  position: absolute;
-  inset: -1.1rem;
-  border: 1px solid var(--line);
-  opacity: 0.5;
-  z-index: 0;
-}
-
+/* Shared by the single static image and every layered image in the
+   rotating crossfade — always absolutely fills .hero__frame, so sizing
+   lives in one place (.hero__frame) regardless of which case is active. */
 .hero__artwork {
-  position: relative;
-  z-index: 1;
-  width: min(28vw, 26rem);
-  min-width: 15rem;
-  height: 58vh;
-  min-height: 24rem;
-  max-height: 34rem;
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
-  border: 2px solid var(--line);
-  box-shadow:
-    0 1.8rem 3.5rem rgba(43, 30, 10, 0.32),
-    0 0.5rem 1rem rgba(43, 30, 10, 0.18);
 }
 
 @media (max-width: 860px) {
   .hero {
-    padding-top: 8rem;
-  }
-
-  .hero__content {
-    grid-template-columns: 1fr;
-    text-align: center;
+    display: flex;
+    flex-direction: column;
+    grid-template-rows: none;
+    min-height: auto;
+    padding: 8rem 0 3rem;
   }
 
   .hero__copy {
+    order: 2;
     max-width: 32rem;
     margin: 0 auto;
+    padding: 0 1.5rem;
+    text-align: center;
   }
 
   .hero__tagline {
@@ -408,14 +406,16 @@ a:focus-visible {
     justify-content: center;
   }
 
+  /* No horizontal padding on .hero itself at this width, so the frame's
+     full width already bleeds to the viewport edge — this is what "full
+     bleed" means on a stacked mobile layout, as opposed to a column that
+     was already viewport-width minus padding. */
   .hero__frame {
-    order: -1;
-  }
-
-  .hero__artwork {
-    width: min(70vw, 22rem);
-    height: 46vh;
-    min-height: 20rem;
+    order: 1;
+    height: 62vh;
+    min-height: 22rem;
+    max-height: 32rem;
+    margin-bottom: 2.5rem;
   }
 }
 

@@ -3,6 +3,7 @@ import { Fraunces, Lora } from "next/font/google";
 import "./globals.css";
 import { getBranding } from "@/lib/settings";
 import { StyledComponentsRegistry } from "@/lib/styled-components-registry";
+import { KineticSkew } from "@/components/kinetic-skew";
 
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -56,6 +57,7 @@ export default function RootLayout({
       </head>
       <body>
         <StyledComponentsRegistry>{children}</StyledComponentsRegistry>
+        <KineticSkew />
       </body>
     </html>
   );
