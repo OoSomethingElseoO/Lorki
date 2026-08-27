@@ -1,5 +1,6 @@
 import { PageTitle } from "@/components/page-title";
 import { SiteHeader } from "@/components/site-header";
+import { Footer } from "@/components/footer";
 import { LoginForm } from "@/components/login-form";
 
 export default function LoginPage() {
@@ -10,6 +11,7 @@ export default function LoginPage() {
         <PageTitle>Sign In</PageTitle>
         <LoginForm />
       </main>
+      <Footer />
     </>
   );
 }

@@ -1,5 +1,6 @@
 import { PageTitle } from "@/components/page-title";
 import { SiteHeader } from "@/components/site-header";
+import { Footer } from "@/components/footer";
 import { getBranding } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +23,7 @@ export default async function ContactUsPage() {
           </p>
         </address>
       </main>
+      <Footer />
     </>
   );
 }

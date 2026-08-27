@@ -1,5 +1,6 @@
 import { PageTitle } from "@/components/page-title";
 import { SiteHeader } from "@/components/site-header";
+import { Footer } from "@/components/footer";
 import { ResetPasswordForm } from "@/components/reset-password-form";
 
 type ResetPasswordPageProps = {
@@ -16,6 +17,7 @@ export default async function ResetPasswordPage({ params }: ResetPasswordPagePro
         <PageTitle>Choose a New Password</PageTitle>
         <ResetPasswordForm token={token} />
       </main>
+      <Footer />
     </>
   );
 }

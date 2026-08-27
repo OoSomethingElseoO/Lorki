@@ -2,6 +2,7 @@ import { Newspaper } from "lucide-react";
 import { NewsCard } from "@/components/news-card";
 import { PageTitle } from "@/components/page-title";
 import { SiteHeader } from "@/components/site-header";
+import { Footer } from "@/components/footer";
 import { EmptyState } from "@/components/empty-state";
 import { getLiveNewsArticles } from "@/lib/storefront";
 
@@ -24,6 +25,7 @@ export default async function NewsPage() {
           <EmptyState icon={<Newspaper />} title="No news yet" description="Check back soon for studio updates." />
         ) : null}
       </main>
+      <Footer />
     </>
   );
 }

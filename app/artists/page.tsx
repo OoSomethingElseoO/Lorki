@@ -2,6 +2,7 @@ import { Users } from "lucide-react";
 import { ArtistCard } from "@/components/artist-card";
 import { PageTitle } from "@/components/page-title";
 import { SiteHeader } from "@/components/site-header";
+import { Footer } from "@/components/footer";
 import { Pagination } from "@/components/pagination";
 import { EmptyState } from "@/components/empty-state";
 import { getArtists } from "@/lib/storefront";
@@ -29,6 +30,7 @@ export default async function ArtistsPage({ searchParams }: ArtistsPageProps) {
         ) : null}
         <Pagination page={currentPage} totalPages={totalPages} basePath="/artists" />
       </main>
+      <Footer />
     </>
   );
 }

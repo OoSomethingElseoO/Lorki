@@ -1,6 +1,7 @@
 import { HeartHandshake } from "lucide-react";
 import { PageTitle } from "@/components/page-title";
 import { SiteHeader } from "@/components/site-header";
+import { Footer } from "@/components/footer";
 import { EmptyState } from "@/components/empty-state";
 import { prisma } from "@/lib/prisma";
 import { getImpactTotals } from "@/lib/storefront";
@@ -78,6 +79,7 @@ export default async function ImpactPage() {
           ) : null}
         </section>
       </main>
+      <Footer />
     </>
   );
 }

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
+import { Footer } from "@/components/footer";
 import { buttonVariants } from "@/components/ui/button";
 import { OriginalsShowcase } from "@/components/originals-showcase";
 import { ArtistsShowcase } from "@/components/artists-showcase";
@@ -192,9 +193,7 @@ export default async function Home() {
           </Reveal>
         ) : null}
       </main>
-      <footer className="site-footer">
-        <p>&copy; 2026 {branding.siteName}</p>
-      </footer>
+      <Footer />
     </>
   );
 }

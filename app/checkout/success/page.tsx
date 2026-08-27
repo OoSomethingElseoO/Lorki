@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PageTitle } from "@/components/page-title";
 import { SiteHeader } from "@/components/site-header";
+import { Footer } from "@/components/footer";
 import { buttonVariants } from "@/components/ui/button";
 import { getStripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
@@ -58,6 +59,7 @@ export default async function CheckoutSuccessPage({ searchParams }: SuccessPageP
           </Link>
         </div>
       </main>
+      <Footer />
     </>
   );
 }

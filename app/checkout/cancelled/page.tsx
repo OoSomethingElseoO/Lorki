@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PageTitle } from "@/components/page-title";
 import { SiteHeader } from "@/components/site-header";
+import { Footer } from "@/components/footer";
 import { buttonVariants } from "@/components/ui/button";
 
 export default function CheckoutCancelledPage() {
@@ -16,6 +17,7 @@ export default function CheckoutCancelledPage() {
           </Link>
         </div>
       </main>
+      <Footer />
     </>
   );
 }

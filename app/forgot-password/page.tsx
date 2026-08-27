@@ -1,5 +1,6 @@
 import { PageTitle } from "@/components/page-title";
 import { SiteHeader } from "@/components/site-header";
+import { Footer } from "@/components/footer";
 import { ForgotPasswordForm } from "@/components/forgot-password-form";
 
 export default function ForgotPasswordPage() {
@@ -10,6 +11,7 @@ export default function ForgotPasswordPage() {
         <PageTitle>Reset Your Password</PageTitle>
         <ForgotPasswordForm />
       </main>
+      <Footer />
     </>
   );
 }

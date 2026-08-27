@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/site-header";
+import { Footer } from "@/components/footer";
 import { buttonVariants } from "@/components/ui/button";
 import { getLiveNewsArticleBySlug } from "@/lib/storefront";
 
@@ -32,6 +33,7 @@ export default async function NewsArticlePage({ params }: NewsArticlePageProps) 
           </div>
         </article>
       </main>
+      <Footer />
     </>
   );
 }

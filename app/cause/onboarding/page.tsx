@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { PageTitle } from "@/components/page-title";
 import { SiteHeader } from "@/components/site-header";
+import { Footer } from "@/components/footer";
 import { CauseOnboardingForm } from "@/components/cause-onboarding-form";
 import { getCurrentUser } from "@/lib/auth";
 
@@ -22,6 +23,7 @@ export default async function CauseOnboardingPage() {
         <PageTitle>Register a Cause</PageTitle>
         <CauseOnboardingForm />
       </main>
+      <Footer />
     </>
   );
 }

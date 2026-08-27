@@ -2,6 +2,7 @@ import { ArtworkCard } from "@/components/artwork-card";
 import { ArtistCard } from "@/components/artist-card";
 import { PageTitle } from "@/components/page-title";
 import { SiteHeader } from "@/components/site-header";
+import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { searchStorefront } from "@/lib/storefront";
 
@@ -60,6 +61,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           <p className="centered-copy">Search for an artist name or artwork title.</p>
         )}
       </main>
+      <Footer />
     </>
   );
 }

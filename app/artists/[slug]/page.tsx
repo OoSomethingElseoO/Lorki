@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArtistGallery } from "@/components/artist-gallery";
 import { SiteHeader } from "@/components/site-header";
+import { Footer } from "@/components/footer";
 import { buttonVariants } from "@/components/ui/button";
 import { getArtistBySlug, getLiveArtworksForArtist } from "@/lib/storefront";
 import { getCurrentUser } from "@/lib/auth";
@@ -65,6 +66,7 @@ export default async function ArtistPage({ params }: ArtistPageProps) {
         </section>
         <ArtistGallery artworks={artistArtworks} customerEmail={customer?.email} />
       </main>
+      <Footer />
     </>
   );
 }

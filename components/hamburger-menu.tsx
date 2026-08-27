@@ -3,16 +3,7 @@
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-
-const menuLinks = [
-  { label: "Mission Statement", href: "/mission-statement" },
-  { label: "Artists", href: "/artists" },
-  { label: "Originals", href: "/originals" },
-  { label: "Prints", href: "/prints" },
-  { label: "News", href: "/news" },
-  { label: "Sell Your Art", href: "/seller" },
-  { label: "Contact Us", href: "/contact-us" },
-];
+import { menuLinks } from "@/lib/nav-links";
 
 export function HamburgerMenu() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
