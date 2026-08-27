@@ -3,18 +3,19 @@
 import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { gsap } from "gsap";
-import { SplitText } from "gsap/SplitText";
 import { buttonVariants } from "@/components/ui/button";
 import { Magnetic } from "@/components/ui/magnetic";
+import { TextBlockAnimation } from "@/components/ui/text-block-animation";
 
-if (typeof window !== "undefined") gsap.registerPlugin(SplitText);
-
-export type HeroImage = { src: string; alt: string };
+export type HeroImage = { src: string; alt: string; artistName?: string };
 
 type HeroProps = {
   eyebrow: string;
-  title: string;
-  tagline: string;
+  /** The big catchy headline — was previously the site name, redundant with
+      the header wordmark directly above it. Now a real hook. */
+  headline: string;
+  /** A short supporting line — the "how it works" in one sentence. */
+  subline: string;
   /**
    * One entry: shown statically (this is always the case when an admin has
    * set settings.heroImageUrl, or when there's only a single fallback
@@ -24,50 +25,35 @@ type HeroProps = {
   images: HeroImage[];
 };
 
-export function Hero({ eyebrow, title, tagline, images }: HeroProps) {
-  const titleRef = useRef<HTMLHeadingElement>(null);
+export function Hero({ eyebrow, headline, subline, images }: HeroProps) {
+  const fadeRef = useRef<HTMLDivElement>(null);
 
-  // SplitText line-reveal entrance + staggered fade-up for the rest of the
-  // copy. Skipped entirely under prefers-reduced-motion: since gsap.from()
-  // is what pushes elements away from their resting state in the first
-  // place, never running it means they simply render at that resting
-  // state directly — no separate "snap to settled" branch needed.
+  // The headline's own reveal is TextBlockAnimation (below) — this timeline
+  // only handles the eyebrow/subline/CTAs fade-up, timed to start partway
+  // through the headline's block-reveal rather than waiting for it to fully
+  // finish, so the two don't read as two separate, disconnected beats.
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    if (!titleRef.current) return;
+    if (!fadeRef.current) return;
 
-    const split = SplitText.create(titleRef.current, {
-      type: "lines",
-      mask: "lines",
-      linesClass: "hero__title-line",
-    });
-
-    const tl = gsap.timeline({ delay: 0.2 });
-    tl.from(split.lines, {
-      yPercent: 115,
-      duration: 1,
-      ease: "expo.out",
-      stagger: 0.12,
-    }).from(
-      ".hero__fade",
-      { y: 22, opacity: 0, duration: 0.7, ease: "power3.out", stagger: 0.08 },
-      "-=0.65",
-    );
+    const tl = gsap.timeline({ delay: 0.9 });
+    tl.from(".hero__fade", { y: 22, opacity: 0, duration: 0.7, ease: "power3.out", stagger: 0.08 });
 
     return () => {
       tl.kill();
-      split.revert();
     };
-  }, [title]);
+  }, [headline]);
 
   return (
     <section className="hero" aria-labelledby="home-title">
-      <div className="hero__copy" data-skew>
+      <div className="hero__copy" data-skew ref={fadeRef}>
         <span className="hero__eyebrow hero__fade">{eyebrow}</span>
-        <h1 className="hero__title" id="home-title" ref={titleRef}>
-          {title}
-        </h1>
-        <p className="hero__tagline hero__fade">{tagline}</p>
+        <TextBlockAnimation blockColor="var(--gold)" animateOnScroll={false} delay={0.2} duration={0.8}>
+          <h1 className="hero__title" id="home-title">
+            {headline}
+          </h1>
+        </TextBlockAnimation>
+        <p className="hero__tagline hero__fade">{subline}</p>
         <div className="hero__actions hero__fade">
           <Magnetic>
             <Link href="/originals" className={buttonVariants()}>
@@ -90,6 +76,7 @@ export function Hero({ eyebrow, title, tagline, images }: HeroProps) {
 
 function HeroArtwork({ images }: { images: HeroImage[] }) {
   const imgRefs = useRef<(HTMLImageElement | null)[]>([]);
+  const labelRef = useRef<HTMLSpanElement>(null);
   const activeRef = useRef(0);
 
   // Slow crossfade through a handful of live pieces — only runs at all
@@ -97,7 +84,11 @@ function HeroArtwork({ images }: { images: HeroImage[] }) {
   // isn't reduced. Deliberately imperative/ref-driven rather than React
   // state: letting GSAP fully own each <img>'s opacity means a re-render
   // mid-fade can never stomp on an in-flight tween's interpolated value.
+  // The artist-name label swaps in lockstep with the image, on the same
+  // ref-driven/imperative basis, not React state.
   useEffect(() => {
+    if (labelRef.current) labelRef.current.textContent = images[0]?.artistName ?? "";
+
     if (images.length < 2) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
@@ -120,12 +111,25 @@ function HeroArtwork({ images }: { images: HeroImage[] }) {
           onComplete: () => gsap.set(fromEl, { zIndex: 1 }),
         });
       }
+      if (labelRef.current) {
+        const label = labelRef.current;
+        gsap.to(label, {
+          opacity: 0,
+          duration: 0.5,
+          onComplete: () => {
+            label.textContent = images[next]?.artistName ?? "";
+            gsap.to(label, { opacity: 1, duration: 0.5 });
+          },
+        });
+      }
     }, 5500);
 
     return () => window.clearInterval(id);
   }, [images]);
 
   if (images.length === 0) return null;
+
+  const hasAnyArtistName = images.some((image) => image.artistName);
 
   return (
     <>
@@ -142,6 +146,7 @@ function HeroArtwork({ images }: { images: HeroImage[] }) {
           loading={index === 0 ? "eager" : "lazy"}
         />
       ))}
+      {hasAnyArtistName ? <span className="hero__artist-label" ref={labelRef} /> : null}
     </>
   );
 }

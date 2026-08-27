@@ -222,7 +222,12 @@ a:focus-visible {
 .site-nav {
   position: relative;
   display: grid;
-  grid-template-columns: 7rem minmax(0, 1fr) 7rem;
+  /* Was a fixed-center-fixed track with the wordmark forced into the
+     middle column — the wordmark now sits directly beside the hamburger
+     (a normal left-aligned site title), and the actions column absorbs
+     all remaining space, right-aligned within it via .site-actions'
+     existing justify-content: end. */
+  grid-template-columns: auto auto 1fr;
   align-items: center;
   gap: 1rem;
   min-height: 5.5rem;
@@ -237,7 +242,7 @@ a:focus-visible {
   font-size: 4.4rem;
   font-weight: 700;
   letter-spacing: 0;
-  text-align: center;
+  text-align: left;
   text-decoration: none;
   white-space: nowrap;
 }
@@ -336,9 +341,12 @@ a:focus-visible {
   text-wrap: balance;
 }
 
-/* SplitText's line-mask wrapper clips overflow tightly to the line box —
-   a small bottom pad keeps descenders (g, y, p) from being shaved off. */
-.hero__title-line {
+/* TextBlockAnimation's SplitText wrapper (components/ui/text-block-animation.tsx)
+   clips overflow tightly to each line box while its revealer block animates —
+   a small bottom pad keeps descenders (g, y, p) from being shaved off.
+   Generic, not hero-scoped: every TextBlockAnimation usage on the site
+   shares this same clipping risk. */
+.block-line-parent {
   padding-bottom: 0.12em;
 }
 
@@ -367,6 +375,25 @@ a:focus-visible {
   position: relative;
   height: 100%;
   overflow: hidden;
+}
+
+.hero__artist-label {
+  position: absolute;
+  /* .site-header sits absolutely positioned over the full-bleed hero
+     (z-index: 20, ~5.5rem tall) on every width where .hero__frame reaches
+     the viewport top — clear it instead of the frame's own edge. */
+  top: 7rem;
+  right: 1.75rem;
+  z-index: 3;
+  padding: 0.5rem 1rem;
+  background: color-mix(in srgb, var(--ink) 55%, transparent);
+  color: var(--panel);
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  backdrop-filter: blur(4px);
+  transition: opacity 0.3s ease;
 }
 
 /* Shared by the single static image and every layered image in the
@@ -416,6 +443,14 @@ a:focus-visible {
     min-height: 22rem;
     max-height: 32rem;
     margin-bottom: 2.5rem;
+  }
+
+  /* Stacked layout: .hero's own top padding already clears .site-header,
+     so the frame's top edge is well below it — sit near the frame's own
+     top instead of the desktop offset that clears the header directly. */
+  .hero__artist-label {
+    top: 1.25rem;
+    right: 1.25rem;
   }
 }
 
@@ -580,6 +615,185 @@ a:focus-visible {
   gap: 1.25rem;
   max-width: 78rem;
   margin: 0 auto 3rem;
+}
+
+/* Prints homepage shelf — a flat horizontal rack you glide along, not
+   another 3D rig (that's Originals' rotunda) or a stacked-card fan
+   (Artists). Real native horizontal scroll (touch/trackpad both just
+   work) with GSAP layered on for the parts plain overflow-x can't do:
+   smooth arrow-button paging and a "lift" on whichever tile is nearest
+   centre — see components/ui/print-rack.tsx. */
+.prints-rack {
+  max-width: 82rem;
+  margin: 0 auto;
+}
+
+.prints-rack__viewport {
+  position: relative;
+}
+
+.prints-rack__track {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.75rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: 1.5rem;
+  padding: 1.5rem 1.5rem 2.5rem;
+  outline: none;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.prints-rack__track::-webkit-scrollbar {
+  display: none;
+}
+
+.prints-rack__track:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--gold);
+}
+
+.prints-rack__tile {
+  flex: 0 0 auto;
+  width: clamp(11.5rem, 16vw, 15rem);
+  scroll-snap-align: center;
+  will-change: transform;
+}
+
+/* .print-tile itself (the visual card) is owned by PrintsShowcase, kept
+   separate from .prints-rack__tile (the rack's own scroll/motion wrapper)
+   so the GSAP proximity-lift transform on the wrapper never fights the
+   CSS lean/hover transform on the card. */
+.print-tile {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  transform: rotate(-1.1deg);
+  transition: transform 0.2s ease;
+}
+
+.prints-rack__tile--lean-right .print-tile {
+  transform: rotate(1.1deg);
+}
+
+.print-tile:hover,
+.print-tile:focus-within {
+  transform: rotate(0deg);
+}
+
+.print-tile__frame {
+  position: relative;
+  display: block;
+  width: 100%;
+  border: 2px solid var(--line);
+  /* An oversized bottom edge reads as the little ledge/groove the print
+     rests in, like a slot in a postcard rack — the shelf identity lives
+     per-tile rather than as one continuous line under the whole row, so
+     it never has to stay pixel-aligned across scroll/resize. */
+  border-bottom-width: 7px;
+  background: var(--panel);
+  padding: 0.5rem 0.5rem 0.65rem;
+  cursor: pointer;
+  box-shadow: 0 0.6rem 1.1rem rgba(82, 48, 12, 0.16);
+  transition: box-shadow 0.2s ease;
+}
+
+.print-tile__frame:hover,
+.print-tile__frame:focus-visible {
+  box-shadow: 0 1rem 1.6rem rgba(82, 48, 12, 0.26);
+  outline: none;
+}
+
+.print-tile__image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border: 1px solid var(--line);
+}
+
+.print-tile__tag {
+  position: absolute;
+  top: -0.6rem;
+  right: -0.6rem;
+  transform: rotate(6deg);
+  border: 2px solid var(--line);
+  background: var(--gold);
+  color: var(--panel);
+  padding: 0.25rem 0.5rem;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  box-shadow: 0 0.3rem 0.6rem rgba(82, 48, 12, 0.25);
+}
+
+.print-tile__body {
+  margin-top: 0.85rem;
+  text-align: center;
+}
+
+.print-tile__title {
+  margin: 0;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 1.05rem;
+  line-height: 1.2;
+}
+
+.print-tile__artist {
+  margin: 0.2rem 0 0.6rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.print-tile .buy-form {
+  justify-content: center;
+}
+
+.prints-rack__controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  max-width: 24rem;
+  margin: 0 auto;
+}
+
+.prints-rack__nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 2px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.prints-rack__nav:hover:not(:disabled) {
+  background: var(--sand-deep);
+}
+
+.prints-rack__nav:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.prints-rack__progress {
+  position: relative;
+  flex: 1 1 auto;
+  height: 3px;
+  background: color-mix(in srgb, var(--line) 35%, transparent);
+}
+
+.prints-rack__progress-thumb {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: var(--gold);
 }
 
 .search-form {
@@ -1183,6 +1397,9 @@ a:focus-visible {
 
 @media (max-width: 720px) {
   .site-nav {
+    /* Middle track stays flexible/shrinkable (not auto) here specifically
+       — a long site name at a narrow width needs somewhere to truncate
+       rather than push the action icons off-screen. */
     grid-template-columns: 3rem minmax(0, 1fr) 6rem;
     gap: 0.6rem;
     min-height: 5rem;
@@ -1226,6 +1443,25 @@ a:focus-visible {
 
   .gallery-scroll {
     grid-auto-columns: minmax(16rem, 82%);
+  }
+
+  /* Mobile drops the arrow/progress controls (touch swipe is the whole
+     interaction) and widens tiles to one-at-a-time with a visible sliver
+     of the next/previous tile peeking at each edge — the same "shows
+     there's more without dumping everything in a flat grid" contract
+     ArtistsShowcase's fan already applies on mobile, just via a scroll
+     strip instead of a card stack. */
+  .prints-rack__track {
+    scroll-snap-type: x mandatory;
+    padding-inline: 8%;
+  }
+
+  .prints-rack__tile {
+    width: 78%;
+  }
+
+  .prints-rack__controls {
+    display: none;
   }
 }
 

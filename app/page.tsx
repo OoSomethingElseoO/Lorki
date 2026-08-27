@@ -4,11 +4,12 @@ import { Footer } from "@/components/footer";
 import { buttonVariants } from "@/components/ui/button";
 import { OriginalsShowcase } from "@/components/originals-showcase";
 import { ArtistsShowcase } from "@/components/artists-showcase";
+import { PrintsShowcase } from "@/components/prints-showcase";
 import { cn } from "@/lib/utils";
-import { ArtworkCard } from "@/components/artwork-card";
 import { NewsCard } from "@/components/news-card";
 import { Reveal } from "@/components/reveal";
 import { Hero, type HeroImage } from "@/components/hero";
+import { TextBlockAnimation } from "@/components/ui/text-block-animation";
 import {
   getArtists,
   getCarouselArtworks,
@@ -43,7 +44,12 @@ export default async function Home() {
     ]);
 
   const originals = originalsResult.items;
-  const prints = printsResult.items.slice(0, 3);
+  // The rack (PrintsShowcase) is a horizontal browse-and-buy shelf, not a
+  // fixed grid — it wants enough tiles to actually scroll through. Bumped
+  // from 3 (the old plain-grid cap) toward the same generosity already
+  // given to Artists (9); still just this preview's cap, the full catalog
+  // lives on the paginated /prints route.
+  const prints = printsResult.items.slice(0, 9);
   const artists = artistsResult.items.slice(0, 9);
   const news = newsArticles.slice(0, 3);
   const featured = originals[0];
@@ -65,7 +71,9 @@ export default async function Home() {
   const heroImages: HeroImage[] = settings.heroImageUrl
     ? [{ src: settings.heroImageUrl, alt: branding.heroAlt }]
     : carouselArtworks.length > 0
-      ? carouselArtworks.slice(0, 6).map((artwork) => ({ src: artwork.imageUrl, alt: artwork.altText }))
+      ? carouselArtworks
+          .slice(0, 6)
+          .map((artwork) => ({ src: artwork.imageUrl, alt: artwork.altText, artistName: artwork.artistName }))
       : [{ src: branding.heroImageUrl, alt: branding.heroAlt }];
 
   return (
@@ -74,15 +82,17 @@ export default async function Home() {
       <main id="main-content">
         <Hero
           eyebrow="Original art, real impact"
-          title={branding.siteName}
-          tagline={branding.heroTagline}
+          headline={branding.heroTagline}
+          subline="Each piece funds the conservancy protecting its subject."
           images={heroImages}
         />
 
         <Reveal>
           <section className="home-section" aria-label="Originals">
             <div className="home-section__intro">
-              <h2>Originals</h2>
+              <TextBlockAnimation blockColor="var(--gold)">
+                <h2>Originals</h2>
+              </TextBlockAnimation>
               {featured ? (
                 <p>
                   <strong>{featured.title}</strong> by {featured.artistName} — ${(featured.priceCents / 100).toFixed(2)}.{" "}
@@ -106,7 +116,9 @@ export default async function Home() {
         <Reveal>
           <section className="home-section home-section--impact home-section--alt" aria-label="Impact so far">
             <div className="home-section__intro">
-              <h2>Where the money goes</h2>
+              <TextBlockAnimation blockColor="var(--teal)">
+                <h2>Where the money goes</h2>
+              </TextBlockAnimation>
               <p>
                 Every piece sold pays the artist who made it and funds the conservancy protecting the animal it
                 depicts. These numbers are money that has actually been paid out, not just collected.
@@ -136,7 +148,9 @@ export default async function Home() {
           <Reveal>
             <section className="home-section" aria-label="Meet the artists">
               <div className="home-section__intro">
-                <h2>Meet the artists</h2>
+                <TextBlockAnimation blockColor="var(--gold)">
+                  <h2>Meet the artists</h2>
+                </TextBlockAnimation>
                 <p>Every piece is painted by an artist local to the animal it depicts.</p>
               </div>
               <ArtistsShowcase artists={artistShowcaseItems} />
@@ -151,15 +165,13 @@ export default async function Home() {
           <Reveal>
             <section className="home-section home-section--alt" aria-label="Prints">
               <div className="home-section__intro">
-                <h2>Prints, from {formatDollars(Math.min(...prints.map((p) => p.priceCents)))}</h2>
+                <TextBlockAnimation blockColor="var(--gold)">
+                  <h2>Prints, from {formatDollars(Math.min(...prints.map((p) => p.priceCents)))}</h2>
+                </TextBlockAnimation>
                 <p>The same artwork, reprinted at a lower price — a smaller way to support the same cause.</p>
               </div>
-              <div className="card-grid">
-                {prints.map((artwork) => (
-                  <ArtworkCard artwork={artwork} customerEmail={customer?.email} key={artwork.id} />
-                ))}
-              </div>
-              <Link href="/prints" className={cn(buttonVariants(), "block w-fit mx-auto")}>
+              <PrintsShowcase prints={prints} customerEmail={customer?.email} />
+              <Link href="/prints" className={cn(buttonVariants(), "mt-8 block w-fit mx-auto")}>
                 Shop prints
               </Link>
             </section>
@@ -170,7 +182,9 @@ export default async function Home() {
           <Reveal>
             <section className="home-section" aria-label="Latest news">
               <div className="home-section__intro">
-                <h2>Studio notes</h2>
+                <TextBlockAnimation blockColor="var(--gold)">
+                  <h2>Studio notes</h2>
+                </TextBlockAnimation>
                 <p>Updates from the artists and the conservancies they work with.</p>
               </div>
               <div className="news-list">
