@@ -502,7 +502,14 @@ a:focus-visible {
   margin: 0;
   color: var(--gold);
   font-family: var(--font-display), Georgia, serif;
-  font-size: 4.4rem;
+  /* Was 4.4rem — identical to .site-wordmark's own size, so every
+     non-home page opened with the wordmark immediately followed by a
+     second heading in the same size/weight/font repeating or
+     near-repeating it ("Aurelia Originals" / "Artists"). Matches the
+     size already established for a page-level h1 elsewhere in the brand
+     context (.dashboard-main--brand h1, e.g. "My Account") instead of
+     competing with the site identity for attention on every page. */
+  font-size: 2.75rem;
   line-height: 1.05;
   letter-spacing: 0;
 }
@@ -1191,11 +1198,6 @@ a:focus-visible {
 
   .page-main {
     padding-top: 7rem;
-  }
-
-  .page-title h1,
-  .artist-profile h1 {
-    font-size: 2.8rem;
   }
 
   .artist-profile,
