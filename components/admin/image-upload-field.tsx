@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
+import { FileDropzone } from "@/components/ui/file-dropzone";
 
 type ImageUploadFieldProps = {
   name: string;
@@ -20,12 +21,7 @@ export function ImageUploadField({ name, label, defaultValue }: ImageUploadField
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) {
-      return;
-    }
-
+  async function handleFile(file: File) {
     setUploading(true);
     setError(null);
 
@@ -36,7 +32,6 @@ export function ImageUploadField({ name, label, defaultValue }: ImageUploadField
     const data = await response.json().catch(() => ({}));
 
     setUploading(false);
-    event.target.value = "";
 
     if (!response.ok) {
       setError(data.error ?? "Upload failed");
@@ -57,10 +52,8 @@ export function ImageUploadField({ name, label, defaultValue }: ImageUploadField
         placeholder="/uploads/... or paste any image URL"
         required
       />
-      <label htmlFor={`${id}-file`} className="admin-image-field__upload-label">
-        {uploading ? "Uploading…" : "Or upload a file"}
-      </label>
-      <input id={`${id}-file`} type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml" onChange={handleFileChange} />
+      <p className="admin-image-field__upload-label">{uploading ? "Uploading…" : "Or drag and drop a file below"}</p>
+      <FileDropzone accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml" maxSizeMB={10} onUpload={handleFile} />
       {error ? <p className="admin-form__error">{error}</p> : null}
       {url ? (
         <img src={url} alt="" className="admin-image-field__preview" />

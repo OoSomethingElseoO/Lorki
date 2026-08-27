@@ -1,13 +1,15 @@
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import { buttonVariants } from "@/components/ui/button";
+import { OriginalsShowcase } from "@/components/originals-showcase";
+import { CardStack } from "@/components/ui/card-stack";
 import { cn } from "@/lib/utils";
 import { ArtworkCard } from "@/components/artwork-card";
-import { ArtistCard } from "@/components/artist-card";
 import { NewsCard } from "@/components/news-card";
 import { Reveal } from "@/components/reveal";
 import {
   getArtists,
+  getCarouselArtworks,
   getImpactTotals,
   getLiveArtworksByKind,
   getLiveNewsArticles,
@@ -25,7 +27,7 @@ function formatDollars(cents: number) {
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [originalsResult, printsResult, artistsResult, newsArticles, impact, branding, settings, customer] =
+  const [originalsResult, printsResult, artistsResult, newsArticles, impact, branding, settings, customer, carouselArtworks] =
     await Promise.all([
       getLiveArtworksByKind("ORIGINAL"),
       getLiveArtworksByKind("PRINT"),
@@ -35,13 +37,22 @@ export default async function Home() {
       getBranding(),
       getSettings(),
       getCurrentUser(),
+      getCarouselArtworks(),
     ]);
 
   const originals = originalsResult.items;
   const prints = printsResult.items.slice(0, 3);
-  const artists = artistsResult.items.slice(0, 4);
+  const artists = artistsResult.items.slice(0, 9);
   const news = newsArticles.slice(0, 3);
   const featured = originals[0];
+
+  const artistStackItems = artists.map((artist) => ({
+    id: artist.slug,
+    title: artist.name,
+    description: `${artist.country} — ${artist.bio}`,
+    imageSrc: artist.imageUrl,
+    href: `/artists/${artist.slug}`,
+  }));
 
   // An admin-chosen hero image always wins; otherwise show whatever's
   // actually for sale right now rather than a generic placeholder.
@@ -88,15 +99,11 @@ export default async function Home() {
                 <p>New originals are on the way — check back soon.</p>
               )}
             </div>
-            {originals.length > 0 ? (
+            {carouselArtworks.length > 0 ? (
               <>
-                <div className="card-grid">
-                  {originals.slice(0, 3).map((artwork) => (
-                    <ArtworkCard artwork={artwork} customerEmail={customer?.email} key={artwork.id} />
-                  ))}
-                </div>
-                <Link href="/originals" className={cn(buttonVariants(), "block w-fit mx-auto")}>
-                  {originalsResult.totalCount > 3 ? "View all originals" : "Browse originals"}
+                <OriginalsShowcase artworks={carouselArtworks} customerEmail={customer?.email} />
+                <Link href="/originals" className={cn(buttonVariants(), "mt-8 block w-fit mx-auto")}>
+                  {originalsResult.totalCount > carouselArtworks.length ? "View all originals" : "Browse originals"}
                 </Link>
               </>
             ) : null}
@@ -139,12 +146,8 @@ export default async function Home() {
                 <h2>Meet the artists</h2>
                 <p>Every piece is painted by an artist local to the animal it depicts.</p>
               </div>
-              <div className="card-grid">
-                {artists.map((artist) => (
-                  <ArtistCard artist={artist} key={artist.slug} />
-                ))}
-              </div>
-              <Link href="/artists" className={cn(buttonVariants(), "block w-fit mx-auto")}>
+              <CardStack items={artistStackItems} showDots={artistStackItems.length > 1} className="mt-8" />
+              <Link href="/artists" className={cn(buttonVariants(), "mt-8 block w-fit mx-auto")}>
                 View all artists
               </Link>
             </section>

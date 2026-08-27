@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { releaseExpiredReservations } from "@/lib/reservations";
 
@@ -7,8 +8,11 @@ export type StorefrontArtwork = {
   id: string;
   title: string;
   kind: "ORIGINAL" | "PRINT";
+  story: string | null;
   artistName: string;
   artistSlug: string;
+  artistBio: string;
+  artistCountry: string;
   priceCents: number;
   imageUrl: string;
   altText: string;
@@ -27,17 +31,21 @@ function mapArtwork(artwork: {
   id: string;
   title: string;
   kind: "ORIGINAL" | "PRINT";
+  story: string | null;
   priceCents: number;
   imageUrl: string;
   altText: string;
-  campaign: { artist: { name: string; slug: string } };
+  campaign: { artist: { name: string; slug: string; bio: string; country: string } };
 }): StorefrontArtwork {
   return {
     id: artwork.id,
     title: artwork.title,
     kind: artwork.kind,
+    story: artwork.story,
     artistName: artwork.campaign.artist.name,
     artistSlug: artwork.campaign.artist.slug,
+    artistBio: artwork.campaign.artist.bio,
+    artistCountry: artwork.campaign.artist.country,
     priceCents: artwork.priceCents,
     imageUrl: artwork.imageUrl,
     altText: artwork.altText,
@@ -95,6 +103,36 @@ export async function getLiveArtworksByKind(
     totalCount,
   };
 }
+
+const CAROUSEL_SIZE = 24;
+
+// Backs the homepage's looping showcase carousel. Deliberately cached
+// (unlike getLiveArtworksByKind above): the homepage renders per-request
+// (see app/page.tsx's `dynamic = "force-dynamic"`), so without this every
+// visitor would trigger its own artwork+campaign+artist join. A 60s window
+// keeps that to at most one query/minute regardless of traffic.
+//
+// Trade-off: this intentionally skips releaseExpiredReservations() — a
+// piece can look AVAILABLE here for up to 60s after actually going RESERVED.
+// Fine for a decorative showcase; the real /originals listing and checkout
+// paths call the uncached getLiveArtworksByKind above and stay accurate.
+export const getCarouselArtworks = unstable_cache(
+  async (): Promise<StorefrontArtwork[]> => {
+    const artworks = await prisma.artwork.findMany({
+      where: {
+        kind: "ORIGINAL",
+        inventoryState: "AVAILABLE",
+        campaign: { status: "LIVE" },
+      },
+      include: { campaign: { include: { artist: true } } },
+      orderBy: { createdAt: "desc" },
+      take: CAROUSEL_SIZE,
+    });
+    return artworks.map(mapArtwork);
+  },
+  ["carousel-artworks"],
+  { revalidate: 60 },
+);
 
 export async function getArtists(page?: number) {
   const currentPage = normalizePage(page);

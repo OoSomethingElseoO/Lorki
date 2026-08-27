@@ -26,6 +26,7 @@
   --color-error-border: var(--error-border);
   --color-error-text: var(--error-text);
   --color-error-accent: var(--error-accent);
+  --color-muted: var(--muted);
 }
 
 :root {
@@ -36,6 +37,7 @@
   --panel: #fff8ec;
   --focus: #005fcc;
   --line: #7d5d2a;
+  --muted: #6b6357;
   /* Pulled from the featured artwork's own palette (terracotta, ochre,
      black, off-white, teal) — used sparingly as a second accent, not a
      palette overhaul. */
@@ -72,6 +74,7 @@
     --teal: #4a8688;
     --teal-deep: #2f6668;
     --surface: #2a241c;
+    --muted: #b0a894;
 
     --admin-bg: #18181a;
     --admin-surface: #222226;
@@ -2117,4 +2120,19 @@ a:focus-visible {
   .site-nav {
     grid-template-columns: 2.5rem minmax(0, 1fr) 5.4rem;
   }
+}
+
+@keyframes coverflow-caption-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.coverflow-caption {
+  animation: coverflow-caption-in 0.3s ease;
 }
