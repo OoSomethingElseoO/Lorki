@@ -60,10 +60,37 @@
   --error-border: #e3b3aa;
   --error-text: #8f2f22;
   --error-accent: #a13d2f;
+
+  /* Storefront card/panel elevation — channel triples (not full rgba
+     values) so callers compose their own alpha: rgba(var(--shadow-rgb),
+     0.16). Two families: a warm brown for cards/tags sitting on the sand
+     background, a near-black for panels/dropdowns floating above content.
+     Both were plain hardcoded rgba() before, invisible to theme switching
+     — on the light page background they read fine, but the same low-alpha
+     warm-brown shadow has almost no contrast against the dark theme's
+     equally-dark background, so cards lost their lifted-off-the-page look
+     entirely in dark mode. Dark-mode values below are deliberately
+     brighter/higher-contrast, not just carried over. */
+  --shadow-rgb: 82, 48, 12;
+  --shadow-panel-rgb: 30, 26, 21;
+  /* Multiplies each callsite's alpha via calc() — see the callsites below
+     (rgba(var(--shadow-rgb), calc(0.14 * var(--shadow-alpha-scale)))).
+     Needed because dark mode isn't just "the same shadow in a different
+     color": a shadow reads via contrast against what's behind it. A dark
+     drop-shadow can't create contrast against an already-dark page no
+     matter how high its alpha goes (confirmed empirically — even a valid
+     0.35-alpha black shadow was imperceptible against the dark theme's
+     near-black background). Dark mode below instead uses a warm gold glow
+     (lighter than the page, not darker) — the standard technique for
+     conveying elevation once the surface is already close to black. */
+  --shadow-alpha-scale: 1;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
+    --shadow-rgb: 226, 162, 74;
+    --shadow-panel-rgb: 226, 162, 74;
+    --shadow-alpha-scale: 1.6;
     --sand: #1b1712;
     --sand-deep: #b89a68;
     --gold: #e2a24a;
@@ -102,6 +129,9 @@
   --teal: #4a8688;
   --teal-deep: #2f6668;
   --surface: #2a241c;
+  --shadow-rgb: 226, 162, 74;
+  --shadow-panel-rgb: 226, 162, 74;
+  --shadow-alpha-scale: 1.6;
 
   --admin-bg: #18181a;
   --admin-surface: #222226;
@@ -276,7 +306,7 @@ a:focus-visible {
      against it. var(--panel) already carries a correct value in both themes,
      same surface every other panel/modal on the site uses. */
   background: var(--panel);
-  box-shadow: 0 1rem 2.5rem rgba(30, 26, 21, 0.18);
+  box-shadow: 0 1rem 2.5rem rgba(var(--shadow-panel-rgb), calc(0.18 * var(--shadow-alpha-scale)));
   list-style: none;
 }
 
@@ -695,13 +725,13 @@ a:focus-visible {
   background: var(--panel);
   padding: 0.5rem 0.5rem 0.65rem;
   cursor: pointer;
-  box-shadow: 0 0.6rem 1.1rem rgba(82, 48, 12, 0.16);
+  box-shadow: 0 0.6rem 1.1rem rgba(var(--shadow-rgb), calc(0.16 * var(--shadow-alpha-scale)));
   transition: box-shadow 0.2s ease;
 }
 
 .print-tile__frame:hover,
 .print-tile__frame:focus-visible {
-  box-shadow: 0 1rem 1.6rem rgba(82, 48, 12, 0.26);
+  box-shadow: 0 1rem 1.6rem rgba(var(--shadow-rgb), calc(0.26 * var(--shadow-alpha-scale)));
   outline: none;
 }
 
@@ -725,7 +755,7 @@ a:focus-visible {
   font-family: var(--font-display), Georgia, serif;
   font-size: 0.85rem;
   font-weight: 700;
-  box-shadow: 0 0.3rem 0.6rem rgba(82, 48, 12, 0.25);
+  box-shadow: 0 0.3rem 0.6rem rgba(var(--shadow-rgb), calc(0.25 * var(--shadow-alpha-scale)));
 }
 
 .print-tile__body {
@@ -828,7 +858,7 @@ a:focus-visible {
 .gallery-card {
   border: 2px solid var(--line);
   background: var(--panel);
-  box-shadow: 0 0.85rem 1.8rem rgba(82, 48, 12, 0.14);
+  box-shadow: 0 0.85rem 1.8rem rgba(var(--shadow-rgb), calc(0.14 * var(--shadow-alpha-scale)));
   overflow: hidden;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
@@ -838,7 +868,7 @@ a:focus-visible {
 .news-card:hover,
 .gallery-card:hover {
   transform: translateY(-0.3rem);
-  box-shadow: 0 1.25rem 2.4rem rgba(82, 48, 12, 0.22);
+  box-shadow: 0 1.25rem 2.4rem rgba(var(--shadow-rgb), calc(0.22 * var(--shadow-alpha-scale)));
 }
 
 .artist-card:hover .artist-card__image,
