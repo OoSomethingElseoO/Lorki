@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SellerArtworkRow } from "@/components/seller-artwork-row";
 import { buttonVariants } from "@/components/ui/button";
+import { CardHeader } from "@/components/ui/card";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getCampaignCauseName } from "@/lib/campaigns";
@@ -23,12 +24,12 @@ export default async function SellerArtworksPage() {
 
   return (
     <>
-      <div className="admin-campaign-card__controls" style={{ justifyContent: "space-between", display: "flex", marginBottom: "1rem" }}>
+      <CardHeader>
         <h1 style={{ margin: 0 }}>Your Listings</h1>
         <Link href="/seller/artworks/new" className={buttonVariants()}>
           List a new piece
         </Link>
-      </div>
+      </CardHeader>
 
       <table className="admin-table">
         <thead>

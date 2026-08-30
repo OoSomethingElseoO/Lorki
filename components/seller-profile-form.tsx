@@ -1,27 +1,30 @@
 "use client";
 
-import { forwardRef, useImperativeHandle, useRef, useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import { useRef, useState, type FormEvent } from "react";
 import { ImageUploadField } from "@/components/admin/image-upload-field";
-import type { SaveFormHandle } from "@/components/cause-profile-form";
+import { Button } from "@/components/ui/button";
 
 type SellerProfileFormProps = {
   initial: { name: string; country: string; bio: string; imageUrl: string };
 };
 
-// Driven by a single combined "Save changes" button one level up (see
-// app/seller/(dashboard)/profile/page.tsx) — see cause-profile-form.tsx
-// for why this exposes an imperative submit() instead of its own button.
-export const SellerProfileForm = forwardRef<SaveFormHandle, SellerProfileFormProps>(function SellerProfileForm(
-  { initial },
-  ref,
-) {
+// Self-contained: its own <form>, its own fetch, its own Save button. Used
+// to be driven by an external combined "Save changes" button one level up
+// (see seller-settings-panel.tsx) via an imperative ref.submit() shared
+// with PayoutSettingsForm — that meant editing your bio could resubmit
+// your bank details, and vice versa. Now each is its own independently
+// savable tab; see DASHBOARD_UX_AUDIT.md.
+export function SellerProfileForm({ initial }: SellerProfileFormProps) {
+  const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  async function doSubmit(): Promise<boolean> {
-    if (!formRef.current) return false;
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!formRef.current) return;
     setSubmitting(true);
     setError(null);
     setSuccess(false);
@@ -43,18 +46,11 @@ export const SellerProfileForm = forwardRef<SaveFormHandle, SellerProfileFormPro
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));
       setError(data.error ?? "Failed to save profile");
-      return false;
+      return;
     }
 
     setSuccess(true);
-    return true;
-  }
-
-  useImperativeHandle(ref, () => ({ submit: doSubmit }));
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    void doSubmit();
+    router.refresh();
   }
 
   return (
@@ -70,8 +66,11 @@ export const SellerProfileForm = forwardRef<SaveFormHandle, SellerProfileFormPro
 
       <ImageUploadField name="imageUrl" label="Portrait" defaultValue={initial.imageUrl} />
 
-      {error ? <p className="admin-form__error">Profile: {error}</p> : null}
+      {error ? <p className="admin-form__error">{error}</p> : null}
       {success ? <p className="admin-form__hint">Profile saved.</p> : null}
+      <Button type="submit" variant="form" className="mt-3" disabled={submitting}>
+        {submitting ? "Saving…" : "Save changes"}
+      </Button>
     </form>
   );
-});
+}

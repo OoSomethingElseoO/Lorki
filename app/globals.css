@@ -1841,6 +1841,42 @@ a:focus-visible {
   margin-right: auto;
 }
 
+/* Scoped to components/cause-settings-panel.tsx (Profile/Payouts tabs) —
+   see that file's own comment for the full mechanism. In short: the
+   `.dashboard-main--brand .admin-form` rule just above centers a standalone
+   .admin-form via `margin-left/right: auto`, which is fine when that form
+   still carries its own `max-width` (e.g. the top-level form on
+   /cause/onboarding). Once CauseProfileForm's/PayoutSettingsForm's own
+   already-boxed .admin-form is nested a level deeper inside a Card's
+   CardContent (also .admin-form, to trigger the box-stripping
+   `.admin-form .admin-form` rule above), its max-width resets to none —
+   and a CSS Grid item with auto margins and no max-width shrinks to
+   fit-content and centers instead of stretching to fill the Card, leaving
+   a narrow field column with large dead gutters on both sides. Cancel just
+   that centering, scoped by this class so it doesn't affect the older
+   plain-div nesting pattern still used elsewhere (e.g. the seller side).
+   Placed after the rule above on purpose — same specificity, source order
+   decides, and this one needs to win. */
+.cause-tab-form .admin-form {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+/* Same fix as .cause-tab-form directly above, mirrored for
+   components/seller-settings-panel.tsx — identical nesting shape
+   (SellerProfileForm's/PayoutSettingsForm's own already-boxed .admin-form
+   nested inside a Card's CardContent, itself .admin-form to trigger the
+   box-stripping rule above), so it hits the exact same shrink-to-fit-content
+   + auto-margin centering bug: verified live, the Name/Country/Bio inputs
+   rendered in a narrow ~528px column centered inside the much wider Card
+   instead of stretching to fill it. Kept as a separate class (not reusing
+   .cause-tab-form) since the two panels are unrelated components maintained
+   independently. */
+.seller-tab-form .admin-form {
+  margin-left: 0;
+  margin-right: 0;
+}
+
 .admin-form label {
   /* Explicit, not left to grid's automatic blockification of its direct
      children — a label nested one level deeper (inside a plain <form> or

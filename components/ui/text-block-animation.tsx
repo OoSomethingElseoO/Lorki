@@ -4,7 +4,7 @@ import { gsap } from "gsap";
 import { SplitText } from "gsap/SplitText";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
-import { Children, cloneElement, isValidElement, useRef, type ReactElement, type ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 
 if (typeof window !== "undefined") gsap.registerPlugin(SplitText, ScrollTrigger, useGSAP);
 
@@ -27,12 +27,27 @@ export type TextBlockAnimationProps = {
 // elements directly) instead of a second layer of React state, matching
 // the reference implementation this was adapted from.
 //
-// The GSAP scope ref attaches directly to the child element (via
-// cloneElement) rather than to an extra wrapping <div>. SplitText's line
-// detection recurses into nested block children and clones them when their
-// content needs to span multiple visual lines — targeting a wrapper div
-// around a heading made SplitText clone the heading itself once per line,
-// producing multiple elements sharing the same id/class.
+// SplitText must target the actual heading element, not a wrapper
+// containing it — its line detection recurses into nested block children
+// and clones them when their content needs to span multiple visual lines,
+// so pointing it at a wrapper div around a heading made it clone the
+// heading itself once per line, producing multiple elements sharing the
+// same id/class (a real bug, found and fixed earlier). The obvious way to
+// get a ref onto the caller's own single child — Children.only +
+// cloneElement, synchronously inspecting the raw `children` prop's object
+// shape — turned out to be fragile in a different way: when a Server
+// Component (e.g. a page.tsx with no "use client") passes JSX straight
+// into this Client Component, React serializes that children value as a
+// special RSC "lazy" wrapper object crossing the boundary, and in dev mode
+// that wrapper isn't resolved into a plain element yet by the time
+// Children.only/isValidElement synchronously inspect it — so it throws
+// "expected to receive a single React element child" even though exactly
+// one element is genuinely being passed (confirmed via debug logging: the
+// same component works fine when the caller is itself a client component,
+// e.g. Hero, since no server/client handoff is involved there). Fixed by
+// not introspecting `children`'s shape at all: render it normally inside a
+// wrapper <div>, then reach into the DOM for the one real child element
+// once React has fully resolved everything — after render, not during it.
 export function TextBlockAnimation({
   children,
   animateOnScroll = true,
@@ -41,14 +56,15 @@ export function TextBlockAnimation({
   stagger = 0.1,
   duration = 0.6,
 }: TextBlockAnimationProps) {
-  const containerRef = useRef<HTMLElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useGSAP(
     () => {
-      if (!containerRef.current) return;
+      const target = containerRef.current?.firstElementChild as HTMLElement | null | undefined;
+      if (!target) return;
       if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
-      const split = SplitText.create(containerRef.current, {
+      const split = SplitText.create(target, {
         type: "lines",
         linesClass: "block-line-parent",
       });
@@ -135,8 +151,9 @@ export function TextBlockAnimation({
     { scope: containerRef, dependencies: [animateOnScroll, delay, blockColor, stagger, duration] },
   );
 
-  const child = Children.only(children);
-  if (!isValidElement(child)) return child;
-
-  return cloneElement(child as ReactElement<{ ref?: React.Ref<HTMLElement> }>, { ref: containerRef });
+  return (
+    <div ref={containerRef} style={{ position: "relative" }}>
+      {children}
+    </div>
+  );
 }

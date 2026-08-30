@@ -3,8 +3,10 @@
 // /api/cause/profile), including the reverification business logic in
 // that route's `needsReverification` check — worth real UI-level coverage
 // (not just the unit-test layer covering the route handler directly) since
-// it's exercised through the actual combined-save button a cause rep would
-// click, not a hand-built request body.
+// it's exercised through the actual "Save profile" button a cause rep would
+// click, not a hand-built request body. (Profile and payout settings save
+// independently now — see CauseSettingsPanel — so this suite only ever
+// clicks the Profile tab's own save action.)
 //
 // Every scenario runs as a `loggedInCause` (tests/e2e/fixtures/db.ts's
 // createCauseAccountFixture: a real User+session cookie linked to a
@@ -34,7 +36,7 @@ test.describe("Cause profile", () => {
     await test.step("When they update non-identity fields (mission, website) and save", async () => {
       await page.getByLabel("Mission").fill(newMission);
       await page.getByLabel("Website").fill(newWebsite);
-      await page.getByRole("button", { name: "Save changes" }).click();
+      await page.getByRole("button", { name: "Save profile" }).click();
       await expect(page.getByText("Organization details saved.")).toBeVisible();
     });
 
@@ -67,7 +69,7 @@ test.describe("Cause profile", () => {
 
       await test.step("When they change the organization's name and save", async () => {
         await page.getByLabel("Organization name").fill(newName);
-        await page.getByRole("button", { name: "Save changes" }).click();
+        await page.getByRole("button", { name: "Save profile" }).click();
         await expect(page.getByText("Organization details saved.")).toBeVisible();
       });
 
