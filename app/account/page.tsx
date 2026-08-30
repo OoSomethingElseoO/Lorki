@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";
+import { Card } from "@/components/ui/card";
 
 export const dynamic = "force-dynamic";
 
@@ -45,15 +46,10 @@ export default async function AccountPage() {
               (the common case: an artist-only or cause-only user only ever
               sees ONE of these two) ends up centered in a ~16rem column
               instead of spanning the row. flex-grow on each card fills the
-              full width alone, or shares it evenly when both render — each
-              card also needs maxWidth: "none" below, overriding the 36rem
-              cap .admin-form normally applies for input-field readability,
-              since that cap isn't relevant to a heading+paragraph+button
-              card and was capping the single-card case at 36rem instead of
-              letting it actually grow. */}
+              full width alone, or shares it evenly when both render. */}
           <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
             {!user.artist ? (
-              <div className="admin-form" style={{ flex: "1 1 16rem", maxWidth: "none" }}>
+              <Card variant="brand" style={{ flex: "1 1 16rem" }}>
                 <h3 style={{ marginTop: 0 }}>Are you an artist?</h3>
                 <p className="admin-form__hint">
                   Sell your original work and prints — each sale splits proceeds between you and the wildlife
@@ -62,10 +58,10 @@ export default async function AccountPage() {
                 <Link href="/seller/onboarding" className={buttonVariants({ variant: "form" })}>
                   Start selling
                 </Link>
-              </div>
+              </Card>
             ) : null}
             {!user.conservancy ? (
-              <div className="admin-form" style={{ flex: "1 1 16rem", maxWidth: "none" }}>
+              <Card variant="brand" style={{ flex: "1 1 16rem" }}>
                 <h3 style={{ marginTop: 0 }}>Represent a conservation cause?</h3>
                 <p className="admin-form__hint">
                   Register your organization so artists can pick your cause for new campaigns — you'll receive
@@ -74,7 +70,7 @@ export default async function AccountPage() {
                 <Link href="/cause/onboarding" className={buttonVariants({ variant: "form" })}>
                   Register a cause
                 </Link>
-              </div>
+              </Card>
             ) : null}
           </div>
         </section>

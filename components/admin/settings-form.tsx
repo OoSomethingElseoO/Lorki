@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { ImageUploadField } from "@/components/admin/image-upload-field";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const SECRET_FIELDS = [
   "stripeSecretKey",
@@ -94,101 +96,168 @@ export function SettingsForm({ initial }: SettingsFormProps) {
     router.refresh();
   }
 
+  // One <form> spans all four tabs — Save at the bottom saves whatever was
+  // changed on any of them, same as before this was split into tabs.
+  // TabsContent keeps inactive panels mounted (hidden via the `hidden`
+  // attribute, not unmounted) specifically so this keeps working: every
+  // field stays part of the same FormData regardless of which tab is
+  // currently visible.
+  //
+  // noValidate: the Hero image field (ImageUploadField, in the Branding
+  // tab) is marked `required`, but the browser's native constraint
+  // validation doesn't exempt a field just because its tab is currently
+  // `hidden` — it still tries to block submission and focus the invalid
+  // field, fails (a hidden element isn't focusable), and silently swallows
+  // the whole submit with no user-visible feedback. Concretely: sit on the
+  // Stripe/Flutterwave/Email tab with Hero image blank on Branding and
+  // clicking Save does nothing. The server already treats a blank Hero
+  // image as valid (falls back to a default — see the hint text right
+  // next to that field), so nothing is actually lost by handling
+  // validation ourselves instead of relying on the browser's.
   return (
-    <form className="admin-form" onSubmit={handleSubmit} style={{ maxWidth: "36rem" }}>
-      <h2 style={{ marginTop: 0 }}>Branding</h2>
-      <label htmlFor="siteName">Site name</label>
-      <input id="siteName" name="siteName" defaultValue={initial.siteName} placeholder="Aurelia Originals" />
+    <form onSubmit={handleSubmit} noValidate>
+      <Tabs defaultValue="branding">
+        <TabsList aria-label="Settings sections">
+          <TabsTrigger value="branding">Branding</TabsTrigger>
+          <TabsTrigger value="stripe">Stripe</TabsTrigger>
+          <TabsTrigger value="flutterwave">Flutterwave</TabsTrigger>
+          <TabsTrigger value="email">Email</TabsTrigger>
+        </TabsList>
 
-      <label htmlFor="heroTagline">Hero tagline</label>
-      <input
-        id="heroTagline"
-        name="heroTagline"
-        defaultValue={initial.heroTagline}
-        placeholder="Original artwork, collected with care."
-      />
+        <TabsContent value="branding">
+          <Card variant="admin">
+            <CardHeader>
+              <CardTitle>Branding</CardTitle>
+            </CardHeader>
+            <CardContent className="admin-form admin-form--embedded">
+              <label htmlFor="siteName">Site name</label>
+              <input id="siteName" name="siteName" defaultValue={initial.siteName} placeholder="Aurelia Originals" />
 
-      <ImageUploadField name="heroImageUrl" label="Hero image" defaultValue={initial.heroImageUrl} />
-      <p className="admin-form__hint">
-        Shown on the homepage. Leave blank to automatically show whatever original is currently for sale.
-      </p>
+              <label htmlFor="heroTagline">Hero tagline</label>
+              <input
+                id="heroTagline"
+                name="heroTagline"
+                defaultValue={initial.heroTagline}
+                placeholder="Original artwork, collected with care."
+              />
 
-      <label htmlFor="heroAlt">Hero image alt text</label>
-      <input id="heroAlt" name="heroAlt" defaultValue={initial.heroAlt} placeholder="Original artwork." />
+              <ImageUploadField name="heroImageUrl" label="Hero image" defaultValue={initial.heroImageUrl} />
+              <p className="admin-form__hint">
+                Shown on the homepage. Leave blank to automatically show whatever original is currently for sale.
+              </p>
 
-      <label htmlFor="missionStatement">Mission statement</label>
-      <textarea id="missionStatement" name="missionStatement" rows={4} defaultValue={initial.missionStatement} />
+              <label htmlFor="heroAlt">Hero image alt text</label>
+              <input id="heroAlt" name="heroAlt" defaultValue={initial.heroAlt} placeholder="Original artwork." />
 
-      <label htmlFor="contactName">Contact name</label>
-      <input id="contactName" name="contactName" defaultValue={initial.contactName} />
+              <label htmlFor="missionStatement">Mission statement</label>
+              <textarea id="missionStatement" name="missionStatement" rows={4} defaultValue={initial.missionStatement} />
 
-      <label htmlFor="contactEmail">Contact email</label>
-      <input id="contactEmail" name="contactEmail" type="email" defaultValue={initial.contactEmail} />
+              <label htmlFor="contactName">Contact name</label>
+              <input id="contactName" name="contactName" defaultValue={initial.contactName} />
 
-      <label htmlFor="contactPhone">Contact phone</label>
-      <input id="contactPhone" name="contactPhone" defaultValue={initial.contactPhone} />
+              <label htmlFor="contactEmail">Contact email</label>
+              <input id="contactEmail" name="contactEmail" type="email" defaultValue={initial.contactEmail} />
 
-      <h2>Stripe</h2>
-      <label htmlFor="stripeSecretKey">Secret key</label>
-      <input
-        id="stripeSecretKey"
-        name="stripeSecretKey"
-        type="password"
-        placeholder={initial.stripeSecretKeySet ? "•••••••••••••••• (set — leave blank to keep)" : "sk_test_..."}
-      />
+              <label htmlFor="contactPhone">Contact phone</label>
+              <input id="contactPhone" name="contactPhone" defaultValue={initial.contactPhone} />
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-      <label htmlFor="stripeWebhookSecret">Webhook signing secret</label>
-      <input
-        id="stripeWebhookSecret"
-        name="stripeWebhookSecret"
-        type="password"
-        placeholder={initial.stripeWebhookSecretSet ? "•••••••••••••••• (set — leave blank to keep)" : "whsec_..."}
-      />
+        <TabsContent value="stripe">
+          <Card variant="admin">
+            <CardHeader>
+              <CardTitle>Stripe</CardTitle>
+            </CardHeader>
+            <CardContent className="admin-form admin-form--embedded">
+              <label htmlFor="stripeSecretKey">Secret key</label>
+              <input
+                id="stripeSecretKey"
+                name="stripeSecretKey"
+                type="password"
+                placeholder={initial.stripeSecretKeySet ? "•••••••••••••••• (set — leave blank to keep)" : "sk_test_..."}
+              />
 
-      <h2>Flutterwave (mobile money / bank payouts, 30+ countries)</h2>
-      <p className="admin-form__hint">
-        For artists banking somewhere Stripe doesn't support (e.g. Kenya, Ethiopia, South Africa) — sends
-        their payout straight to mobile money or a bank account, per what each artist sets in their own
-        profile. Leave blank until you've set up a Flutterwave account.
-      </p>
-      <label htmlFor="flutterwaveSecretKey">Secret key</label>
-      <input
-        id="flutterwaveSecretKey"
-        name="flutterwaveSecretKey"
-        type="password"
-        placeholder={initial.flutterwaveSecretKeySet ? "•••••••••••••••• (set — leave blank to keep)" : "FLWSECK_..."}
-      />
+              <label htmlFor="stripeWebhookSecret">Webhook signing secret</label>
+              <input
+                id="stripeWebhookSecret"
+                name="stripeWebhookSecret"
+                type="password"
+                placeholder={initial.stripeWebhookSecretSet ? "•••••••••••••••• (set — leave blank to keep)" : "whsec_..."}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-      <label htmlFor="flutterwaveWebhookSecret">Webhook secret hash</label>
-      <input
-        id="flutterwaveWebhookSecret"
-        name="flutterwaveWebhookSecret"
-        type="password"
-        placeholder={
-          initial.flutterwaveWebhookSecretSet ? "•••••••••••••••• (set — leave blank to keep)" : "matches the hash configured in Flutterwave's dashboard"
-        }
-      />
+        <TabsContent value="flutterwave">
+          <Card variant="admin">
+            <CardHeader>
+              <CardTitle>Flutterwave</CardTitle>
+              <CardDescription>Mobile money / bank payouts, 30+ countries</CardDescription>
+            </CardHeader>
+            <CardContent className="admin-form admin-form--embedded">
+              <p className="admin-form__hint">
+                For artists banking somewhere Stripe doesn't support (e.g. Kenya, Ethiopia, South Africa) — sends
+                their payout straight to mobile money or a bank account, per what each artist sets in their own
+                profile. Leave blank until you've set up a Flutterwave account.
+              </p>
+              <label htmlFor="flutterwaveSecretKey">Secret key</label>
+              <input
+                id="flutterwaveSecretKey"
+                name="flutterwaveSecretKey"
+                type="password"
+                placeholder={initial.flutterwaveSecretKeySet ? "•••••••••••••••• (set — leave blank to keep)" : "FLWSECK_..."}
+              />
 
-      <h2>Email (Resend)</h2>
-      <label htmlFor="resendApiKey">API key</label>
-      <input
-        id="resendApiKey"
-        name="resendApiKey"
-        type="password"
-        placeholder={initial.resendApiKeySet ? "•••••••••••••••• (set — leave blank to keep)" : "re_..."}
-      />
+              <label htmlFor="flutterwaveWebhookSecret">Webhook secret hash</label>
+              <input
+                id="flutterwaveWebhookSecret"
+                name="flutterwaveWebhookSecret"
+                type="password"
+                placeholder={
+                  initial.flutterwaveWebhookSecretSet
+                    ? "•••••••••••••••• (set — leave blank to keep)"
+                    : "matches the hash configured in Flutterwave's dashboard"
+                }
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-      <label htmlFor="emailFrom">From address</label>
-      <input id="emailFrom" name="emailFrom" defaultValue={initial.emailFrom} placeholder="Lorkulup <onboarding@resend.dev>" />
+        <TabsContent value="email">
+          <Card variant="admin">
+            <CardHeader>
+              <CardTitle>Email (Resend)</CardTitle>
+            </CardHeader>
+            <CardContent className="admin-form admin-form--embedded">
+              <label htmlFor="resendApiKey">API key</label>
+              <input
+                id="resendApiKey"
+                name="resendApiKey"
+                type="password"
+                placeholder={initial.resendApiKeySet ? "•••••••••••••••• (set — leave blank to keep)" : "re_..."}
+              />
 
-      <label htmlFor="operationsEmail">Operations alert email</label>
-      <input
-        id="operationsEmail"
-        name="operationsEmail"
-        type="email"
-        defaultValue={initial.operationsEmail}
-        placeholder="you@example.com"
-      />
+              <label htmlFor="emailFrom">From address</label>
+              <input
+                id="emailFrom"
+                name="emailFrom"
+                defaultValue={initial.emailFrom}
+                placeholder="Lorkulup <onboarding@resend.dev>"
+              />
+
+              <label htmlFor="operationsEmail">Operations alert email</label>
+              <input
+                id="operationsEmail"
+                name="operationsEmail"
+                type="email"
+                defaultValue={initial.operationsEmail}
+                placeholder="you@example.com"
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {error ? <p className="admin-form__error">{error}</p> : null}
       {success ? <p className="admin-form__hint">Saved.</p> : null}

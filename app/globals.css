@@ -1741,6 +1741,16 @@ a:focus-visible {
 .dashboard-main--brand {
   background: var(--sand);
   color: var(--ink);
+  /* Same fix as .dashboard-main--admin's own max-width override above, same
+     reason: .dashboard-main's 84rem cap is sized for a wide data table, but
+     nothing in this context is one — .impact-totals and .account-orders
+     were already capped at 60rem for readability and sat stranded with a
+     wide empty gutter on either side, while .campaign-card had no cap at
+     all and stretched to the full width with overly long single-column
+     text lines. Narrowing the container to match its narrowest recurring
+     content (60rem) fixes both at once instead of capping each
+     independently and hoping they end up visually consistent. */
+  max-width: 60rem;
 }
 
 .dashboard-main--brand h1 {
@@ -1802,6 +1812,21 @@ a:focus-visible {
   padding: 0;
   border: none;
   box-shadow: none;
+}
+
+/* Same idea as .admin-form--modal above, generalized for the new Card
+   primitive (components/ui/card.tsx): when an .admin-form's fields sit
+   inside a Card that already supplies the box (border/padding/background/
+   shadow), drop this form's own box so it reads as the Card's content
+   instead of a box nested inside another box — see
+   components/admin/settings-form.tsx for the first real usage. */
+.admin-form--embedded {
+  max-width: none;
+  margin-bottom: 0;
+  padding: 0;
+  border: none;
+  box-shadow: none;
+  background: none;
 }
 
 /* On a standalone page (.page-main — seller/cause profile, onboarding: no
@@ -1999,6 +2024,134 @@ a:focus-visible {
   color: #fff;
   font-size: 0.72rem;
   font-weight: 700;
+}
+
+/* Generic card/panel primitive (components/ui/card.tsx) — see that file's
+   own top comment for the full rationale. Deliberately no max-width here;
+   that's exactly the anti-pattern this replaces (`.admin-form` capping at
+   36rem and getting fought back to full width with inline styles). */
+.ui-card {
+  display: block;
+  width: 100%;
+  padding: 1.5rem;
+}
+
+/* Mirrors .admin-form's own box exactly (border/radius/background/shadow),
+   just without that class's max-width/margin-bottom. */
+.ui-card--admin {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border-strong);
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(27, 27, 24, 0.04);
+}
+
+/* Mirrors the storefront card family (.artist-card/.artwork-card/etc.,
+   above) — sharp corners (no border-radius), thicker line border, the same
+   warm elevation shadow that already adapts for dark mode via
+   --shadow-rgb/--shadow-alpha-scale. Use inside a dashboard-main--brand
+   area (seller/cause/account). */
+.ui-card--brand {
+  background: var(--panel);
+  border: 2px solid var(--line);
+  box-shadow: 0 0.85rem 1.8rem rgba(var(--shadow-rgb), calc(0.14 * var(--shadow-alpha-scale)));
+}
+
+.ui-card--padding-none {
+  padding: 0;
+}
+
+.ui-card--padding-lg {
+  padding: 2rem;
+}
+
+.ui-card__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+  margin-bottom: 1rem;
+}
+
+/* Higher specificity than .dashboard-main h2 (a class + a type selector,
+   same specificity tier) so a card title's own tight spacing always wins
+   regardless of source order, instead of inheriting that rule's
+   margin: 2rem 0 0.75rem meant for a bare section heading. */
+.ui-card .ui-card__title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.ui-card--brand .ui-card__title {
+  font-family: var(--font-display), Georgia, serif;
+}
+
+.ui-card .ui-card__description {
+  margin: 0.25rem 0 0;
+  font-size: 0.9rem;
+  color: var(--admin-text-muted);
+}
+
+.ui-card--brand .ui-card__description {
+  color: var(--muted);
+}
+
+/* Accessible tabs primitive (components/ui/tabs.tsx). Flat/sharp-cornered
+   to match the rest of this codebase's editorial button/link language
+   (components/ui/button.tsx) rather than soft rounded pill tabs — same
+   bottom-border-as-active-indicator idea already used by the admin
+   top-level page nav's own tab strip (.dashboard-nav--tabs above), reused
+   here for in-page content tabs. Uses `currentColor`/`inherit` for its own
+   text/border so it automatically follows whichever context it's rendered
+   in (var(--admin-text) inside .dashboard-main--admin, var(--ink) inside
+   .dashboard-main--brand) instead of hardcoding either token set. */
+.ui-tabs-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  border-bottom: 2px solid color-mix(in srgb, currentColor 20%, transparent);
+  margin-bottom: 1.5rem;
+}
+
+.ui-tabs-trigger {
+  appearance: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  padding: 0.65rem 1rem;
+  cursor: pointer;
+  opacity: 0.65;
+  transition: opacity 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.ui-tabs-trigger:hover:not(:disabled) {
+  opacity: 1;
+  background: color-mix(in srgb, currentColor 6%, transparent);
+}
+
+.ui-tabs-trigger:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+.ui-tabs-trigger[data-state="active"] {
+  opacity: 1;
+  border-bottom-color: var(--gold);
+  color: var(--gold);
+}
+
+.ui-tabs-trigger:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.ui-tabs-content:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
 }
 
 .admin-bulk-bar {
@@ -2298,16 +2451,20 @@ a:focus-visible {
 
 .admin-campaign-card header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
   margin-bottom: 0.5rem;
+  min-width: 0;
 }
 
 .admin-campaign-card__controls {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.75rem;
+  min-width: 0;
 }
 
 .admin-delete {
