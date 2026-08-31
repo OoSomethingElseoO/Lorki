@@ -8,6 +8,7 @@ import { AdminSearchForm } from "@/components/admin/search-form";
 import { EmptyState } from "@/components/admin/empty-state";
 import { Pagination } from "@/components/pagination";
 import { buttonVariants } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getCampaignLabel } from "@/lib/campaigns";
 import { statusBadgeClass } from "@/lib/status-badge";
 import { ADMIN_PAGE_SIZE, adminTotalPages, normalizeAdminPage } from "@/lib/admin-list";
@@ -59,116 +60,125 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
   return (
     <>
       <h1>Orders</h1>
+      <Tabs defaultValue="orders">
+        <TabsList aria-label="Order sections">
+          <TabsTrigger value="orders">Orders</TabsTrigger>
+          <TabsTrigger value="cash-sale">Record a cash sale</TabsTrigger>
+        </TabsList>
 
-      <h2>Record a cash sale</h2>
-      <p className="admin-form__hint">
-        For a sale collected outside Stripe — cash in hand, bank transfer, at a market. Follows the same
-        split as a card sale, and the same payout-held-until-delivered rule unless it's an in-person handoff.
-      </p>
-      <CashSaleForm
-        artworks={availableArtworks.map((artwork) => ({
-          id: artwork.id,
-          title: artwork.title,
-          priceCents: artwork.priceCents,
-          campaignLabel: getCampaignLabel(artwork.campaign),
-        }))}
-      />
+        <TabsContent value="orders">
+          <AdminSearchForm placeholder="Search by buyer email or artwork title" defaultValue={query} />
 
-      <AdminSearchForm placeholder="Search by buyer email or artwork title" defaultValue={query} />
+          <a
+            className={buttonVariants({ variant: "outline", size: "sm" })}
+            href={`/api/admin/export/orders${query ? `?q=${encodeURIComponent(query)}` : ""}`}
+          >
+            Export CSV
+          </a>
 
-      <a
-        className={buttonVariants({ variant: "outline", size: "sm" })}
-        href={`/api/admin/export/orders${query ? `?q=${encodeURIComponent(query)}` : ""}`}
-      >
-        Export CSV
-      </a>
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Artwork</th>
+                <th>Buyer</th>
+                <th>Amount</th>
+                <th>Payment</th>
+                <th>Status</th>
+                <th>Payouts</th>
+                <th>Fulfillment</th>
+                <th>Refund</th>
+              </tr>
+            </thead>
+            <tbody>
+              {orders.map((order) => (
+                <tr key={order.id}>
+                  <td>
+                    {order.artwork.title}
+                    <br />
+                    <span className="admin-form__hint">{getCampaignLabel(order.artwork.campaign)}</span>
+                  </td>
+                  <td>{order.buyerEmail}</td>
+                  <td>${(order.amountCents / 100).toFixed(2)}</td>
+                  <td>{order.paymentMethod === "CASH" ? "Cash" : "Card"}</td>
+                  <td>
+                    <span className={statusBadgeClass(order.status)}>{order.status}</span>
+                  </td>
+                  <td>
+                    {order.payouts.map((payout) => (
+                      <div key={payout.id} className="admin-form__hint">
+                        {payout.recipientType}: ${(payout.amountCents / 100).toFixed(2)}{" "}
+                        <span className={statusBadgeClass(payout.status)}>{payout.status}</span>{" "}
+                        {payout.status === "FAILED" ? <RevivePayoutButton payoutId={payout.id} /> : null}
+                      </div>
+                    ))}
+                  </td>
+                  <td>
+                    {order.shipment ? (
+                      <>
+                        <span>
+                          {order.shipment.deliveredAt ? "Delivered" : "Shipped"} via {order.shipment.carrier} (
+                          {order.shipment.method})
+                          {order.shipment.deliveredAt
+                            ? ` — ${order.shipment.deliveredAt.toLocaleDateString()}`
+                            : null}
+                        </span>
+                        {!order.shipment.deliveredAt && order.status === "SHIPPED" ? (
+                          <DeliverOrderForm orderId={order.id} />
+                        ) : null}
+                      </>
+                    ) : order.status === "PAID" ? (
+                      <ShipOrderForm orderId={order.id} />
+                    ) : order.status === "DELIVERED" ? (
+                      "Delivered (in person)"
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td>
+                    {order.status === "REFUNDED" ? (
+                      <span className={statusBadgeClass("REFUNDED")}>Refunded</span>
+                    ) : (
+                      <RefundOrderButton orderId={order.id} />
+                    )}
+                  </td>
+                </tr>
+              ))}
+              {orders.length === 0 ? (
+                <tr>
+                  <td colSpan={8}>
+                    <EmptyState
+                      message={query ? `No orders match "${query}".` : "No orders yet."}
+                      hint={query ? "Try a different search term." : "Orders show up here once a checkout or cash sale is recorded."}
+                    />
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
 
-      <table className="admin-table">
-        <thead>
-          <tr>
-            <th>Artwork</th>
-            <th>Buyer</th>
-            <th>Amount</th>
-            <th>Payment</th>
-            <th>Status</th>
-            <th>Payouts</th>
-            <th>Fulfillment</th>
-            <th>Refund</th>
-          </tr>
-        </thead>
-        <tbody>
-          {orders.map((order) => (
-            <tr key={order.id}>
-              <td>
-                {order.artwork.title}
-                <br />
-                <span className="admin-form__hint">{getCampaignLabel(order.artwork.campaign)}</span>
-              </td>
-              <td>{order.buyerEmail}</td>
-              <td>${(order.amountCents / 100).toFixed(2)}</td>
-              <td>{order.paymentMethod === "CASH" ? "Cash" : "Card"}</td>
-              <td>
-                <span className={statusBadgeClass(order.status)}>{order.status}</span>
-              </td>
-              <td>
-                {order.payouts.map((payout) => (
-                  <div key={payout.id} className="admin-form__hint">
-                    {payout.recipientType}: ${(payout.amountCents / 100).toFixed(2)}{" "}
-                    <span className={statusBadgeClass(payout.status)}>{payout.status}</span>{" "}
-                    {payout.status === "FAILED" ? <RevivePayoutButton payoutId={payout.id} /> : null}
-                  </div>
-                ))}
-              </td>
-              <td>
-                {order.shipment ? (
-                  <>
-                    <span>
-                      {order.shipment.deliveredAt ? "Delivered" : "Shipped"} via {order.shipment.carrier} (
-                      {order.shipment.method})
-                      {order.shipment.deliveredAt
-                        ? ` — ${order.shipment.deliveredAt.toLocaleDateString()}`
-                        : null}
-                    </span>
-                    {!order.shipment.deliveredAt && order.status === "SHIPPED" ? (
-                      <DeliverOrderForm orderId={order.id} />
-                    ) : null}
-                  </>
-                ) : order.status === "PAID" ? (
-                  <ShipOrderForm orderId={order.id} />
-                ) : order.status === "DELIVERED" ? (
-                  "Delivered (in person)"
-                ) : (
-                  "—"
-                )}
-              </td>
-              <td>
-                {order.status === "REFUNDED" ? (
-                  <span className={statusBadgeClass("REFUNDED")}>Refunded</span>
-                ) : (
-                  <RefundOrderButton orderId={order.id} />
-                )}
-              </td>
-            </tr>
-          ))}
-          {orders.length === 0 ? (
-            <tr>
-              <td colSpan={8}>
-                <EmptyState
-                  message={query ? `No orders match "${query}".` : "No orders yet."}
-                  hint={query ? "Try a different search term." : "Orders show up here once a checkout or cash sale is recorded."}
-                />
-              </td>
-            </tr>
-          ) : null}
-        </tbody>
-      </table>
+          <Pagination
+            page={currentPage}
+            totalPages={adminTotalPages(totalCount)}
+            basePath="/admin/orders"
+            extraQuery={query ? `q=${encodeURIComponent(query)}` : undefined}
+          />
+        </TabsContent>
 
-      <Pagination
-        page={currentPage}
-        totalPages={adminTotalPages(totalCount)}
-        basePath="/admin/orders"
-        extraQuery={query ? `q=${encodeURIComponent(query)}` : undefined}
-      />
+        <TabsContent value="cash-sale">
+          <p className="admin-form__hint">
+            For a sale collected outside Stripe — cash in hand, bank transfer, at a market. Follows the same
+            split as a card sale, and the same payout-held-until-delivered rule unless it's an in-person handoff.
+          </p>
+          <CashSaleForm
+            artworks={availableArtworks.map((artwork) => ({
+              id: artwork.id,
+              title: artwork.title,
+              priceCents: artwork.priceCents,
+              campaignLabel: getCampaignLabel(artwork.campaign),
+            }))}
+          />
+        </TabsContent>
+      </Tabs>
     </>
   );
 }

@@ -7,6 +7,7 @@ import { AdminSearchForm } from "@/components/admin/search-form";
 import { EmptyState } from "@/components/admin/empty-state";
 import { EditIcon } from "@/components/admin/icons";
 import { Pagination } from "@/components/pagination";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ADMIN_PAGE_SIZE, adminTotalPages, normalizeAdminPage } from "@/lib/admin-list";
 
 export const dynamic = "force-dynamic";
@@ -40,55 +41,66 @@ export default async function AdminNewsPage({ searchParams }: PageProps) {
   return (
     <>
       <h1>News</h1>
-      <NewsArticleForm />
+      <Tabs defaultValue="news">
+        <TabsList aria-label="News sections">
+          <TabsTrigger value="news">Articles</TabsTrigger>
+          <TabsTrigger value="add">Add article</TabsTrigger>
+        </TabsList>
 
-      <AdminSearchForm placeholder="Search by title or summary" defaultValue={query} />
+        <TabsContent value="news">
+          <AdminSearchForm placeholder="Search by title or summary" defaultValue={query} />
 
-      <table className="admin-table">
-        <thead>
-          <tr>
-            <th>Title</th>
-            <th>Summary</th>
-            <th>Status</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {articles.map((article) => (
-            <tr key={article.id}>
-              <td>{article.title}</td>
-              <td>{article.summary}</td>
-              <td>
-                <NewsStatusControl articleId={article.id} status={article.status} />
-              </td>
-              <td>
-                <Link href={`/admin/news/${article.id}/edit`}>
-                  <EditIcon />
-                  Edit
-                </Link>{" "}
-                <DeleteButton endpoint={`/api/admin/news/${article.id}`} confirmLabel={article.title} />
-              </td>
-            </tr>
-          ))}
-          {articles.length === 0 ? (
-            <tr>
-              <td colSpan={4}>
-                <EmptyState
-                  message={query ? `No articles match "${query}".` : "No articles yet."}
-                  hint={query ? "Try a different search term." : "Use the form above to publish your first article."}
-                />
-              </td>
-            </tr>
-          ) : null}
-        </tbody>
-      </table>
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Summary</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {articles.map((article) => (
+                <tr key={article.id}>
+                  <td>{article.title}</td>
+                  <td>{article.summary}</td>
+                  <td>
+                    <NewsStatusControl articleId={article.id} status={article.status} />
+                  </td>
+                  <td>
+                    <Link href={`/admin/news/${article.id}/edit`}>
+                      <EditIcon />
+                      Edit
+                    </Link>{" "}
+                    <DeleteButton endpoint={`/api/admin/news/${article.id}`} confirmLabel={article.title} />
+                  </td>
+                </tr>
+              ))}
+              {articles.length === 0 ? (
+                <tr>
+                  <td colSpan={4}>
+                    <EmptyState
+                      message={query ? `No articles match "${query}".` : "No articles yet."}
+                      hint={query ? "Try a different search term." : "Use the Add article tab to publish your first article."}
+                    />
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
 
-      <Pagination
-        page={currentPage}
-        totalPages={adminTotalPages(totalCount)}
-        basePath="/admin/news"
-        extraQuery={query ? `q=${encodeURIComponent(query)}` : undefined}
-      />
+          <Pagination
+            page={currentPage}
+            totalPages={adminTotalPages(totalCount)}
+            basePath="/admin/news"
+            extraQuery={query ? `q=${encodeURIComponent(query)}` : undefined}
+          />
+        </TabsContent>
+
+        <TabsContent value="add">
+          <NewsArticleForm />
+        </TabsContent>
+      </Tabs>
     </>
   );
 }

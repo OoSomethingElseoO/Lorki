@@ -6,6 +6,7 @@ import { AdminSearchForm } from "@/components/admin/search-form";
 import { EmptyState } from "@/components/admin/empty-state";
 import { EditIcon } from "@/components/admin/icons";
 import { Pagination } from "@/components/pagination";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ADMIN_PAGE_SIZE, adminTotalPages, normalizeAdminPage } from "@/lib/admin-list";
 
 export const dynamic = "force-dynamic";
@@ -42,55 +43,66 @@ export default async function AdminAnimalsPage({ searchParams }: PageProps) {
   return (
     <>
       <h1>Animals</h1>
-      <AnimalForm conservancies={conservancies} />
+      <Tabs defaultValue="animals">
+        <TabsList aria-label="Animal sections">
+          <TabsTrigger value="animals">Animals</TabsTrigger>
+          <TabsTrigger value="add">Add animal</TabsTrigger>
+        </TabsList>
 
-      <AdminSearchForm placeholder="Search by name, species, or region" defaultValue={query} />
+        <TabsContent value="animals">
+          <AdminSearchForm placeholder="Search by name, species, or region" defaultValue={query} />
 
-      <table className="admin-table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Species</th>
-            <th>Region</th>
-            <th>Conservancy</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {animals.map((animal) => (
-            <tr key={animal.id}>
-              <td>{animal.name}</td>
-              <td>{animal.species}</td>
-              <td>{animal.region}</td>
-              <td>{animal.conservancy.name}</td>
-              <td>
-                <Link href={`/admin/animals/${animal.id}/edit`}>
-                  <EditIcon />
-                  Edit
-                </Link>{" "}
-                <DeleteButton endpoint={`/api/admin/animals/${animal.id}`} confirmLabel={animal.name} />
-              </td>
-            </tr>
-          ))}
-          {animals.length === 0 ? (
-            <tr>
-              <td colSpan={5}>
-                <EmptyState
-                  message={query ? `No animals match "${query}".` : "No animals yet."}
-                  hint={query ? "Try a different search term." : "Use the form above to add your first animal."}
-                />
-              </td>
-            </tr>
-          ) : null}
-        </tbody>
-      </table>
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Species</th>
+                <th>Region</th>
+                <th>Conservancy</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {animals.map((animal) => (
+                <tr key={animal.id}>
+                  <td>{animal.name}</td>
+                  <td>{animal.species}</td>
+                  <td>{animal.region}</td>
+                  <td>{animal.conservancy.name}</td>
+                  <td>
+                    <Link href={`/admin/animals/${animal.id}/edit`}>
+                      <EditIcon />
+                      Edit
+                    </Link>{" "}
+                    <DeleteButton endpoint={`/api/admin/animals/${animal.id}`} confirmLabel={animal.name} />
+                  </td>
+                </tr>
+              ))}
+              {animals.length === 0 ? (
+                <tr>
+                  <td colSpan={5}>
+                    <EmptyState
+                      message={query ? `No animals match "${query}".` : "No animals yet."}
+                      hint={query ? "Try a different search term." : "Use the Add animal tab to add your first animal."}
+                    />
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
 
-      <Pagination
-        page={currentPage}
-        totalPages={adminTotalPages(totalCount)}
-        basePath="/admin/animals"
-        extraQuery={query ? `q=${encodeURIComponent(query)}` : undefined}
-      />
+          <Pagination
+            page={currentPage}
+            totalPages={adminTotalPages(totalCount)}
+            basePath="/admin/animals"
+            extraQuery={query ? `q=${encodeURIComponent(query)}` : undefined}
+          />
+        </TabsContent>
+
+        <TabsContent value="add">
+          <AnimalForm conservancies={conservancies} />
+        </TabsContent>
+      </Tabs>
     </>
   );
 }

@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/admin/empty-state";
 import { EditIcon } from "@/components/admin/icons";
 import { Pagination } from "@/components/pagination";
 import { buttonVariants } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getCampaignLabel } from "@/lib/campaigns";
 import { ADMIN_PAGE_SIZE, adminTotalPages, normalizeAdminPage } from "@/lib/admin-list";
 
@@ -50,70 +51,81 @@ export default async function AdminCampaignsPage({ searchParams }: PageProps) {
   return (
     <>
       <h1>Campaigns</h1>
-      <CampaignForm animals={animals} conservancies={conservancies} artists={artists} />
+      <Tabs defaultValue="campaigns">
+        <TabsList aria-label="Campaign sections">
+          <TabsTrigger value="campaigns">Campaigns</TabsTrigger>
+          <TabsTrigger value="add">Add campaign</TabsTrigger>
+        </TabsList>
 
-      <AdminSearchForm placeholder="Search by artist, animal, or cause name" defaultValue={query} />
+        <TabsContent value="campaigns">
+          <AdminSearchForm placeholder="Search by artist, animal, or cause name" defaultValue={query} />
 
-      {campaigns.map((campaign) => (
-        <section className="admin-campaign-card" key={campaign.id}>
-          <header>
-            <h2>{getCampaignLabel(campaign)}</h2>
-            <div className="admin-campaign-card__controls">
-              <Link href={`/admin/campaigns/${campaign.id}/edit`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-                <EditIcon />
-                Edit
-              </Link>
-              <CampaignStatusControl campaignId={campaign.id} status={campaign.status} />
-              <DeleteButton
-                endpoint={`/api/admin/campaigns/${campaign.id}`}
-                confirmLabel={getCampaignLabel(campaign)}
-              />
-            </div>
-          </header>
-          <p className="admin-form__hint">
-            Split: {campaign.artistPercent}% artist / {campaign.conservancyPercent}% conservancy /{" "}
-            {campaign.operationsPercent}% operations
-          </p>
+          {campaigns.map((campaign) => (
+            <section className="admin-campaign-card" key={campaign.id}>
+              <header>
+                <h2>{getCampaignLabel(campaign)}</h2>
+                <div className="admin-campaign-card__controls">
+                  <Link href={`/admin/campaigns/${campaign.id}/edit`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+                    <EditIcon />
+                    Edit
+                  </Link>
+                  <CampaignStatusControl campaignId={campaign.id} status={campaign.status} />
+                  <DeleteButton
+                    endpoint={`/api/admin/campaigns/${campaign.id}`}
+                    confirmLabel={getCampaignLabel(campaign)}
+                  />
+                </div>
+              </header>
+              <p className="admin-form__hint">
+                Split: {campaign.artistPercent}% artist / {campaign.conservancyPercent}% conservancy /{" "}
+                {campaign.operationsPercent}% operations
+              </p>
 
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Title</th>
-                <th>Kind</th>
-                <th>Price</th>
-                <th>Inventory</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {campaign.artworks.map((artwork) => (
-                <ArtworkRow campaignId={campaign.id} artwork={artwork} key={artwork.id} />
-              ))}
-              {campaign.artworks.length === 0 ? (
-                <tr>
-                  <td colSpan={5}>No artworks yet.</td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Title</th>
+                    <th>Kind</th>
+                    <th>Price</th>
+                    <th>Inventory</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {campaign.artworks.map((artwork) => (
+                    <ArtworkRow campaignId={campaign.id} artwork={artwork} key={artwork.id} />
+                  ))}
+                  {campaign.artworks.length === 0 ? (
+                    <tr>
+                      <td colSpan={5}>No artworks yet.</td>
+                    </tr>
+                  ) : null}
+                </tbody>
+              </table>
 
-          <AddArtworkToggle campaignId={campaign.id} />
-        </section>
-      ))}
+              <AddArtworkToggle campaignId={campaign.id} />
+            </section>
+          ))}
 
-      {campaigns.length === 0 ? (
-        <EmptyState
-          message={query ? `No campaigns match "${query}".` : "No campaigns yet."}
-          hint={query ? "Try a different search term." : "Use the form above to add your first campaign."}
-        />
-      ) : null}
+          {campaigns.length === 0 ? (
+            <EmptyState
+              message={query ? `No campaigns match "${query}".` : "No campaigns yet."}
+              hint={query ? "Try a different search term." : "Use the Add campaign tab to add your first campaign."}
+            />
+          ) : null}
 
-      <Pagination
-        page={currentPage}
-        totalPages={adminTotalPages(totalCount)}
-        basePath="/admin/campaigns"
-        extraQuery={query ? `q=${encodeURIComponent(query)}` : undefined}
-      />
+          <Pagination
+            page={currentPage}
+            totalPages={adminTotalPages(totalCount)}
+            basePath="/admin/campaigns"
+            extraQuery={query ? `q=${encodeURIComponent(query)}` : undefined}
+          />
+        </TabsContent>
+
+        <TabsContent value="add">
+          <CampaignForm animals={animals} conservancies={conservancies} artists={artists} />
+        </TabsContent>
+      </Tabs>
     </>
   );
 }

@@ -4,6 +4,7 @@ import { DeleteButton } from "@/components/admin/delete-button";
 import { AdminSearchForm } from "@/components/admin/search-form";
 import { EmptyState } from "@/components/admin/empty-state";
 import { Pagination } from "@/components/pagination";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ADMIN_PAGE_SIZE, adminTotalPages, normalizeAdminPage } from "@/lib/admin-list";
 
 export const dynamic = "force-dynamic";
@@ -42,49 +43,60 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
       <p className="admin-form__hint">
         At least one admin must always exist, and you can't delete the account you're currently signed in as.
       </p>
-      <AdminUserForm />
+      <Tabs defaultValue="users">
+        <TabsList aria-label="Admin user sections">
+          <TabsTrigger value="users">Admins</TabsTrigger>
+          <TabsTrigger value="add">Add admin</TabsTrigger>
+        </TabsList>
 
-      <AdminSearchForm placeholder="Search by name or email" defaultValue={query} />
+        <TabsContent value="users">
+          <AdminSearchForm placeholder="Search by name or email" defaultValue={query} />
 
-      <table className="admin-table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Email</th>
-            <th>Created</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map((user) => (
-            <tr key={user.id}>
-              <td>{user.name}</td>
-              <td>{user.email}</td>
-              <td>{user.createdAt.toLocaleDateString()}</td>
-              <td>
-                <DeleteButton endpoint={`/api/admin/users/${user.id}`} confirmLabel={user.email} />
-              </td>
-            </tr>
-          ))}
-          {users.length === 0 ? (
-            <tr>
-              <td colSpan={4}>
-                <EmptyState
-                  message={query ? `No admins match "${query}".` : "No admins yet."}
-                  hint={query ? "Try a different search term." : "Use the form above to add another admin."}
-                />
-              </td>
-            </tr>
-          ) : null}
-        </tbody>
-      </table>
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Created</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((user) => (
+                <tr key={user.id}>
+                  <td>{user.name}</td>
+                  <td>{user.email}</td>
+                  <td>{user.createdAt.toLocaleDateString()}</td>
+                  <td>
+                    <DeleteButton endpoint={`/api/admin/users/${user.id}`} confirmLabel={user.email} />
+                  </td>
+                </tr>
+              ))}
+              {users.length === 0 ? (
+                <tr>
+                  <td colSpan={4}>
+                    <EmptyState
+                      message={query ? `No admins match "${query}".` : "No admins yet."}
+                      hint={query ? "Try a different search term." : "Use the Add admin tab to add another admin."}
+                    />
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
 
-      <Pagination
-        page={currentPage}
-        totalPages={adminTotalPages(totalCount)}
-        basePath="/admin/users"
-        extraQuery={query ? `q=${encodeURIComponent(query)}` : undefined}
-      />
+          <Pagination
+            page={currentPage}
+            totalPages={adminTotalPages(totalCount)}
+            basePath="/admin/users"
+            extraQuery={query ? `q=${encodeURIComponent(query)}` : undefined}
+          />
+        </TabsContent>
+
+        <TabsContent value="add">
+          <AdminUserForm />
+        </TabsContent>
+      </Tabs>
     </>
   );
 }
