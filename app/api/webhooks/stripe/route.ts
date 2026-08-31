@@ -218,7 +218,7 @@ async function handleDisputeClosed(dispute: Stripe.Dispute) {
 }
 
 // The reliable long-term source of truth for a Connect account's status —
-// /api/seller/connect/return and /api/cause/connect/return only catch the
+// /api/artist/connect/return and /api/cause/connect/return only catch the
 // "came right back" case; this also catches an artist or cause finishing
 // onboarding later via an emailed link, or Stripe later disabling payouts
 // on the account for a compliance reason. An account belongs to at most

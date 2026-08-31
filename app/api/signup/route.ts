@@ -5,7 +5,7 @@ import { createUserSessionToken, SESSION_COOKIE } from "@/lib/auth";
 import { isUniqueConstraintError, uniqueConstraintResponse } from "@/lib/prisma-errors";
 import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
 
-// Creates a plain account — nothing more. Becoming a seller (linking an
+// Creates a plain account — nothing more. Becoming an artist (linking an
 // Artist profile) or an admin are separate, later steps on top of this
 // same login, not different signup forms.
 export async function POST(request: Request) {

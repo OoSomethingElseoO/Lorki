@@ -1,8 +1,8 @@
 // app/api/cause/payout-settings/route.ts (PATCH) gates on
 // getCurrentUser(), so the direct-handler-call pattern doesn't work (same
-// reasoning as seller-payout-settings.test.ts, and the same decision not
+// reasoning as artist-payout-settings.test.ts, and the same decision not
 // to extract the FLUTTERWAVE/CRYPTO validation into lib/ — it's the
-// seller version plus one extra required field, payoutAccountHolderName,
+// artist version plus one extra required field, payoutAccountHolderName,
 // with its own reverification side effect, so parameterizing a shared
 // function would need to know about that too). Beyond the shared
 // FLUTTERWAVE/CRYPTO validation shape, this route has its own
@@ -47,7 +47,7 @@ type Body = {
 
 // Reproduces app/api/cause/payout-settings/route.ts's PATCH validation
 // verbatim — note the extra payoutAccountHolderName requirement versus the
-// seller version.
+// artist version.
 function validate(body: Partial<Body>): string | null {
   const VALID_CHANNELS = ["MANUAL", "FLUTTERWAVE", "CRYPTO"];
   if (!body.payoutChannel || !VALID_CHANNELS.includes(body.payoutChannel)) {
@@ -78,7 +78,7 @@ function validate(body: Partial<Body>): string | null {
   return null;
 }
 
-test("FLUTTERWAVE requires payoutAccountHolderName in addition to the seller-side fields", () => {
+test("FLUTTERWAVE requires payoutAccountHolderName in addition to the artist-side fields", () => {
   const withoutHolderName = {
     payoutChannel: "FLUTTERWAVE" as const,
     payoutCountry: "Kenya",

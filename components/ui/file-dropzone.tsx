@@ -6,7 +6,7 @@
 // shadcn defaults this shipped with — bg-background, text-muted-foreground,
 // border-input, ring-ring, text-destructive — aren't defined here). Corners
 // use rounded-md, not the public site's rounded-none: this sits inside
-// admin/seller/cause forms specifically, where the existing Button "form"
+// admin/artist/cause forms specifically, where the existing Button "form"
 // variant already establishes rounded-md as the deliberate form-control
 // look (see components/ui/button.tsx's comment on that variant).
 import { AlertCircleIcon, FileIcon, ImageIcon, UploadIcon, XIcon } from "lucide-react";

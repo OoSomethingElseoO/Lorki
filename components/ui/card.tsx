@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 // Two variants, matching the two skins DashboardShell already switches
 // between (see components/dashboard-shell.tsx): "admin" for
 // `.dashboard-main--admin` contexts (var(--admin-*) tokens), "brand" for
-// `.dashboard-main--brand` contexts — seller/cause/account — (var(--line)/
+// `.dashboard-main--brand` contexts — artist/cause/account — (var(--line)/
 // var(--panel)/the warm elevation shadow). Pick explicitly via the
 // `variant` prop, same pattern as components/ui/button.tsx's own variants.
 
@@ -25,7 +25,7 @@ export type CardPadding = "none" | "default" | "lg";
 export type CardProps = HTMLAttributes<HTMLDivElement> & {
   /** "admin" (default) = plain internal-tool look, mirrors `.admin-form`'s
    *  own box exactly. "brand" = the storefront card family's look — use
-   *  this inside a `dashboard-main--brand` area (seller/cause/account). */
+   *  this inside a `dashboard-main--brand` area (artist/cause/account). */
   variant?: CardVariant;
   /** "default" (1.5rem, matches `.admin-form`) | "lg" (2rem) | "none" (let
    *  the content manage its own padding, e.g. a card wrapping a table). */

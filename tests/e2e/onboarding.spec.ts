@@ -1,6 +1,6 @@
 // Covers account creation and the two profile-onboarding flows built on
 // top of it, end to end against the real running app: app/api/signup,
-// app/api/login, app/api/seller/onboarding, app/api/cause/onboarding, and
+// app/api/login, app/api/artist/onboarding, app/api/cause/onboarding, and
 // their real form pages/components.
 //
 // /api/signup and /api/login are IP rate limited (5 attempts/5min — see
@@ -136,8 +136,8 @@ test.describe("Login", () => {
   });
 });
 
-test.describe("Seller onboarding", () => {
-  test("a logged-in user with no Artist yet completes /seller/onboarding and becomes a seller", async ({
+test.describe("Artist onboarding", () => {
+  test("a logged-in user with no Artist yet completes /artist/onboarding and becomes an artist", async ({
     page,
     loggedInUser,
   }) => {
@@ -151,18 +151,18 @@ test.describe("Seller onboarding", () => {
 
     const artistName = `E2E Onboarded Artist ${loggedInUser.tag}`;
 
-    await test.step("When they complete /seller/onboarding through the real form", async () => {
-      await page.goto("/seller/onboarding");
+    await test.step("When they complete /artist/onboarding through the real form", async () => {
+      await page.goto("/artist/onboarding");
       await page.getByLabel("Artist name").fill(artistName);
       await page.getByLabel("Country").fill("Kenya");
-      await page.getByLabel("Bio").fill("Throwaway seller bio created by the Playwright E2E suite.");
+      await page.getByLabel("Bio").fill("Throwaway artist bio created by the Playwright E2E suite.");
       await page.getByLabel("Portrait").fill("https://example.com/artist.jpg");
       await page.getByRole("button", { name: "Start selling" }).click();
     });
 
-    await test.step("Then they land on the seller dashboard and an Artist row exists linked to their user", async () => {
-      await page.waitForURL("**/seller");
-      await expect(page.getByRole("heading", { name: "Seller Dashboard" })).toBeVisible();
+    await test.step("Then they land on the artist dashboard and an Artist row exists linked to their user", async () => {
+      await page.waitForURL("**/artist");
+      await expect(page.getByRole("heading", { name: "Artist Dashboard" })).toBeVisible();
 
       const artist = await prisma.artist.findUniqueOrThrow({ where: { userId: loggedInUser.user.id } });
       expect(artist.name).toBe(artistName);

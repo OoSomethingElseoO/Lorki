@@ -41,7 +41,7 @@ const CHANNEL_LABELS: Record<PayoutChannel, string> = {
 };
 
 // Driven by the same combined "Save changes" button as the profile form
-// next to it (see app/seller|cause/(dashboard)/profile/page.tsx) for every
+// next to it (see app/artist|cause/(dashboard)/profile/page.tsx) for every
 // channel except Stripe — Stripe isn't a savable field, it's a redirect
 // into Stripe's own onboarding, so "Connect with Stripe" stays its own
 // explicit action regardless.

@@ -6,6 +6,12 @@ dedicated design work (hero, rotunda carousel, artist fan carousel, print
 rack). Confirmed by direct code read + live Playwright screenshots against
 a local build, not just visual impression.
 
+> **Note:** "seller" was renamed to "artist" throughout the app (routes,
+> components, internal naming) after this audit was written — `/seller/*`
+> and `components/seller-*` below refer to paths that no longer exist
+> (now `/artist/*` and `components/artist-*`). Left as-is since this is a
+> historical record of what was found and fixed at the time.
+
 ## Root cause
 
 There is no generic card/panel component in this codebase, and no shared

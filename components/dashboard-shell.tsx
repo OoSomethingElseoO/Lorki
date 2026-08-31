@@ -20,7 +20,7 @@ type DashboardShellProps = {
    *  CSS are the same component and the same rules everywhere. */
   variant: "admin" | "brand";
   /** "sidebar" (default) = persistent left nav, fine for a handful of
-   *  links (account/seller/cause). "tabs" = a horizontal tab strip above
+   *  links (account/artist/cause). "tabs" = a horizontal tab strip above
    *  the content instead — admin has 11 sections, too many for a sidebar
    *  to stay scannable. */
   layout?: "sidebar" | "tabs";
@@ -36,7 +36,7 @@ export function DashboardShell({ title, navLinks, variant, layout = "sidebar", c
     // lights up on /account, not on some other page nested under a similar
     // prefix); prefix match for everything else so a sub-page like
     // /admin/orders still highlights the "Orders" link that led there.
-    return href === "/account" || href === "/seller" || href === "/cause/profile"
+    return href === "/account" || href === "/artist" || href === "/cause/profile"
       ? pathname === href
       : pathname === href || pathname.startsWith(`${href}/`);
   }
@@ -53,7 +53,7 @@ export function DashboardShell({ title, navLinks, variant, layout = "sidebar", c
   });
 
   return (
-    // Every area (admin/account/seller/cause) uses this shell, and several
+    // Every area (admin/account/artist/cause) uses this shell, and several
     // shared action components (e.g. DeleteButton) call useToast() —
     // wrapping it here once means no area's layout can forget to provide
     // it and crash on render.

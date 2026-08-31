@@ -13,8 +13,8 @@ export default async function AccountLayout({ children }: { children: ReactNode 
     { label: "My Account", href: "/account" },
     ...(user.isAdmin ? [{ label: "Admin Dashboard", href: "/admin" }] : []),
     user.artist
-      ? { label: "Seller Dashboard", href: "/seller" }
-      : { label: "Start Selling", href: "/seller/onboarding" },
+      ? { label: "Artist Dashboard", href: "/artist" }
+      : { label: "Start Selling", href: "/artist/onboarding" },
     user.conservancy
       ? { label: "Cause Dashboard", href: "/cause/profile" }
       : { label: "Register a Cause", href: "/cause/onboarding" },

@@ -14,7 +14,7 @@ type VerifyBody = {
 // The one checkpoint between a self-registered cause (see
 // /api/cause/onboarding — anyone can create one with a self-asserted name
 // and mission, no verification at all) and it actually being usable:
-// /api/seller/campaigns refuses to let an artist route a self-service
+// /api/artist/campaigns refuses to let an artist route a self-service
 // campaign's donations to a conservancy that isn't verified.
 //
 // Not real KYC/KYB — no identity or sanctions database is queried

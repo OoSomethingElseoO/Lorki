@@ -1,6 +1,6 @@
 // app/api/cause/profile/route.ts (PATCH) gates on getCurrentUser(), which
 // throws outside a real Next.js request scope — same situation as the
-// seller-*.test.ts files. The genuinely interesting, non-trivial business
+// artist-*.test.ts files. The genuinely interesting, non-trivial business
 // logic here is the re-verification-invalidation rule: a name or
 // registration-number change on an already-verified cause resets
 // verifiedAt (and the specific checked-at field that check no longer

@@ -16,7 +16,7 @@ type PayoutSettingsBody = {
 
 const VALID_CHANNELS = ["MANUAL", "FLUTTERWAVE", "CRYPTO"];
 
-// Conservancy-side mirror of /api/seller/payout-settings, plus one thing
+// Conservancy-side mirror of /api/artist/payout-settings, plus one thing
 // that only matters for a cause (not an individual artist):
 // payoutAccountHolderName. Money should go to the organization's own
 // account, not an individual's personal M-Pesa number — an admin checks

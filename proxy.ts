@@ -11,9 +11,9 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const isAdminRoute = pathname.startsWith("/admin") || pathname.startsWith("/api/admin");
-  const isSellerRoute = pathname.startsWith("/seller") || pathname.startsWith("/api/seller");
+  const isArtistRoute = pathname.startsWith("/artist") || pathname.startsWith("/api/artist");
 
-  if (!isAdminRoute && !isSellerRoute) {
+  if (!isAdminRoute && !isArtistRoute) {
     return NextResponse.next();
   }
 
@@ -38,8 +38,8 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // isSellerRoute
-  const isOnboarding = pathname === "/seller/onboarding" || pathname === "/api/seller/onboarding";
+  // isArtistRoute
+  const isOnboarding = pathname === "/artist/onboarding" || pathname === "/api/artist/onboarding";
 
   if (user?.artist) {
     return NextResponse.next();
@@ -56,7 +56,7 @@ export async function proxy(request: NextRequest) {
   // Logged in but no shop yet — send them to become one instead of a bare
   // login page they've already passed.
   if (user && !isOnboarding) {
-    return NextResponse.redirect(new URL("/seller/onboarding", request.url));
+    return NextResponse.redirect(new URL("/artist/onboarding", request.url));
   }
   const loginUrl = new URL("/login", request.url);
   loginUrl.searchParams.set("next", pathname);
@@ -64,5 +64,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/admin/:path*", "/seller/:path*", "/api/seller/:path*"],
+  matcher: ["/admin/:path*", "/api/admin/:path*", "/artist/:path*", "/api/artist/:path*"],
 };

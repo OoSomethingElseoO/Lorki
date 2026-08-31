@@ -7,7 +7,7 @@ import { isNotFoundError } from "@/lib/prisma-errors";
 type RouteParams = { params: Promise<{ id: string }> };
 
 // "Delete" here means revoke admin access, not destroy the account — the
-// target row is a shared identity that may also be a seller (linked
+// target row is a shared identity that may also be an artist (linked
 // Artist) or have real order history, so removing the row entirely would
 // take those down with it. Setting isAdmin back to false is the correct
 // operation; the account itself, and anything else attached to it, is

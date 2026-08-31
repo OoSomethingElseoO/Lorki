@@ -40,7 +40,7 @@ export default async function AccountPage() {
 
       {(() => {
         // One account can only ever be one of these (see the matching
-        // check in /api/seller/onboarding and /api/cause/onboarding) — so
+        // check in /api/artist/onboarding and /api/cause/onboarding) — so
         // once a user has EITHER role there's nothing left to "get
         // involved" with; show the section only while they have neither.
         const showGetInvolved = !user.artist && !user.conservancy;
@@ -93,7 +93,7 @@ export default async function AccountPage() {
                 Sell your original work and prints — each sale splits proceeds between you and the wildlife
                 cause your piece supports.
               </p>
-              <Link href="/seller/onboarding" className={buttonVariants({ variant: "form" })}>
+              <Link href="/artist/onboarding" className={buttonVariants({ variant: "form" })}>
                 Start selling
               </Link>
             </Card>

@@ -1582,7 +1582,7 @@ a:focus-visible {
   font-size: 1.4rem;
 }
 
-/* Shared by every logged-in area (admin, account, seller, cause) — one
+/* Shared by every logged-in area (admin, account, artist, cause) — one
    sidebar/shell component (components/dashboard-shell.tsx), one place to
    change how the persistent nav looks. Areas differ only via the
    dashboard-main--admin / dashboard-main--brand modifier below, not by
@@ -1760,7 +1760,7 @@ a:focus-visible {
   max-width: 68rem;
 }
 
-/* Customer-facing (account/seller/cause) — keeps the public site's warm
+/* Customer-facing (account/artist/cause) — keeps the public site's warm
    brand palette and display serif instead of switching to the admin's
    internal-tool look; only the persistent-nav structure is shared. */
 .dashboard-main--brand {
@@ -1816,7 +1816,7 @@ a:focus-visible {
    Applies only to the 8 admin CRUD pages' create/edit forms (Conservancies,
    Co-ops, Animals, Artists, Campaigns, News, Orders' cash-sale form, Users)
    via this opt-in modifier — every *other* .admin-form usage in the
-   codebase (seller/cause profile+payout forms, onboarding forms, the
+   codebase (artist/cause profile+payout forms, onboarding forms, the
    verify-conservancy modal, etc.) still renders as a plain single column,
    unaffected, since none of them wrap their fields in .admin-form__field
    pairs below. */
@@ -1940,7 +1940,7 @@ a:focus-visible {
   background: none;
 }
 
-/* On a standalone page (.page-main — seller/cause profile, onboarding: no
+/* On a standalone page (.page-main — artist/cause profile, onboarding: no
    sidebar, nothing else beside the form) the form is the only content, so
    it should sit centered under the already-centered .page-title above it.
    On the admin dashboard (.admin-main — sidebar layout) a create/edit form
@@ -1965,7 +1965,7 @@ a:focus-visible {
    fit-content and centers instead of stretching to fill the Card, leaving
    a narrow field column with large dead gutters on both sides. Cancel just
    that centering, scoped by this class so it doesn't affect the older
-   plain-div nesting pattern still used elsewhere (e.g. the seller side).
+   plain-div nesting pattern still used elsewhere (e.g. the artist side).
    Placed after the rule above on purpose — same specificity, source order
    decides, and this one needs to win. */
 .cause-tab-form .admin-form {
@@ -1974,8 +1974,8 @@ a:focus-visible {
 }
 
 /* Same fix as .cause-tab-form directly above, mirrored for
-   components/seller-settings-panel.tsx — identical nesting shape
-   (SellerProfileForm's/PayoutSettingsForm's own already-boxed .admin-form
+   components/artist-settings-panel.tsx — identical nesting shape
+   (ArtistProfileForm's/PayoutSettingsForm's own already-boxed .admin-form
    nested inside a Card's CardContent, itself .admin-form to trigger the
    box-stripping rule above), so it hits the exact same shrink-to-fit-content
    + auto-margin centering bug: verified live, the Name/Country/Bio inputs
@@ -1983,7 +1983,7 @@ a:focus-visible {
    instead of stretching to fill it. Kept as a separate class (not reusing
    .cause-tab-form) since the two panels are unrelated components maintained
    independently. */
-.seller-tab-form .admin-form {
+.artist-tab-form .admin-form {
   margin-left: 0;
   margin-right: 0;
 }
@@ -2097,7 +2097,7 @@ a:focus-visible {
 }
 
 /* .admin-form's own submit-button styling now lives in
-   components/ui/button.tsx (variant="form") — see any admin/seller/cause
+   components/ui/button.tsx (variant="form") — see any admin/artist/cause
    form component. The adjacent-sibling rules below still apply to it
    unchanged, since Button renders a real <button> element. */
 
@@ -2196,7 +2196,7 @@ a:focus-visible {
    above) — sharp corners (no border-radius), thicker line border, the same
    warm elevation shadow that already adapts for dark mode via
    --shadow-rgb/--shadow-alpha-scale. Use inside a dashboard-main--brand
-   area (seller/cause/account). */
+   area (artist/cause/account). */
 .ui-card--brand {
   background: var(--panel);
   border: 2px solid var(--line);

@@ -1,4 +1,4 @@
-// app/api/seller/onboarding/route.ts and app/api/cause/onboarding/route.ts
+// app/api/artist/onboarding/route.ts and app/api/cause/onboarding/route.ts
 // both gate on getCurrentUser(), which calls cookies() from next/headers.
 // Confirmed by hand (see report) that calling cookies() outside a real
 // Next.js request scope throws "cookies was called outside a request
@@ -26,14 +26,14 @@ async function createBareUser() {
   });
 }
 
-// --- seller (Artist) onboarding ---------------------------------------
+// --- artist (Artist) onboarding -----------------------------------------
 
 test("an Artist row created with a userId links to that user, matching getCurrentUser()'s include", async (t) => {
   const user = await createBareUser();
   const artist = await prisma.artist.create({
     data: {
-      slug: `test-seller-${unique()}`,
-      name: "Test Seller",
+      slug: `test-artist-${unique()}`,
+      name: "Test Artist",
       country: "Kenya",
       bio: "A throwaway artist created by onboarding.test.ts",
       imageUrl: "https://example.com/artist.jpg",
@@ -52,12 +52,12 @@ test("an Artist row created with a userId links to that user, matching getCurren
   assert.equal(reloaded!.artist!.userId, user.id);
 });
 
-test("seller onboarding's own guard (`if (user.artist) return 409`): a user who already has an Artist trips it", async (t) => {
+test("artist onboarding's own guard (`if (user.artist) return 409`): a user who already has an Artist trips it", async (t) => {
   const user = await createBareUser();
   const artist = await prisma.artist.create({
     data: {
-      slug: `test-seller-guard-${unique()}`,
-      name: "Test Seller Guard",
+      slug: `test-artist-guard-${unique()}`,
+      name: "Test Artist Guard",
       country: "Kenya",
       bio: "A throwaway artist created by onboarding.test.ts",
       imageUrl: "https://example.com/artist.jpg",
@@ -70,7 +70,7 @@ test("seller onboarding's own guard (`if (user.artist) return 409`): a user who 
   });
 
   const currentUser = await prisma.user.findUnique({ where: { id: user.id }, include: { artist: true, conservancy: true } });
-  // This is precisely the condition app/api/seller/onboarding/route.ts
+  // This is precisely the condition app/api/artist/onboarding/route.ts
   // evaluates right after getCurrentUser() to decide whether to 409.
   assert.equal(!!currentUser!.artist, true, "a second onboarding attempt for this user must be rejected");
 
@@ -82,10 +82,10 @@ test("seller onboarding's own guard (`if (user.artist) return 409`): a user who 
   assert.equal(!!freshCurrentUser!.artist, false, "a user with no Artist yet must be allowed through");
 });
 
-test("seller onboarding's slug + duplicate-name path: two artists slugifying to the same slug collide, and isUniqueConstraintError() flags it", async (t) => {
+test("artist onboarding's slug + duplicate-name path: two artists slugifying to the same slug collide, and isUniqueConstraintError() flags it", async (t) => {
   const userA = await createBareUser();
   const userB = await createBareUser();
-  const sharedName = `Duplicate Seller ${unique()}`;
+  const sharedName = `Duplicate Artist ${unique()}`;
   const artistA = await prisma.artist.create({
     data: {
       slug: slugify(sharedName),

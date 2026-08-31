@@ -24,7 +24,7 @@ export const buttonVariants = cva(
         default: "rounded-none bg-ink text-panel! border-2 border-line hover:bg-[#3a3026] hover:underline",
         // Dashboard/admin form submit buttons — matches the old
         // .admin-form button exactly (a distinct, more neutral look from
-        // the public site's .button-link, used inside admin/seller/cause
+        // the public site's .button-link, used inside admin/artist/cause
         // forms regardless of which brand/admin shell they sit in).
         form: "rounded-md bg-admin-text text-admin-bg! border border-admin-text hover:bg-[#33322c] active:translate-y-px",
         // Compact secondary action inside an admin-style table row/card —

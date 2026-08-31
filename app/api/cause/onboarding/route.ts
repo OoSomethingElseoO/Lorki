@@ -13,7 +13,7 @@ type OnboardBody = {
 };
 
 // Links a new Conservancy ("cause") to the CURRENTLY LOGGED-IN user — same
-// pattern as /api/seller/onboarding for artists: turns an existing plain
+// pattern as /api/artist/onboarding for artists: turns an existing plain
 // account into a cause, no separate signup, no new credentials, no admin
 // approval step.
 export async function POST(request: Request) {
@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "You already have a cause profile" }, { status: 409 });
   }
 
-  // One account, one role — mirrors /api/seller/onboarding's check. An
+  // One account, one role — mirrors /api/artist/onboarding's check. An
   // artist can't also register as a cause on the same login.
   if (user.artist) {
     return NextResponse.json(

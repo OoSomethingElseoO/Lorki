@@ -1,4 +1,4 @@
-// One shared vocabulary for every status shown across the admin/seller/
+// One shared vocabulary for every status shown across the admin/artist/
 // cause dashboards (CampaignStatus, OrderStatus, PayoutStatus,
 // InquiryStatus) — keeps color meaning consistent (green always means
 // "done/live", amber always means "awaiting action") instead of each page

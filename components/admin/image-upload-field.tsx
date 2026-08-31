@@ -12,7 +12,7 @@ type ImageUploadFieldProps = {
 // Hybrid text-or-upload field: the underlying <input name=...> stays a plain
 // URL string so it works with the surrounding form's existing FormData-based
 // submit handlers unchanged — this component just offers a second way to
-// fill it in, either typed or via /api/uploads (shared by admin, seller,
+// fill it in, either typed or via /api/uploads (shared by admin, artist,
 // and cause forms alike — see that route's own comment for why it isn't
 // under /api/admin/).
 export function ImageUploadField({ name, label, defaultValue }: ImageUploadFieldProps) {

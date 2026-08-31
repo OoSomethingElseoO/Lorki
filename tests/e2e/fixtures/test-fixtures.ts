@@ -11,8 +11,8 @@ import {
   createCauseAccountFixture,
   createConservancyFixture,
   createFailedPayoutFixture,
+  createLoggedInArtistFixture,
   createOriginalArtworkFixture,
-  createSellerFixture,
   createUserFixture,
   prisma,
   testEmail,
@@ -23,7 +23,7 @@ type OriginalArtworkFixture = Awaited<ReturnType<typeof createOriginalArtworkFix
 type FailedPayoutFixture = Awaited<ReturnType<typeof createFailedPayoutFixture>>;
 type UserFixture = Awaited<ReturnType<typeof createUserFixture>>;
 type ConservancyFixture = Awaited<ReturnType<typeof createConservancyFixture>>;
-type SellerFixture = Awaited<ReturnType<typeof createSellerFixture>>;
+type LoggedInArtistFixture = Awaited<ReturnType<typeof createLoggedInArtistFixture>>;
 type CauseAccountFixture = Awaited<ReturnType<typeof createCauseAccountFixture>>;
 
 type Fixtures = {
@@ -47,10 +47,10 @@ type Fixtures = {
   // self-registered cause — the starting state for the admin
   // verify-checklist scenario in admin-crud.spec.ts.
   unverifiedConservancy: ConservancyFixture;
-  // A logged-in seller — a real User+session cookie linked to an Artist,
+  // A logged-in artist — a real User+session cookie linked to an Artist,
   // with one LIVE campaign and one AVAILABLE artwork — the starting state
-  // for seller self-management scenarios in seller-management.spec.ts.
-  loggedInSeller: SellerFixture;
+  // for artist self-management scenarios in artist-management.spec.ts.
+  loggedInArtist: LoggedInArtistFixture;
   // A logged-in cause representative — a real User+session cookie linked
   // to an unverified Conservancy — the starting state for cause
   // self-management scenarios in cause-management.spec.ts. The verified
@@ -100,8 +100,8 @@ export const test = base.extend<Fixtures>({
     await fixture.cleanup();
   },
 
-  loggedInSeller: async ({ context }, use) => {
-    const fixture = await createSellerFixture();
+  loggedInArtist: async ({ context }, use) => {
+    const fixture = await createLoggedInArtistFixture();
     await context.addCookies([fixture.sessionCookie]);
     await use(fixture);
     await fixture.cleanup();
@@ -124,7 +124,7 @@ export {
   createArtistFixture,
   createCauseAccountFixture,
   createConservancyFixture,
-  createSellerFixture,
+  createLoggedInArtistFixture,
   createUserFixture,
   testEmail,
   testTag,

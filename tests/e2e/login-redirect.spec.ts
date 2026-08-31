@@ -7,7 +7,7 @@
 // function's own logic (lib/__tests__/post-login-redirect.test.ts covers
 // that in isolation).
 import { hashPassword } from "@/lib/password";
-import { ADMIN_EMAIL, ADMIN_PASSWORD, createCauseAccountFixture, createSellerFixture, createUserFixture, expect, prisma, test } from "./fixtures/test-fixtures";
+import { ADMIN_EMAIL, ADMIN_PASSWORD, createCauseAccountFixture, createLoggedInArtistFixture, createUserFixture, expect, prisma, test } from "./fixtures/test-fixtures";
 
 // This file alone performs 6 real /api/login POSTs across its tests, on
 // top of the 1 the "setup" project already does to authenticate as admin
@@ -43,19 +43,19 @@ test.describe("Post-login redirect", () => {
     });
   });
 
-  test("an artist-only user lands straight on /seller", async ({ page }) => {
-    const seller = await createSellerFixture();
+  test("an artist-only user lands straight on /artist", async ({ page }) => {
+    const artist = await createLoggedInArtistFixture();
     try {
       await test.step("When an artist-only user logs in", async () => {
-        await login(page, seller.email, seller.password);
+        await login(page, artist.email, artist.password);
       });
 
-      await test.step("Then they land on /seller, not /account", async () => {
-        await page.waitForURL("**/seller");
-        await expect(page.getByRole("heading", { name: "Seller Dashboard" })).toBeVisible();
+      await test.step("Then they land on /artist, not /account", async () => {
+        await page.waitForURL("**/artist");
+        await expect(page.getByRole("heading", { name: "Artist Dashboard" })).toBeVisible();
       });
     } finally {
-      await seller.cleanup();
+      await artist.cleanup();
     }
   });
 

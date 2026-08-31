@@ -22,8 +22,8 @@ type SignupFormProps = {
 // The intent picker below decides ONLY where signup redirects to
 // afterward — it never touches account creation itself. /api/signup stays
 // a single, generic "create a plain account" endpoint (same rate limiting,
-// same password handling, no forked logic to keep in sync); becoming a
-// seller or a cause still goes through the real /seller/onboarding or
+// same password handling, no forked logic to keep in sync); becoming an
+// artist or a cause still goes through the real /artist/onboarding or
 // /cause/onboarding flow and its own validation, exactly as before. This
 // is routing, not a shortcut around that.
 export function SignupForm({ initialRole = null }: SignupFormProps) {
@@ -54,7 +54,7 @@ export function SignupForm({ initialRole = null }: SignupFormProps) {
       return;
     }
 
-    const destination = role === "artist" ? "/seller/onboarding" : role === "cause" ? "/cause/onboarding" : "/account";
+    const destination = role === "artist" ? "/artist/onboarding" : role === "cause" ? "/cause/onboarding" : "/account";
     router.push(destination);
     router.refresh();
   }

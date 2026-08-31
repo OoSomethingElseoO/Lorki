@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { getStripe } from "@/lib/stripe";
 
-// Conservancy-side mirror of /api/seller/connect/onboard — kicks off
+// Conservancy-side mirror of /api/artist/connect/onboard — kicks off
 // Stripe's own hosted onboarding for a Standard connected account. Only
 // usable by a cause banking in a Stripe-supported country; others use
 // FLUTTERWAVE instead (see /api/cause/payout-settings).

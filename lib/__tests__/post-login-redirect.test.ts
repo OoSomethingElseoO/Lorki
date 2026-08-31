@@ -15,8 +15,8 @@ test("an admin with no next param goes to /admin", () => {
   assert.equal(resolvePostLoginRedirect({ ...noRoles, isAdmin: true }), "/admin");
 });
 
-test("an artist-only user goes straight to /seller", () => {
-  assert.equal(resolvePostLoginRedirect({ ...noRoles, hasArtist: true }), "/seller");
+test("an artist-only user goes straight to /artist", () => {
+  assert.equal(resolvePostLoginRedirect({ ...noRoles, hasArtist: true }), "/artist");
 });
 
 test("a cause-only user goes straight to /cause/profile", () => {

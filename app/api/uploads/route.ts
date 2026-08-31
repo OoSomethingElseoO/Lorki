@@ -13,9 +13,9 @@ const ALLOWED_TYPES = new Set([
 
 const MAX_BYTES = 8 * 1024 * 1024;
 
-// Deliberately NOT under /api/admin/ or /api/seller/ — proxy.ts gates those
-// path prefixes wholesale (admin-only, seller-only), and this needs to work
-// for any authenticated user (admin, seller, or cause) uploading their own
+// Deliberately NOT under /api/admin/ or /api/artist/ — proxy.ts gates those
+// path prefixes wholesale (admin-only, artist-only), and this needs to work
+// for any authenticated user (admin, artist, or cause) uploading their own
 // image or document. Auth is checked here instead: some logged-in user,
 // not a specific role — this route performs no role-specific action, it
 // just stores a file and returns its URL.

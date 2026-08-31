@@ -310,27 +310,27 @@ export async function createArtistFixture(options: { name?: string } = {}) {
   return { tag, artist, cleanup };
 }
 
-type SellerFixtureOptions = { artworkInventoryState?: InventoryState };
+type LoggedInArtistFixtureOptions = { artworkInventoryState?: InventoryState };
 
-// A logged-in seller: a real User (scrypt hash + signed session token, same
+// A logged-in artist: a real User (scrypt hash + signed session token, same
 // as createUserFixture) with a linked Artist (Artist.userId), one LIVE
-// Campaign, and one Artwork on it — the "already a working seller account"
-// precondition for the seller self-management scenarios (profile edit,
+// Campaign, and one Artwork on it — the "already a working artist account"
+// precondition for the artist self-management scenarios (profile edit,
 // listing edit, SOLD-listing lockout), which need more than the bare
 // Artist createArtistFixture gives (no User to log in as, no campaign, no
 // listing). No animal/conservancy is attached to the campaign — same as
 // createFailedPayoutFixture's campaign — since none of these scenarios
 // touch the cause side.
-export async function createSellerFixture(options: SellerFixtureOptions = {}) {
-  const tag = testTag("seller");
-  const email = testEmail("seller");
+export async function createLoggedInArtistFixture(options: LoggedInArtistFixtureOptions = {}) {
+  const tag = testTag("artist-login");
+  const email = testEmail("artist-login");
   const password = "e2e-test-password-1";
 
   const user = await prisma.user.create({
     data: {
       email,
       passwordHash: await hashPassword(password),
-      name: `E2E Test Seller ${tag}`,
+      name: `E2E Test Artist ${tag}`,
     },
   });
 
@@ -384,7 +384,7 @@ export async function createSellerFixture(options: SellerFixtureOptions = {}) {
 type CauseAccountFixtureOptions = { verified?: boolean };
 
 // A logged-in cause representative: a real User linked (Conservancy.userId)
-// to a Conservancy, mirroring createSellerFixture's shape on the cause
+// to a Conservancy, mirroring createLoggedInArtistFixture's shape on the cause
 // side. Unlike createConservancyFixture (no User at all — used for
 // admin-side scenarios where nobody needs to log in as the cause), this is
 // for /cause/profile scenarios that need "already logged in as this
