@@ -4,7 +4,7 @@ import { DashboardShell } from "@/components/dashboard-shell";
 import { getCurrentUser } from "@/lib/auth";
 
 const navLinks = [
-  { label: "Dashboard", href: "/artist" },
+  { label: "Overview", href: "/artist" },
   { label: "Edit Profile", href: "/artist/profile" },
   { label: "My Listings", href: "/artist/artworks" },
   { label: "My Account", href: "/account" },

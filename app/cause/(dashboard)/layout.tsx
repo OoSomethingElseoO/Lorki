@@ -4,7 +4,7 @@ import { DashboardShell } from "@/components/dashboard-shell";
 import { getCurrentUser } from "@/lib/auth";
 
 const navLinks = [
-  { label: "Dashboard", href: "/cause/profile" },
+  { label: "Overview", href: "/cause/profile" },
   { label: "My Account", href: "/account" },
 ];
 
