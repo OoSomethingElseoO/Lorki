@@ -5,6 +5,7 @@ import type { StorefrontArtwork } from "@/lib/storefront";
 import { AccessibleModal } from "@/components/accessible-modal";
 import { BuyButton } from "@/components/buy-button";
 import { InquiryForm } from "@/components/inquiry-form";
+import { FallbackImage } from "@/components/ui/fallback-image";
 
 type ArtistGalleryProps = {
   artworks: StorefrontArtwork[];
@@ -28,7 +29,7 @@ export function ArtistGallery({ artworks, customerEmail }: ArtistGalleryProps) {
                 aria-label={`Enlarge ${artwork.title}`}
                 onClick={() => setSelectedArtwork(artwork)}
               >
-                <img src={artwork.imageUrl} alt={artwork.altText} />
+                <FallbackImage src={artwork.imageUrl} alt={artwork.altText} />
               </button>
               <h3>{artwork.title}</h3>
               {artwork.kind === "ORIGINAL" ? (
@@ -54,7 +55,7 @@ export function ArtistGallery({ artworks, customerEmail }: ArtistGalleryProps) {
       >
         {selectedArtwork ? (
           <div className="modal-artwork">
-            <img src={selectedArtwork.imageUrl} alt={selectedArtwork.altText} />
+            <FallbackImage src={selectedArtwork.imageUrl} alt={selectedArtwork.altText} />
             {selectedArtwork.kind === "ORIGINAL" ? (
               <InquiryForm artworkId={selectedArtwork.id} title={selectedArtwork.title} customerEmail={customerEmail} />
             ) : (

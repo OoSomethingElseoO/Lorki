@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FallbackImage } from "@/components/ui/fallback-image";
 
 type NewsCardProps = {
   article: {
@@ -12,7 +13,7 @@ type NewsCardProps = {
 export function NewsCard({ article }: NewsCardProps) {
   return (
     <article className="news-card">
-      <img src={article.imageUrl} alt="" className="news-card__image" />
+      <FallbackImage src={article.imageUrl} alt="" className="news-card__image" />
       <div className="news-card__body">
         <h2>{article.title}</h2>
         <p>{article.summary}</p>

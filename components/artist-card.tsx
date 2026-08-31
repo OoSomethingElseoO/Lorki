@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FallbackImage } from "@/components/ui/fallback-image";
 
 type ArtistCardProps = {
   artist: {
@@ -13,7 +14,7 @@ export function ArtistCard({ artist }: ArtistCardProps) {
   return (
     <article className="artist-card">
       <Link href={`/artists/${artist.slug}`} aria-label={`View ${artist.name}'s artist page`}>
-        <img
+        <FallbackImage
           src={artist.imageUrl}
           alt={`Portrait placeholder for artist ${artist.name}.`}
           className="artist-card__image"

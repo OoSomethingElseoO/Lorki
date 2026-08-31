@@ -5,6 +5,7 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { SquareArrowOutUpRight } from "lucide-react";
 import Link from "next/link";
 
+import { FallbackImage } from "@/components/ui/fallback-image";
 import { cn } from "@/lib/utils";
 
 export type CardStackItem = {
@@ -555,7 +556,7 @@ function DefaultFanCard({ item }: { item: CardStackItem; active: boolean }) {
       {/* image */}
       <div className="absolute inset-0">
         {item.imageSrc ? (
-          <img
+          <FallbackImage
             src={item.imageSrc}
             alt={item.title}
             className="h-full w-full object-cover"

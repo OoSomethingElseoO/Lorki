@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { PasswordInput } from "@/components/ui/password-input";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 
@@ -86,14 +87,17 @@ export function SignupForm({ initialRole = null }: SignupFormProps) {
       <input id="email" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} />
 
       <label htmlFor="password">Password</label>
-      <input
+      <PasswordInput
         id="password"
-        type="password"
         required
         minLength={8}
         value={password}
         onChange={(event) => setPassword(event.target.value)}
+        aria-describedby="password-hint"
       />
+      <p id="password-hint" className="account-form__field-hint">
+        At least 8 characters
+      </p>
 
       {error ? <p className="buy-form__error">{error}</p> : null}
       <Button type="submit" disabled={submitting}>

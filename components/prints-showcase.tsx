@@ -5,6 +5,7 @@ import type { StorefrontArtwork } from "@/lib/storefront";
 import { PrintRack } from "@/components/ui/print-rack";
 import { AccessibleModal } from "@/components/accessible-modal";
 import { BuyButton } from "@/components/buy-button";
+import { FallbackImage } from "@/components/ui/fallback-image";
 
 type PrintsShowcaseProps = {
   prints: StorefrontArtwork[];
@@ -40,7 +41,7 @@ export function PrintsShowcase({ prints, customerEmail }: PrintsShowcaseProps) {
               aria-label={`Enlarge ${artwork.title}`}
               onClick={() => setEnlarged(artwork)}
             >
-              <img
+              <FallbackImage
                 src={artwork.imageUrl}
                 alt={artwork.altText}
                 className="print-tile__image"
@@ -71,7 +72,7 @@ export function PrintsShowcase({ prints, customerEmail }: PrintsShowcaseProps) {
       >
         {enlarged ? (
           <div className="modal-artwork">
-            <img src={enlarged.imageUrl} alt={enlarged.altText} />
+            <FallbackImage src={enlarged.imageUrl} alt={enlarged.altText} />
             <BuyButton
               artworkId={enlarged.id}
               title={enlarged.title}

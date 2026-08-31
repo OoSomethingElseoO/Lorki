@@ -22,20 +22,24 @@ test.describe("Original-artwork reservation lifecycle", () => {
       await expect(page.getByRole("heading", { name: originalArtwork.artwork.title, exact: true })).toBeVisible();
     });
 
-    // When a visitor submits an inquiry on it, through the real inquiry
-    // form (components/inquiry-form.tsx, rendered by ArtworkCard for any
-    // ORIGINAL) on the public /originals page.
+    // When a visitor opens the artwork's lightbox (components/artwork-
+    // lightbox.tsx, opened from ArtworkCard's "Inquire to purchase" button
+    // via components/originals-grid.tsx) and submits the real inquiry form
+    // (components/inquiry-form.tsx) inside it.
     await test.step("When a visitor submits an inquiry on it", async () => {
       const card = page.locator("article.artwork-card").filter({
         has: page.getByRole("heading", { name: originalArtwork.artwork.title, exact: true }),
       });
-      const form = card.getByRole("form", { name: `Inquire about ${originalArtwork.artwork.title}` });
+      await card.getByRole("button", { name: "Inquire to purchase" }).click();
+
+      const dialog = page.getByRole("dialog", { name: originalArtwork.artwork.title });
+      const form = dialog.getByRole("form", { name: `Inquire about ${originalArtwork.artwork.title}` });
 
       await form.getByLabel("Your name").fill("E2E Visitor One");
       await form.getByLabel("Your email").fill(`visitor-one-${Date.now()}@e2e.test`);
       await form.getByRole("button", { name: "Inquire to purchase" }).click();
 
-      await expect(card.getByText("Thanks — we'll be in touch by email shortly to arrange this personally.")).toBeVisible();
+      await expect(dialog.getByText("Thanks — we'll be in touch by email shortly to arrange this personally.")).toBeVisible();
     });
 
     // Then the artwork becomes RESERVED and disappears from public listings

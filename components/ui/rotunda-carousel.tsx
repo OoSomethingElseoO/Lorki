@@ -5,6 +5,7 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Pause, Play } from "lucide-react";
 
+import { FallbackImage } from "@/components/ui/fallback-image";
 import { cn } from "@/lib/utils";
 
 if (typeof window !== "undefined") {
@@ -531,7 +532,7 @@ export function RotundaCarousel({
                     : { width: "var(--rc-card-w)", height: "var(--rc-card-h)" }
                 }
               >
-                <img
+                <FallbackImage
                   src={slide.src}
                   alt={slide.alt}
                   draggable={false}

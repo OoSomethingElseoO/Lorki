@@ -3,6 +3,7 @@
 import { Suspense, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { PasswordInput } from "@/components/ui/password-input";
 import { useRouter, useSearchParams } from "next/navigation";
 import { resolvePostLoginRedirect } from "@/lib/post-login-redirect";
 
@@ -51,9 +52,8 @@ function LoginFormInner() {
       <input id="email" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} />
 
       <label htmlFor="password">Password</label>
-      <input
+      <PasswordInput
         id="password"
-        type="password"
         required
         value={password}
         onChange={(event) => setPassword(event.target.value)}

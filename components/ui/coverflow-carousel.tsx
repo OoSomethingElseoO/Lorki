@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
+import { FallbackImage } from "@/components/ui/fallback-image";
 import { cn } from "@/lib/utils";
 
 const useIsoLayoutEffect =
@@ -307,8 +308,7 @@ export function CoverflowCarousel({
                   )}
                   style={{ width: "var(--cf-card-w)", height: "var(--cf-card-h)" }}
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                  <FallbackImage
                     src={slide.src}
                     alt={slide.alt}
                     draggable={false}

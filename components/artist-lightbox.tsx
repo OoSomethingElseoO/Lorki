@@ -7,6 +7,7 @@ import { Flip } from "gsap/Flip";
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { AccessibleModal } from "@/components/accessible-modal";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { FallbackImage } from "@/components/ui/fallback-image";
 import { cn } from "@/lib/utils";
 
 gsap.registerPlugin(Flip);
@@ -161,8 +162,7 @@ export function ArtistLightbox({ artist, originRect, onClose, onNext, onPrevious
         <div ref={contentRef}>
           <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
             <div className="relative flex items-center justify-center border-2 border-line bg-panel/80 p-3">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <FallbackImage
                 src={artist.imageUrl}
                 alt={`Portrait of ${artist.name}`}
                 loading="eager"

@@ -54,6 +54,15 @@ export default function RootLayout({
               '(function(){try{var t=localStorage.getItem("theme");if(t==="dark"||t==="light"){document.documentElement.setAttribute("data-theme",t);}}catch(e){}})();',
           }}
         />
+        {/* Marks JS as available before paint so .reveal (see globals.css)
+            can opt into starting hidden — content stays visible by default
+            if this never runs (JS blocked/failed), instead of being stuck
+            invisible waiting on an IntersectionObserver that never fires. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: 'document.documentElement.classList.add("js");',
+          }}
+        />
       </head>
       <body>
         <StyledComponentsRegistry>{children}</StyledComponentsRegistry>
