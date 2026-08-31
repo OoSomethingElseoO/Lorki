@@ -64,89 +64,124 @@ export function TextBlockAnimation({
       if (!target) return;
       if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
-      const split = SplitText.create(target, {
-        type: "lines",
-        linesClass: "block-line-parent",
-      });
-
-      const lines = split.lines;
+      // lines/blocks live outside the try so the catch below can still
+      // force-reveal whatever partial DOM surgery happened before a throw.
+      let lines: Element[] = [];
       const blocks: HTMLDivElement[] = [];
 
-      lines.forEach((line) => {
-        const wrapper = document.createElement("div");
-        wrapper.style.position = "relative";
-        wrapper.style.display = "block";
-        wrapper.style.overflow = "hidden";
-
-        const block = document.createElement("div");
-        block.style.position = "absolute";
-        block.style.top = "0";
-        block.style.left = "0";
-        block.style.width = "100%";
-        block.style.height = "100%";
-        block.style.backgroundColor = blockColor;
-        block.style.zIndex = "2";
-        block.style.transform = "scaleX(0)";
-        block.style.transformOrigin = "left center";
-
-        line.parentNode?.insertBefore(wrapper, line);
-        wrapper.appendChild(line);
-        wrapper.appendChild(block);
-
-        gsap.set(line, { opacity: 0 });
-        blocks.push(block);
-      });
-
-      const tl = gsap.timeline({
-        defaults: { ease: "expo.inOut" },
-        scrollTrigger: animateOnScroll
-          ? {
-              trigger: containerRef.current,
-              start: "top 85%",
-              toggleActions: "play none none reverse",
-            }
-          : undefined,
-        delay,
-      });
-
-      tl.to(blocks, {
-        scaleX: 1,
-        duration,
-        stagger,
-        transformOrigin: "left center",
-      })
-        .set(
-          lines,
-          { opacity: 1, stagger },
-          `<${duration / 2}`,
-        )
-        .to(
-          blocks,
-          {
-            scaleX: 0,
-            duration,
-            stagger,
-            transformOrigin: "right center",
-          },
-          `<${duration * 0.4}`,
-        );
-
-      return () => {
-        tl.kill();
-        // Undo the manual wrapper/block DOM surgery FIRST, restoring each
-        // line to exactly where SplitText originally put it, before
-        // calling split.revert() — revert() only knows how to undo
-        // SplitText's own line-wrapping, not the extra wrapper+block
-        // elements layered on top of it here.
-        lines.forEach((line) => {
-          const wrapper = line.parentElement;
-          if (wrapper?.parentElement) {
-            wrapper.parentElement.insertBefore(line, wrapper);
-            wrapper.remove();
-          }
+      try {
+        const split = SplitText.create(target, {
+          type: "lines",
+          linesClass: "block-line-parent",
         });
-        split.revert();
-      };
+        lines = split.lines;
+
+        // Hard-revealed end state, reused below both as the timeline's own
+        // guaranteed landing spot and as a last-resort fallback — nothing
+        // downstream of this point may leave a line's real text depending
+        // on every earlier tween in the chain having fired cleanly.
+        const forceRevealed = () => {
+          gsap.set(blocks, { scaleX: 0 });
+          gsap.set(lines, { opacity: 1 });
+        };
+
+        lines.forEach((line) => {
+          const wrapper = document.createElement("div");
+          wrapper.style.position = "relative";
+          wrapper.style.display = "block";
+          wrapper.style.overflow = "hidden";
+
+          const block = document.createElement("div");
+          block.style.position = "absolute";
+          block.style.top = "0";
+          block.style.left = "0";
+          block.style.width = "100%";
+          block.style.height = "100%";
+          block.style.backgroundColor = blockColor;
+          block.style.zIndex = "2";
+          block.style.transform = "scaleX(0)";
+          block.style.transformOrigin = "left center";
+
+          line.parentNode?.insertBefore(wrapper, line);
+          wrapper.appendChild(line);
+          wrapper.appendChild(block);
+
+          gsap.set(line, { opacity: 0 });
+          blocks.push(block);
+        });
+
+        const tl = gsap.timeline({
+          defaults: { ease: "expo.inOut" },
+          scrollTrigger: animateOnScroll
+            ? {
+                trigger: containerRef.current,
+                start: "top 85%",
+                toggleActions: "play none none reverse",
+              }
+            : undefined,
+          delay,
+          // Belt-and-suspenders, not a fix for a confirmed cause: under
+          // heavy CPU throttling we saw the reveal legitimately still
+          // mid-sweep several seconds in (self-resolving once the tab
+          // caught up, never actually stuck), but nothing in the chain
+          // guaranteed a correct landing spot if a tween were ever
+          // skipped/interrupted instead of just delayed. onComplete covers
+          // the timeline finishing with some intermediate step having
+          // failed to apply; onInterrupt covers tl.kill() firing from
+          // anywhere other than this component's own unmount cleanup below
+          // (which already does a full split.revert()).
+          onComplete: forceRevealed,
+          onInterrupt: forceRevealed,
+        });
+
+        tl.to(blocks, {
+          scaleX: 1,
+          duration,
+          stagger,
+          transformOrigin: "left center",
+        })
+          .set(
+            lines,
+            { opacity: 1, stagger },
+            `<${duration / 2}`,
+          )
+          .to(
+            blocks,
+            {
+              scaleX: 0,
+              duration,
+              stagger,
+              transformOrigin: "right center",
+            },
+            `<${duration * 0.4}`,
+          );
+
+        return () => {
+          tl.kill();
+          // Undo the manual wrapper/block DOM surgery FIRST, restoring each
+          // line to exactly where SplitText originally put it, before
+          // calling split.revert() — revert() only knows how to undo
+          // SplitText's own line-wrapping, not the extra wrapper+block
+          // elements layered on top of it here.
+          lines.forEach((line) => {
+            const wrapper = line.parentElement;
+            if (wrapper?.parentElement) {
+              wrapper.parentElement.insertBefore(line, wrapper);
+              wrapper.remove();
+            }
+          });
+          split.revert();
+        };
+      } catch (err) {
+        // SplitText/timeline setup itself throwing partway through (as
+        // opposed to a tween misbehaving, handled above) can leave some
+        // lines already sitting at opacity:0 with no timeline left to ever
+        // reveal them — force whatever got split back to visible rather
+        // than permanently blanking the real headline copy.
+        gsap.set(lines, { opacity: 1 });
+        console.error("TextBlockAnimation setup failed; showing plain text", err);
+        return undefined;
+      }
     },
     { scope: containerRef, dependencies: [animateOnScroll, delay, blockColor, stagger, duration] },
   );
