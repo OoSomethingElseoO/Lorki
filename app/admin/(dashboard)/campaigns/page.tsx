@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { CampaignForm } from "@/components/admin/campaign-form";
 import { CampaignStatusControl } from "@/components/admin/campaign-status-control";
 import { AddArtworkToggle } from "@/components/admin/add-artwork-toggle";
-import { ArtworkRow } from "@/components/admin/artwork-row";
+import { CampaignArtworkTable } from "@/components/admin/campaign-artwork-table";
 import { DeleteButton } from "@/components/admin/delete-button";
 import { AdminSearchForm } from "@/components/admin/search-form";
 import { EmptyState } from "@/components/admin/empty-state";
@@ -81,27 +81,7 @@ export default async function AdminCampaignsPage({ searchParams }: PageProps) {
                 {campaign.operationsPercent}% operations
               </p>
 
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>Title</th>
-                    <th>Kind</th>
-                    <th>Price</th>
-                    <th>Inventory</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {campaign.artworks.map((artwork) => (
-                    <ArtworkRow campaignId={campaign.id} artwork={artwork} key={artwork.id} />
-                  ))}
-                  {campaign.artworks.length === 0 ? (
-                    <tr>
-                      <td colSpan={5}>No artworks yet.</td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              </table>
+              <CampaignArtworkTable campaignId={campaign.id} artworks={campaign.artworks} />
 
               <AddArtworkToggle campaignId={campaign.id} />
             </section>
