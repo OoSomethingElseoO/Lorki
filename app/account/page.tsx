@@ -39,7 +39,11 @@ export default async function AccountPage() {
       </p>
 
       {(() => {
-        const showGetInvolved = !user.artist || !user.conservancy;
+        // One account can only ever be one of these (see the matching
+        // check in /api/seller/onboarding and /api/cause/onboarding) — so
+        // once a user has EITHER role there's nothing left to "get
+        // involved" with; show the section only while they have neither.
+        const showGetInvolved = !user.artist && !user.conservancy;
 
         const orderHistory =
           orders.length === 0 ? (
@@ -76,36 +80,33 @@ export default async function AccountPage() {
         const getInvolvedCards = (
           // flexbox, not CSS grid with auto-fit: auto-fit's "collapse empty
           // tracks" behavior doesn't redistribute their space to a single
-          // remaining item the way it looks like it should — a lone card
-          // (the common case: an artist-only or cause-only user only ever
-          // sees ONE of these two) ends up centered in a ~16rem column
-          // instead of spanning the row. flex-grow on each card fills the
-          // full width alone, or shares it evenly when both render.
+          // remaining item the way it looks like it should. flex-grow on
+          // each card shares the row evenly. Both cards always render
+          // together here — this whole block only renders when the user
+          // has neither role yet (see showGetInvolved above), and picking
+          // one is final, so there's no per-card "already have this one"
+          // case to guard against anymore.
           <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-            {!user.artist ? (
-              <Card variant="brand" style={{ flex: "1 1 16rem" }}>
-                <h3 style={{ marginTop: 0 }}>Are you an artist?</h3>
-                <p className="admin-form__hint">
-                  Sell your original work and prints — each sale splits proceeds between you and the wildlife
-                  cause your piece supports.
-                </p>
-                <Link href="/seller/onboarding" className={buttonVariants({ variant: "form" })}>
-                  Start selling
-                </Link>
-              </Card>
-            ) : null}
-            {!user.conservancy ? (
-              <Card variant="brand" style={{ flex: "1 1 16rem" }}>
-                <h3 style={{ marginTop: 0 }}>Represent a conservation cause?</h3>
-                <p className="admin-form__hint">
-                  Register your organization so artists can pick your cause for new campaigns — you'll receive
-                  a share of every sale, once an admin verifies your registration.
-                </p>
-                <Link href="/cause/onboarding" className={buttonVariants({ variant: "form" })}>
-                  Register a cause
-                </Link>
-              </Card>
-            ) : null}
+            <Card variant="brand" style={{ flex: "1 1 16rem" }}>
+              <h3 style={{ marginTop: 0 }}>Are you an artist?</h3>
+              <p className="admin-form__hint">
+                Sell your original work and prints — each sale splits proceeds between you and the wildlife
+                cause your piece supports.
+              </p>
+              <Link href="/seller/onboarding" className={buttonVariants({ variant: "form" })}>
+                Start selling
+              </Link>
+            </Card>
+            <Card variant="brand" style={{ flex: "1 1 16rem" }}>
+              <h3 style={{ marginTop: 0 }}>Represent a conservation cause?</h3>
+              <p className="admin-form__hint">
+                Register your organization so artists can pick your cause for new campaigns — you'll receive
+                a share of every sale, once an admin verifies your registration.
+              </p>
+              <Link href="/cause/onboarding" className={buttonVariants({ variant: "form" })}>
+                Register a cause
+              </Link>
+            </Card>
           </div>
         );
 

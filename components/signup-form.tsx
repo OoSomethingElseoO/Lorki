@@ -2,11 +2,33 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 
-export function SignupForm() {
+type Role = "artist" | "cause" | null;
+
+const ROLE_OPTIONS: { value: Role; label: string }[] = [
+  { value: "artist", label: "Sell my art" },
+  { value: "cause", label: "Represent a conservation cause" },
+  { value: null, label: "Just browse for now" },
+];
+
+type SignupFormProps = {
+  /** Pre-selects the picker below — see app/signup/page.tsx's ?role= handling. */
+  initialRole?: Role;
+};
+
+// The intent picker below decides ONLY where signup redirects to
+// afterward — it never touches account creation itself. /api/signup stays
+// a single, generic "create a plain account" endpoint (same rate limiting,
+// same password handling, no forked logic to keep in sync); becoming a
+// seller or a cause still goes through the real /seller/onboarding or
+// /cause/onboarding flow and its own validation, exactly as before. This
+// is routing, not a shortcut around that.
+export function SignupForm({ initialRole = null }: SignupFormProps) {
   const router = useRouter();
+  const [role, setRole] = useState<Role>(initialRole);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -32,12 +54,31 @@ export function SignupForm() {
       return;
     }
 
-    router.push("/account");
+    const destination = role === "artist" ? "/seller/onboarding" : role === "cause" ? "/cause/onboarding" : "/account";
+    router.push(destination);
     router.refresh();
   }
 
   return (
     <form className="account-form" onSubmit={handleSubmit}>
+      <fieldset className="signup-role-picker">
+        <legend>What brings you here?</legend>
+        <div className="signup-role-picker__options" role="radiogroup" aria-label="What brings you here?">
+          {ROLE_OPTIONS.map((option) => (
+            <button
+              key={option.label}
+              type="button"
+              role="radio"
+              aria-checked={role === option.value}
+              className={cn(buttonVariants({ variant: role === option.value ? "default" : "outline" }), "signup-role-picker__option")}
+              onClick={() => setRole(option.value)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </fieldset>
+
       <label htmlFor="name">Name (optional)</label>
       <input id="name" value={name} onChange={(event) => setName(event.target.value)} />
 

@@ -26,6 +26,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "You already have a cause profile" }, { status: 409 });
   }
 
+  // One account, one role — mirrors /api/seller/onboarding's check. An
+  // artist can't also register as a cause on the same login.
+  if (user.artist) {
+    return NextResponse.json(
+      { error: "This account is already registered as an artist — one account can't be both an artist and a cause." },
+      { status: 409 },
+    );
+  }
+
   const body = (await request.json()) as Partial<OnboardBody>;
 
   if (!body.name || !body.region || !body.mission || !body.website || !body.contactEmail || !body.registrationNumber) {

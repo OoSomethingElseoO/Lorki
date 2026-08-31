@@ -25,6 +25,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "You already have a seller profile" }, { status: 409 });
   }
 
+  // One account, one role: a cause rep can't also become a seller (and
+  // vice versa, see /api/cause/onboarding's mirror check) — these are two
+  // different kinds of people in practice, and letting one login be both
+  // was never a deliberate design choice, just an omission (this route
+  // only ever checked its own role, not the other one).
+  if (user.conservancy) {
+    return NextResponse.json(
+      { error: "This account is already registered as a cause — one account can't be both an artist and a cause." },
+      { status: 409 },
+    );
+  }
+
   const body = (await request.json()) as Partial<OnboardBody>;
 
   if (!body.name || !body.country || !body.bio || !body.imageUrl) {
