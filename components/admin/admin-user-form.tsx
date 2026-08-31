@@ -43,15 +43,21 @@ export function AdminUserForm() {
   }
 
   return (
-    <form className="admin-form" onSubmit={handleSubmit}>
-      <label htmlFor="name">Name</label>
-      <input id="name" name="name" required />
+    <form className="admin-form admin-form--field-grid" onSubmit={handleSubmit}>
+      <div className="admin-form__field">
+        <label htmlFor="name">Name</label>
+        <input id="name" name="name" required />
+      </div>
 
-      <label htmlFor="email">Email</label>
-      <input id="email" name="email" type="email" required />
+      <div className="admin-form__field">
+        <label htmlFor="email">Email</label>
+        <input id="email" name="email" type="email" required />
+      </div>
 
-      <label htmlFor="password">Password</label>
-      <input id="password" name="password" type="password" required minLength={8} />
+      <div className="admin-form__field admin-form__field--wide">
+        <label htmlFor="password">Password</label>
+        <input id="password" name="password" type="password" required minLength={8} />
+      </div>
 
       {error ? <p className="admin-form__error">{error}</p> : null}
       <Button type="submit" variant="form" className="mt-3" disabled={submitting}>

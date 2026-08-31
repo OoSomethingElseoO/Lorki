@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";
 import { Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const dynamic = "force-dynamic";
 
@@ -37,48 +38,11 @@ export default async function AccountPage() {
         Signed in as <strong>{user.name || user.email}</strong>
       </p>
 
-      {!user.artist || !user.conservancy ? (
-        <section aria-label="Get involved" style={{ marginTop: "1.5rem", marginBottom: "2rem" }}>
-          <h2>Get involved</h2>
-          {/* flexbox, not CSS grid with auto-fit: auto-fit's "collapse empty
-              tracks" behavior doesn't redistribute their space to a single
-              remaining item the way it looks like it should — a lone card
-              (the common case: an artist-only or cause-only user only ever
-              sees ONE of these two) ends up centered in a ~16rem column
-              instead of spanning the row. flex-grow on each card fills the
-              full width alone, or shares it evenly when both render. */}
-          <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-            {!user.artist ? (
-              <Card variant="brand" style={{ flex: "1 1 16rem" }}>
-                <h3 style={{ marginTop: 0 }}>Are you an artist?</h3>
-                <p className="admin-form__hint">
-                  Sell your original work and prints — each sale splits proceeds between you and the wildlife
-                  cause your piece supports.
-                </p>
-                <Link href="/seller/onboarding" className={buttonVariants({ variant: "form" })}>
-                  Start selling
-                </Link>
-              </Card>
-            ) : null}
-            {!user.conservancy ? (
-              <Card variant="brand" style={{ flex: "1 1 16rem" }}>
-                <h3 style={{ marginTop: 0 }}>Represent a conservation cause?</h3>
-                <p className="admin-form__hint">
-                  Register your organization so artists can pick your cause for new campaigns — you'll receive
-                  a share of every sale, once an admin verifies your registration.
-                </p>
-                <Link href="/cause/onboarding" className={buttonVariants({ variant: "form" })}>
-                  Register a cause
-                </Link>
-              </Card>
-            ) : null}
-          </div>
-        </section>
-      ) : null}
+      {(() => {
+        const showGetInvolved = !user.artist || !user.conservancy;
 
-      <section className="account-orders" aria-label="Order history">
-        <h2>Order history</h2>
-          {orders.length === 0 ? (
+        const orderHistory =
+          orders.length === 0 ? (
             <EmptyState
               icon={<Package />}
               title="No orders yet"
@@ -107,8 +71,70 @@ export default async function AccountPage() {
                 </li>
               ))}
             </ul>
-          )}
-      </section>
+          );
+
+        const getInvolvedCards = (
+          // flexbox, not CSS grid with auto-fit: auto-fit's "collapse empty
+          // tracks" behavior doesn't redistribute their space to a single
+          // remaining item the way it looks like it should — a lone card
+          // (the common case: an artist-only or cause-only user only ever
+          // sees ONE of these two) ends up centered in a ~16rem column
+          // instead of spanning the row. flex-grow on each card fills the
+          // full width alone, or shares it evenly when both render.
+          <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+            {!user.artist ? (
+              <Card variant="brand" style={{ flex: "1 1 16rem" }}>
+                <h3 style={{ marginTop: 0 }}>Are you an artist?</h3>
+                <p className="admin-form__hint">
+                  Sell your original work and prints — each sale splits proceeds between you and the wildlife
+                  cause your piece supports.
+                </p>
+                <Link href="/seller/onboarding" className={buttonVariants({ variant: "form" })}>
+                  Start selling
+                </Link>
+              </Card>
+            ) : null}
+            {!user.conservancy ? (
+              <Card variant="brand" style={{ flex: "1 1 16rem" }}>
+                <h3 style={{ marginTop: 0 }}>Represent a conservation cause?</h3>
+                <p className="admin-form__hint">
+                  Register your organization so artists can pick your cause for new campaigns — you'll receive
+                  a share of every sale, once an admin verifies your registration.
+                </p>
+                <Link href="/cause/onboarding" className={buttonVariants({ variant: "form" })}>
+                  Register a cause
+                </Link>
+              </Card>
+            ) : null}
+          </div>
+        );
+
+        // A single-tab "Tabs" is pointless UI — only show tabs when there's
+        // genuinely something in "Get involved" to switch to (a user who's
+        // already both an artist and a cause rep never sees that section at
+        // all, so Order history renders alone, same as before).
+        if (!showGetInvolved) {
+          return (
+            <section className="account-orders" aria-label="Order history">
+              <h2>Order history</h2>
+              {orderHistory}
+            </section>
+          );
+        }
+
+        return (
+          <Tabs defaultValue="get-involved" className="mt-6">
+            <TabsList aria-label="Account sections">
+              <TabsTrigger value="get-involved">Get involved</TabsTrigger>
+              <TabsTrigger value="orders">Order history</TabsTrigger>
+            </TabsList>
+            <TabsContent value="get-involved">{getInvolvedCards}</TabsContent>
+            <TabsContent value="orders" className="account-orders">
+              {orderHistory}
+            </TabsContent>
+          </Tabs>
+        );
+      })()}
     </>
   );
 }

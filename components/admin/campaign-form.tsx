@@ -87,7 +87,7 @@ export function CampaignForm({ animals, conservancies, artists, id, initial }: C
   }
 
   return (
-    <form className="admin-form" onSubmit={handleSubmit}>
+    <form className="admin-form admin-form--field-grid" onSubmit={handleSubmit}>
       <div className="admin-form__radio-group">
         <label>
           <input
@@ -111,47 +111,51 @@ export function CampaignForm({ animals, conservancies, artists, id, initial }: C
         </label>
       </div>
 
-      {causeMode === "animal" ? (
-        <>
-          <label htmlFor="animalId">Animal</label>
-          <select id="animalId" name="animalId" required defaultValue={initial?.animalId ?? ""}>
-            <option value="" disabled>
-              Select an animal
-            </option>
-            {animals.map((animal) => (
-              <option key={animal.id} value={animal.id}>
-                {animal.name}
+      <div className="admin-form__field">
+        {causeMode === "animal" ? (
+          <>
+            <label htmlFor="animalId">Animal</label>
+            <select id="animalId" name="animalId" required defaultValue={initial?.animalId ?? ""}>
+              <option value="" disabled>
+                Select an animal
               </option>
-            ))}
-          </select>
-        </>
-      ) : (
-        <>
-          <label htmlFor="conservancyId">Cause</label>
-          <select id="conservancyId" name="conservancyId" required defaultValue={initial?.conservancyId ?? ""}>
-            <option value="" disabled>
-              Select a cause
-            </option>
-            {conservancies.map((conservancy) => (
-              <option key={conservancy.id} value={conservancy.id}>
-                {conservancy.name}
+              {animals.map((animal) => (
+                <option key={animal.id} value={animal.id}>
+                  {animal.name}
+                </option>
+              ))}
+            </select>
+          </>
+        ) : (
+          <>
+            <label htmlFor="conservancyId">Cause</label>
+            <select id="conservancyId" name="conservancyId" required defaultValue={initial?.conservancyId ?? ""}>
+              <option value="" disabled>
+                Select a cause
               </option>
-            ))}
-          </select>
-        </>
-      )}
+              {conservancies.map((conservancy) => (
+                <option key={conservancy.id} value={conservancy.id}>
+                  {conservancy.name}
+                </option>
+              ))}
+            </select>
+          </>
+        )}
+      </div>
 
-      <label htmlFor="artistId">Artist</label>
-      <select id="artistId" name="artistId" required defaultValue={initial?.artistId ?? ""}>
-        <option value="" disabled>
-          Select an artist
-        </option>
-        {artists.map((artist) => (
-          <option key={artist.id} value={artist.id}>
-            {artist.name}
+      <div className="admin-form__field">
+        <label htmlFor="artistId">Artist</label>
+        <select id="artistId" name="artistId" required defaultValue={initial?.artistId ?? ""}>
+          <option value="" disabled>
+            Select an artist
           </option>
-        ))}
-      </select>
+          {artists.map((artist) => (
+            <option key={artist.id} value={artist.id}>
+              {artist.name}
+            </option>
+          ))}
+        </select>
+      </div>
 
       <div className="admin-form__split-row">
         <div>

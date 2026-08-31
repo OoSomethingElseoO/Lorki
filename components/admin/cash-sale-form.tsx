@@ -56,21 +56,25 @@ export function CashSaleForm({ artworks }: CashSaleFormProps) {
   }
 
   return (
-    <form className="admin-form" onSubmit={handleSubmit}>
-      <label htmlFor="artworkId">Artwork</label>
-      <select id="artworkId" name="artworkId" required defaultValue="">
-        <option value="" disabled>
-          Select artwork
-        </option>
-        {artworks.map((artwork) => (
-          <option key={artwork.id} value={artwork.id}>
-            {artwork.title} — {artwork.campaignLabel} — ${(artwork.priceCents / 100).toFixed(2)}
+    <form className="admin-form admin-form--field-grid" onSubmit={handleSubmit}>
+      <div className="admin-form__field">
+        <label htmlFor="artworkId">Artwork</label>
+        <select id="artworkId" name="artworkId" required defaultValue="">
+          <option value="" disabled>
+            Select artwork
           </option>
-        ))}
-      </select>
+          {artworks.map((artwork) => (
+            <option key={artwork.id} value={artwork.id}>
+              {artwork.title} — {artwork.campaignLabel} — ${(artwork.priceCents / 100).toFixed(2)}
+            </option>
+          ))}
+        </select>
+      </div>
 
-      <label htmlFor="buyerEmail">Buyer email</label>
-      <input id="buyerEmail" name="buyerEmail" type="email" required placeholder="buyer@example.com" />
+      <div className="admin-form__field">
+        <label htmlFor="buyerEmail">Buyer email</label>
+        <input id="buyerEmail" name="buyerEmail" type="email" required placeholder="buyer@example.com" />
+      </div>
 
       <p className="admin-form__hint">Shipping details are optional — leave blank for an in-person handoff.</p>
 
@@ -79,11 +83,15 @@ export function CashSaleForm({ artworks }: CashSaleFormProps) {
         Buyer is taking the piece home right now (no shipping needed — releases payout immediately)
       </label>
 
-      <label htmlFor="shippingName">Recipient name</label>
-      <input id="shippingName" name="shippingName" />
+      <div className="admin-form__field">
+        <label htmlFor="shippingName">Recipient name</label>
+        <input id="shippingName" name="shippingName" />
+      </div>
 
-      <label htmlFor="shippingAddressLine1">Address</label>
-      <input id="shippingAddressLine1" name="shippingAddressLine1" />
+      <div className="admin-form__field">
+        <label htmlFor="shippingAddressLine1">Address</label>
+        <input id="shippingAddressLine1" name="shippingAddressLine1" />
+      </div>
 
       <div className="admin-form__split-row">
         <div>
@@ -100,8 +108,10 @@ export function CashSaleForm({ artworks }: CashSaleFormProps) {
         </div>
       </div>
 
-      <label htmlFor="shippingCountry">Country</label>
-      <input id="shippingCountry" name="shippingCountry" placeholder="US" />
+      <div className="admin-form__field admin-form__field--wide">
+        <label htmlFor="shippingCountry">Country</label>
+        <input id="shippingCountry" name="shippingCountry" placeholder="US" />
+      </div>
 
       {error ? <p className="admin-form__error">{error}</p> : null}
       {success ? <p className="admin-form__hint">{success}</p> : null}

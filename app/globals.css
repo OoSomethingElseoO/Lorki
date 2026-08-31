@@ -1777,6 +1777,79 @@ a:focus-visible {
   box-shadow: 0 1px 2px rgba(27, 27, 24, 0.04);
 }
 
+/* Second-pass fix for the same dead-space problem — see
+   docs/DASHBOARD_UX_AUDIT.md's "Status" section for the full writeup of
+   why the first attempt (a narrower wrapper div around just the header +
+   form, formerly .admin-form-column, removed here) wasn't enough: nesting
+   a narrow column inside a narrow column doesn't shrink the *container*'s
+   own empty space, it just relocates it. The real fix is to make
+   .admin-form itself genuinely wider by giving short fields a responsive
+   2-column layout, so the form's own natural width fills meaningfully
+   more of .dashboard-main--admin's 68rem — instead of fighting the
+   container from outside.
+
+   Applies only to the 8 admin CRUD pages' create/edit forms (Conservancies,
+   Co-ops, Animals, Artists, Campaigns, News, Orders' cash-sale form, Users)
+   via this opt-in modifier — every *other* .admin-form usage in the
+   codebase (seller/cause profile+payout forms, onboarding forms, the
+   verify-conservancy modal, etc.) still renders as a plain single column,
+   unaffected, since none of them wrap their fields in .admin-form__field
+   pairs below. */
+.admin-form--field-grid {
+  max-width: 48rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 1.25rem;
+}
+
+/* Every direct child defaults to spanning the full row — the submit
+   button, error/hint text, a <fieldset>, .admin-form__radio-group,
+   .admin-form__split-row, and any field explicitly marked --wide (a long
+   <textarea>, or a field left without a same-row partner) all still read
+   as one full-width row exactly like before. Only a plain
+   .admin-form__field pair opts into sharing a row with its neighbor. */
+.admin-form--field-grid > * {
+  grid-column: 1 / -1;
+}
+
+.admin-form--field-grid > .admin-form__field {
+  grid-column: auto / span 1;
+}
+
+.admin-form--field-grid > .admin-form__field--wide {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 720px) {
+  /* Same breakpoint already used elsewhere in this file (.site-nav,
+     .dashboard-shell, .site-footer__inner) for the mobile fallback —
+     collapse back to the single-column layout every other .admin-form
+     usage already has, rather than squeezing two fields into a phone
+     width. */
+  .admin-form--field-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Wraps one label+input/select/textarea pair as a single grid cell so
+   .admin-form--field-grid (above) can place two of these side by side.
+   Plain block layout — .admin-form label's own display:block (below)
+   still stacks the label above its field exactly as before; this wrapper
+   only exists to give the *pair* one grid placement instead of two. */
+.admin-form__field {
+  display: grid;
+  gap: 0.4rem;
+}
+
+/* .admin-form label's own margin-top (below) exists to space a label from
+   the *previous field's* input when both were flat grid siblings — once a
+   label is the first child inside its own .admin-form__field wrapper,
+   that spacing is redundant (the wrapper's own row-gap from its parent
+   .admin-form grid handles it instead) and just adds a stray gap above
+   every field. */
+.admin-form__field > label {
+  margin-top: 0;
+}
+
 /* For an .admin-form nested inside another one (e.g. the payout section
    within a combined settings panel) — keeps the grid/gap field layout but
    drops its own independent box, so two related forms read as one card
@@ -1798,6 +1871,19 @@ a:focus-visible {
    underlying issue as .admin-nav/.admin-table on mobile, just triggered
    by grid's own default here rather than flex's. */
 .admin-form > * {
+  min-width: 0;
+}
+
+/* Same fix as .admin-form > * above, one level deeper: .admin-form__field
+   is itself a nested grid (see its own definition below), so a <select>
+   with a long option string (e.g. cash-sale-form.tsx's artwork picker —
+   "title — campaign — $price") is a grid item of *that* inner grid, not
+   a direct child of .admin-form, and never picked up the outer rule.
+   Confirmed live: without this, that select's own max-content width
+   forced the inner grid track wider than the field wrapper, overflowing
+   a 390px viewport by ~150px even though the outer .admin-form--field-grid
+   had already collapsed to one column. */
+.admin-form__field > * {
   min-width: 0;
 }
 
@@ -2314,8 +2400,23 @@ a:focus-visible {
 
 .admin-form__social-link-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.4rem;
   margin-bottom: 0.4rem;
+}
+
+/* Pre-existing gap found while verifying this file's other mobile
+   breakpoints (see .admin-form__split-row > div's own identical comment
+   above, and .admin-campaign-card's fix in docs/DASHBOARD_UX_AUDIT.md) —
+   two un-shrinkable text inputs plus a remove button forced this row
+   ~180px past a 390px viewport on the Artists page specifically (the only
+   admin-form usage with social links). flex-wrap above lets the row break
+   onto more than one line; min-width: 0 here is what actually lets each
+   input shrink to fit instead of refusing to go below its default
+   intrinsic size. */
+.admin-form__social-link-row input {
+  min-width: 0;
+  flex: 1 1 8rem;
 }
 
 .admin-form__add-link {

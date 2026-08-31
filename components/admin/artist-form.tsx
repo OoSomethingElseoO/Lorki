@@ -88,27 +88,35 @@ export function ArtistForm({ coOps, id, initial }: ArtistFormProps) {
   }
 
   return (
-    <form className="admin-form" onSubmit={handleSubmit}>
-      <label htmlFor="name">Name</label>
-      <input id="name" name="name" required defaultValue={initial?.name} />
+    <form className="admin-form admin-form--field-grid" onSubmit={handleSubmit}>
+      <div className="admin-form__field">
+        <label htmlFor="name">Name</label>
+        <input id="name" name="name" required defaultValue={initial?.name} />
+      </div>
 
-      <label htmlFor="country">Country</label>
-      <input id="country" name="country" required placeholder="Kenya" defaultValue={initial?.country} />
+      <div className="admin-form__field">
+        <label htmlFor="country">Country</label>
+        <input id="country" name="country" required placeholder="Kenya" defaultValue={initial?.country} />
+      </div>
 
-      <label htmlFor="bio">Bio</label>
-      <textarea id="bio" name="bio" required rows={4} defaultValue={initial?.bio} />
+      <div className="admin-form__field admin-form__field--wide">
+        <label htmlFor="bio">Bio</label>
+        <textarea id="bio" name="bio" required rows={4} defaultValue={initial?.bio} />
+      </div>
 
       <ImageUploadField name="imageUrl" label="Image" defaultValue={initial?.imageUrl} />
 
-      <label htmlFor="coOpId">Co-op (optional)</label>
-      <select id="coOpId" name="coOpId" defaultValue={initial?.coOpId ?? ""}>
-        <option value="">No co-op</option>
-        {coOps.map((coOp) => (
-          <option key={coOp.id} value={coOp.id}>
-            {coOp.name}
-          </option>
-        ))}
-      </select>
+      <div className="admin-form__field admin-form__field--wide">
+        <label htmlFor="coOpId">Co-op (optional)</label>
+        <select id="coOpId" name="coOpId" defaultValue={initial?.coOpId ?? ""}>
+          <option value="">No co-op</option>
+          {coOps.map((coOp) => (
+            <option key={coOp.id} value={coOp.id}>
+              {coOp.name}
+            </option>
+          ))}
+        </select>
+      </div>
 
       <fieldset className="admin-form__social-links">
         <legend>Social links</legend>

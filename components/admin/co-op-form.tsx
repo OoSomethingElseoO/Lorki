@@ -59,15 +59,21 @@ export function CoOpForm({ id, initial }: CoOpFormProps) {
   }
 
   return (
-    <form className="admin-form" onSubmit={handleSubmit}>
-      <label htmlFor="name">Name</label>
-      <input id="name" name="name" required defaultValue={initial?.name} />
+    <form className="admin-form admin-form--field-grid" onSubmit={handleSubmit}>
+      <div className="admin-form__field">
+        <label htmlFor="name">Name</label>
+        <input id="name" name="name" required defaultValue={initial?.name} />
+      </div>
 
-      <label htmlFor="region">Region</label>
-      <input id="region" name="region" required defaultValue={initial?.region} />
+      <div className="admin-form__field">
+        <label htmlFor="region">Region</label>
+        <input id="region" name="region" required defaultValue={initial?.region} />
+      </div>
 
-      <label htmlFor="contactEmail">Contact email</label>
-      <input id="contactEmail" name="contactEmail" type="email" required defaultValue={initial?.contactEmail} />
+      <div className="admin-form__field admin-form__field--wide">
+        <label htmlFor="contactEmail">Contact email</label>
+        <input id="contactEmail" name="contactEmail" type="email" required defaultValue={initial?.contactEmail} />
+      </div>
 
       {error ? <p className="admin-form__error">{error}</p> : null}
       <Button type="submit" variant="form" className="mt-3" disabled={submitting}>

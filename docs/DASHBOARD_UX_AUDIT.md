@@ -264,3 +264,79 @@ reach into the DOM for the one real child element in the GSAP effect
 (`containerRef.current.firstElementChild`) once React has fully resolved
 everything, instead of `Children.only`/`isValidElement`/`cloneElement` at
 render time.
+
+### Second pass: the admin create-form dead-space item was closed too early
+
+The "Three unreconciled width caps against their containers" finding above
+only fixed `.impact-totals`/`.account-orders`/`.campaign-card`
+(`.dashboard-main--brand`) — it never actually re-measured the 8 admin CRUD
+create forms (Conservancies, Co-ops, Animals, Artists, Campaigns, News,
+Orders' cash-sale form, Users) against `.dashboard-main--admin`'s 68rem, and
+a separate, later attempt at that specific problem was marked done on the
+strength of a plausible-sounding fix, not a live remeasurement. That attempt
+wrapped each page's `<h1>` + `.admin-form` in a new `.admin-form-column`
+div capped at 40rem, reasoning that a narrower column would stop the form
+from being "stranded" next to empty background. Live `getBoundingClientRect()`
+measurement afterward showed it barely worked: dead space beside the form
+dropped from ~456px to ~392px at 1440px viewport — because wrapping an
+already-narrow 36rem-capped `.admin-form` in another narrow wrapper doesn't
+change how much of the surrounding *container* (`.dashboard-main--admin`,
+sized for the wide table below) is empty page background. The wrapper just
+moved where the narrowness started; it didn't make the form itself wider.
+
+**Actual fix:** gave `.admin-form` a real opt-in 2-column field grid
+(`.admin-form--field-grid` in `app/globals.css`, applied only to these 8
+forms' top-level `<form>` element) and restructured each form's markup so
+short text/email/url/select fields are paired side by side instead of one
+per row — wrapping each label+input in a new `.admin-form__field` div (a
+grid item the outer grid can place two of per row), with
+`.admin-form__field--wide` for anything that should still take the full
+row (long `<textarea>`s, and any field left without a natural same-row
+partner, to avoid a dangling empty half-row next to it). `max-width` for
+this variant went from 36rem to 48rem — a real width increase, not just a
+reshuffled wrapper — since the form's own natural content now justifies
+more room. `.admin-form-column` (the first attempt's wrapper) was removed
+entirely once its only 8 usages were unwrapped; it wasn't used anywhere
+else. Collapses back to one column via the file's existing
+`@media (max-width: 720px)` convention.
+
+Live-measured before/after at 1440px on all 8 pages, all identical since
+the change is uniform: **dead space beside the form dropped from ~456px
+(original) → ~392px (first attempt) → 208px (this fix)** — the form itself
+now measures 768px wide (was 576px), against the same 1088px
+`.dashboard-main--admin` container. Confirmed live via a real admin login,
+not just visual inspection: submitting the Co-op and News create forms
+each produced a real row in Postgres (verified with `psql`, then cleaned
+up) and updated their tables on refresh; a Campaign edit page and a
+Conservancy edit page (which reuses the same form component in "edit"
+mode) both render the 2-column layout correctly with existing values
+pre-filled. `npm run build`/`npm test` (101/101) clean. Screenshots taken
+at 1440×900 for all 8 pages and at 390×844 for two of them (Conservancies,
+Artists) confirming the single-column mobile fallback.
+
+Two real bugs this restructuring surfaced and fixed along the way, neither
+present in the first (wrapper-div) attempt because that attempt never
+introduced a nested grid:
+- `.admin-form__field`'s own `display: grid` wrapper is one level deeper
+  than `.admin-form` itself, so the existing `.admin-form > * { min-width:
+  0 }` rule (needed for exactly this class of grid-track-refuses-to-shrink
+  bug elsewhere in this file) never reached a field's actual `<input>`/
+  `<select>`. Invisible for short field values, but cash-sale-form.tsx's
+  artwork picker — a `<select>` whose option text is a full "title —
+  campaign — $price" string — forced its grid track wide enough to
+  overflow a 390px viewport by ~150px even though the outer grid had
+  already collapsed to one column. Fixed with the same `min-width: 0`
+  pattern one level deeper (`.admin-form__field > *`).
+- A pre-existing, unrelated bug on the Artists page specifically:
+  `.admin-form__social-link-row` (the flex row pairing a platform + URL
+  input for each social link, `artist-form.tsx`) had no `flex-wrap` and no
+  `min-width: 0` on its inputs, so on a 390px viewport it forced the page
+  ~180px wider than the viewport — confirmed pre-existing (unrelated to
+  the field-grid change: reproduced identically with the fieldset hidden
+  vs. shown before the fix, and the row's own markup/CSS was untouched by
+  this pass) and not previously caught by any earlier audit pass, since
+  none of them measured this specific fieldset on mobile. Fixed the same
+  way the audit's own "Admin Campaigns page overflows horizontally on
+  mobile" item above fixed the identical problem on
+  `.admin-campaign-card`: added `flex-wrap: wrap` to the row and
+  `min-width: 0` to its inputs.

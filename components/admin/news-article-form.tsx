@@ -61,15 +61,23 @@ export function NewsArticleForm({ id, initial }: NewsArticleFormProps) {
   }
 
   return (
-    <form className="admin-form" onSubmit={handleSubmit}>
-      <label htmlFor="title">Title</label>
-      <input id="title" name="title" required defaultValue={initial?.title} />
+    <form className="admin-form admin-form--field-grid" onSubmit={handleSubmit}>
+      <div className="admin-form__field">
+        <label htmlFor="title">Title</label>
+        <input id="title" name="title" required defaultValue={initial?.title} />
+      </div>
 
-      <label htmlFor="summary">Summary</label>
-      <textarea id="summary" name="summary" required rows={2} defaultValue={initial?.summary} />
+      {/* Short enough (rows=2) to pair with Title rather than force its own
+          full-width row — unlike Body below, which stays full width. */}
+      <div className="admin-form__field">
+        <label htmlFor="summary">Summary</label>
+        <textarea id="summary" name="summary" required rows={2} defaultValue={initial?.summary} />
+      </div>
 
-      <label htmlFor="body">Body</label>
-      <textarea id="body" name="body" required rows={8} defaultValue={initial?.body} />
+      <div className="admin-form__field admin-form__field--wide">
+        <label htmlFor="body">Body</label>
+        <textarea id="body" name="body" required rows={8} defaultValue={initial?.body} />
+      </div>
 
       <ImageUploadField name="imageUrl" label="Image" defaultValue={initial?.imageUrl} />
 

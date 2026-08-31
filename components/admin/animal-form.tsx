@@ -70,38 +70,48 @@ export function AnimalForm({ conservancies, id, initial }: AnimalFormProps) {
   }
 
   return (
-    <form className="admin-form" onSubmit={handleSubmit}>
-      <label htmlFor="name">Name</label>
-      <input id="name" name="name" required placeholder="Lorkulup" defaultValue={initial?.name} />
+    <form className="admin-form admin-form--field-grid" onSubmit={handleSubmit}>
+      <div className="admin-form__field">
+        <label htmlFor="name">Name</label>
+        <input id="name" name="name" required placeholder="Lorkulup" defaultValue={initial?.name} />
+      </div>
 
-      <label htmlFor="species">Species</label>
-      <input id="species" name="species" required placeholder="Lion" defaultValue={initial?.species} />
+      <div className="admin-form__field">
+        <label htmlFor="species">Species</label>
+        <input id="species" name="species" required placeholder="Lion" defaultValue={initial?.species} />
+      </div>
 
-      <label htmlFor="region">Region</label>
-      <input
-        id="region"
-        name="region"
-        required
-        placeholder="Maasai Mara, Kenya"
-        defaultValue={initial?.region}
-      />
+      <div className="admin-form__field admin-form__field--wide">
+        <label htmlFor="region">Region</label>
+        <input
+          id="region"
+          name="region"
+          required
+          placeholder="Maasai Mara, Kenya"
+          defaultValue={initial?.region}
+        />
+      </div>
 
-      <label htmlFor="story">Story</label>
-      <textarea id="story" name="story" required rows={4} defaultValue={initial?.story} />
+      <div className="admin-form__field admin-form__field--wide">
+        <label htmlFor="story">Story</label>
+        <textarea id="story" name="story" required rows={4} defaultValue={initial?.story} />
+      </div>
 
       <ImageUploadField name="imageUrl" label="Image" defaultValue={initial?.imageUrl} />
 
-      <label htmlFor="conservancyId">Conservancy</label>
-      <select id="conservancyId" name="conservancyId" required defaultValue={initial?.conservancyId ?? ""}>
-        <option value="" disabled>
-          Select a conservancy
-        </option>
-        {conservancies.map((conservancy) => (
-          <option key={conservancy.id} value={conservancy.id}>
-            {conservancy.name}
+      <div className="admin-form__field admin-form__field--wide">
+        <label htmlFor="conservancyId">Conservancy</label>
+        <select id="conservancyId" name="conservancyId" required defaultValue={initial?.conservancyId ?? ""}>
+          <option value="" disabled>
+            Select a conservancy
           </option>
-        ))}
-      </select>
+          {conservancies.map((conservancy) => (
+            <option key={conservancy.id} value={conservancy.id}>
+              {conservancy.name}
+            </option>
+          ))}
+        </select>
+      </div>
 
       {error ? <p className="admin-form__error">{error}</p> : null}
       <Button type="submit" variant="form" className="mt-3" disabled={submitting}>

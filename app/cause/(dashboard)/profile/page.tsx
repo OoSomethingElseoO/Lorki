@@ -3,6 +3,7 @@ import { HeartHandshake } from "lucide-react";
 import { CauseSettingsPanel } from "@/components/cause-settings-panel";
 import { EmptyState } from "@/components/empty-state";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { recommendPayoutChannel } from "@/lib/payout-recommendations";
@@ -62,47 +63,58 @@ export default async function CauseProfilePage() {
         </div>
       </section>
 
-      <Card variant="brand" className="mt-8 mb-8">
-        <CardHeader>
-          <CardTitle>Campaigns supporting you</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {campaigns.length === 0 ? (
-            <EmptyState
-              icon={<HeartHandshake />}
-              title="No campaigns yet"
-              description="Once an artist picks your cause for a new campaign, it'll show up here."
-            />
-          ) : (
-            <div className="campaign-list">
-              {campaigns.map((campaign) => (
-                <article className="campaign-card" key={campaign.id}>
-                  <h3>
-                    {campaign.artist.name}
-                    {campaign.status !== "LIVE" ? (
-                      <>
-                        {" "}
-                        <span className={statusBadgeClass(campaign.status)}>{campaign.status}</span>
-                      </>
-                    ) : null}
-                  </h3>
-                  <p>
-                    <span className="detail-label">Campaign:</span> {getCampaignLabel(campaign)}
-                  </p>
-                  <p className="campaign-card__split">
-                    <span>{campaign.artistPercent}% artist</span>
-                    <span>{campaign.conservancyPercent}% you</span>
-                    <span>{campaign.operationsPercent}% operations</span>
-                  </p>
-                  <p>{campaign.artworks.length} listing(s)</p>
-                </article>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <Tabs defaultValue="campaigns" className="mt-8">
+        <TabsList aria-label="Cause dashboard sections">
+          <TabsTrigger value="campaigns">Campaigns</TabsTrigger>
+          <TabsTrigger value="settings">Manage your cause</TabsTrigger>
+        </TabsList>
 
-      <CauseSettingsPanel cause={cause} recommendation={recommendPayoutChannel(cause.region)} />
+        <TabsContent value="campaigns">
+          <Card variant="brand">
+            <CardHeader>
+              <CardTitle>Campaigns supporting you</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {campaigns.length === 0 ? (
+                <EmptyState
+                  icon={<HeartHandshake />}
+                  title="No campaigns yet"
+                  description="Once an artist picks your cause for a new campaign, it'll show up here."
+                />
+              ) : (
+                <div className="campaign-list">
+                  {campaigns.map((campaign) => (
+                    <article className="campaign-card" key={campaign.id}>
+                      <h3>
+                        {campaign.artist.name}
+                        {campaign.status !== "LIVE" ? (
+                          <>
+                            {" "}
+                            <span className={statusBadgeClass(campaign.status)}>{campaign.status}</span>
+                          </>
+                        ) : null}
+                      </h3>
+                      <p>
+                        <span className="detail-label">Campaign:</span> {getCampaignLabel(campaign)}
+                      </p>
+                      <p className="campaign-card__split">
+                        <span>{campaign.artistPercent}% artist</span>
+                        <span>{campaign.conservancyPercent}% you</span>
+                        <span>{campaign.operationsPercent}% operations</span>
+                      </p>
+                      <p>{campaign.artworks.length} listing(s)</p>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="settings">
+          <CauseSettingsPanel cause={cause} recommendation={recommendPayoutChannel(cause.region)} />
+        </TabsContent>
+      </Tabs>
     </>
   );
 }
