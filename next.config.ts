@@ -1,7 +1,18 @@
 import type { NextConfig } from "next";
+import path from "node:path";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  // A stray package-lock.json one directory up (in the parent
+  // Personal_Projects folder, unrelated to this repo) made Next.js infer
+  // that as the workspace root instead of this project — every standalone
+  // build then nested server.js under a deep, absolute-path-mirroring
+  // directory (.next/standalone/Personal_Projects/Lorki/server.js)
+  // instead of .next/standalone/server.js, which isn't portable across
+  // machines/hosts with a different absolute path. Pinning this explicitly
+  // keeps the standalone output flat and predictable regardless of what
+  // else happens to sit in a parent directory.
+  outputFileTracingRoot: path.join(__dirname),
   compiler: {
     styledComponents: true,
   },

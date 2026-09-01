@@ -55,7 +55,9 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: "Conservancy not found" }, { status: 404 });
     }
     if (isForeignKeyConstraintError(error)) {
-      return foreignKeyConstraintResponse("This conservancy still has animals linked to it — remove those first");
+      return foreignKeyConstraintResponse(
+        "This conservancy still has animals or campaigns linked to it — remove or reassign those first",
+      );
     }
     throw error;
   }
