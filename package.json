@@ -6,7 +6,8 @@
     "postinstall": "prisma generate",
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "postbuild": "cp -r public .next/standalone/public && mkdir -p .next/standalone/.next && cp -r .next/static .next/standalone/.next/static",
+    "start": "node server.cluster.js",
     "lint": "next lint",
     "test": "tsx --test lib/__tests__/*.test.ts",
     "test:e2e": "playwright test"

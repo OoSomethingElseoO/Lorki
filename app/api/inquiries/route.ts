@@ -18,7 +18,7 @@ const INQUIRY_RATE_WINDOW_MS = 5 * 60 * 1000;
 
 export async function POST(request: Request) {
   const ip = getRequestIp(request);
-  if (isRateLimited(`inquiry:${ip}`, INQUIRY_RATE_LIMIT, INQUIRY_RATE_WINDOW_MS)) {
+  if (await isRateLimited(`inquiry:${ip}`, INQUIRY_RATE_LIMIT, INQUIRY_RATE_WINDOW_MS)) {
     return NextResponse.json({ error: "Too many inquiries. Please try again in a few minutes." }, { status: 429 });
   }
 

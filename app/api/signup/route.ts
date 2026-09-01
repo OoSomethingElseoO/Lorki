@@ -10,7 +10,7 @@ import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
 // same login, not different signup forms.
 export async function POST(request: Request) {
   const ip = getRequestIp(request);
-  if (isRateLimited(`signup:${ip}`, 5, 5 * 60 * 1000)) {
+  if (await isRateLimited(`signup:${ip}`, 5, 5 * 60 * 1000)) {
     return NextResponse.json({ error: "Too many signup attempts. Please try again in a few minutes." }, { status: 429 });
   }
 

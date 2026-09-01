@@ -489,6 +489,24 @@ model EmailLog {
   @@index([createdAt])
 }
 
+// One row per hit from lib/rate-limit.ts's isRateLimited. Was an in-memory
+// Map — fine for one process, but server.cluster.js now runs this app as
+// several worker processes that each have their own separate memory, so an
+// in-memory counter no longer sees hits recorded by a request another
+// worker handled (confirmed live: 15/15 signups succeeded against the
+// clustered server, 3x the intended 5-per-5-minute limit, zero 429s).
+// Backed by Postgres instead — every worker already shares the same
+// database, and this app already avoids standing up new infrastructure
+// (Redis) for things Postgres can do at this volume; see the identical
+// reasoning on UploadedFile for image storage.
+model RateLimitHit {
+  id        String   @id @default(cuid())
+  key       String
+  createdAt DateTime @default(now())
+
+  @@index([key, createdAt])
+}
+
 model NewsArticle {
   id        String          @id @default(cuid())
   slug      String          @unique

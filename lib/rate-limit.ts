@@ -1,20 +1,23 @@
-// In-memory sliding-window limiter. Fine for a single self-hosted server —
-// this resets on redeploy and doesn't share state across instances, so
-// swap it for a Redis-backed limiter before running multiple instances
-// behind a load balancer.
-const hits = new Map<string, number[]>();
+import { prisma } from "@/lib/prisma";
 
-export function isRateLimited(key: string, maxHits: number, windowMs: number): boolean {
-  const now = Date.now();
-  const timestamps = (hits.get(key) ?? []).filter((timestamp) => now - timestamp < windowMs);
+// Postgres-backed sliding-window limiter — every worker process (see
+// server.cluster.js) shares the same database, so this stays correct
+// regardless of which worker handles which request. One row per hit;
+// checking and cleaning up old rows both scope to the same key, so this
+// self-maintains without a separate cleanup job.
+export async function isRateLimited(key: string, maxHits: number, windowMs: number): Promise<boolean> {
+  const windowStart = new Date(Date.now() - windowMs);
 
-  if (timestamps.length >= maxHits) {
-    hits.set(key, timestamps);
+  // Pruned first so a key that's gone quiet doesn't accumulate rows
+  // forever — cheap, since it's scoped to this one key.
+  await prisma.rateLimitHit.deleteMany({ where: { key, createdAt: { lt: windowStart } } });
+
+  const count = await prisma.rateLimitHit.count({ where: { key, createdAt: { gte: windowStart } } });
+  if (count >= maxHits) {
     return true;
   }
 
-  timestamps.push(now);
-  hits.set(key, timestamps);
+  await prisma.rateLimitHit.create({ data: { key } });
   return false;
 }
 

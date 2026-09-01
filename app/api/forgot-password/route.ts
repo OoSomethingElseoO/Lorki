@@ -14,7 +14,7 @@ function hashToken(rawToken: string): string {
 
 export async function POST(request: Request) {
   const ip = getRequestIp(request);
-  if (isRateLimited(`forgot-password:${ip}`, RATE_LIMIT, RATE_WINDOW_MS)) {
+  if (await isRateLimited(`forgot-password:${ip}`, RATE_LIMIT, RATE_WINDOW_MS)) {
     return NextResponse.json({ error: "Too many attempts. Please try again later." }, { status: 429 });
   }
 

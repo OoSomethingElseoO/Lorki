@@ -20,7 +20,7 @@ const CHECKOUT_RATE_WINDOW_MS = 5 * 60 * 1000;
 
 export async function POST(request: Request) {
   const ip = getRequestIp(request);
-  if (isRateLimited(`checkout:${ip}`, CHECKOUT_RATE_LIMIT, CHECKOUT_RATE_WINDOW_MS)) {
+  if (await isRateLimited(`checkout:${ip}`, CHECKOUT_RATE_LIMIT, CHECKOUT_RATE_WINDOW_MS)) {
     return NextResponse.json({ error: "Too many checkout attempts. Please try again in a few minutes." }, { status: 429 });
   }
 

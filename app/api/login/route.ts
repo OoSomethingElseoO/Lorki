@@ -6,7 +6,7 @@ import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   const ip = getRequestIp(request);
-  if (isRateLimited(`login:${ip}`, 5, 5 * 60 * 1000)) {
+  if (await isRateLimited(`login:${ip}`, 5, 5 * 60 * 1000)) {
     return NextResponse.json({ error: "Too many login attempts. Please try again in a few minutes." }, { status: 429 });
   }
 
