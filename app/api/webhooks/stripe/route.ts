@@ -120,13 +120,19 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     return order;
   });
 
-  await sendOrderConfirmationEmail({
+  // Not awaited: the order/inventory/payout rows are already committed
+  // above, so Stripe's webhook response shouldn't sit blocked on Resend —
+  // under a burst of concurrent checkouts that's needless latency on every
+  // request, and a slow or down email provider would risk the response
+  // missing Stripe's own webhook timeout and triggering a retry. Neither
+  // send can throw (see sendEmail's own try/catch in lib/email.ts).
+  sendOrderConfirmationEmail({
     buyerEmail: order.buyerEmail,
     artworkTitle: artwork.title,
     amountCents: order.amountCents,
   });
 
-  await sendOperationsAlert(
+  sendOperationsAlert(
     `New order: ${artwork.title}`,
     `<p>${order.buyerEmail} bought <strong>${artwork.title}</strong> for $${(order.amountCents / 100).toFixed(2)}.</p><p>Fulfillment needed — mark it shipped in the admin once it's on its way.</p>`,
   );
