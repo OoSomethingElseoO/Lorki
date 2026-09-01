@@ -55,6 +55,19 @@ type SettingsFormProps = {
   };
 };
 
+// Every secret field only ever shows via placeholder text ("(set — leave
+// blank to keep)" vs a format hint) — real, but easy to skim past, since
+// both states otherwise look like the same empty input. This sits next to
+// each provider's title instead, using the same status-badge language
+// already used everywhere else in admin for "is this thing actually on."
+function ConfiguredBadge({ configured }: { configured: boolean }) {
+  return (
+    <span className={`status-badge status-badge--${configured ? "positive" : "neutral"} ml-2`}>
+      {configured ? "Configured" : "Not configured"}
+    </span>
+  );
+}
+
 export function SettingsForm({ initial }: SettingsFormProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -175,7 +188,10 @@ export function SettingsForm({ initial }: SettingsFormProps) {
         <TabsContent value="stripe">
           <Card variant="admin">
             <CardHeader>
-              <CardTitle>Stripe</CardTitle>
+              <CardTitle>
+                Stripe
+                <ConfiguredBadge configured={initial.stripeSecretKeySet} />
+              </CardTitle>
             </CardHeader>
             <CardContent className="admin-form admin-form--embedded">
               <label htmlFor="stripeSecretKey">Secret key</label>
@@ -200,7 +216,10 @@ export function SettingsForm({ initial }: SettingsFormProps) {
         <TabsContent value="flutterwave">
           <Card variant="admin">
             <CardHeader>
-              <CardTitle>Flutterwave</CardTitle>
+              <CardTitle>
+                Flutterwave
+                <ConfiguredBadge configured={initial.flutterwaveSecretKeySet} />
+              </CardTitle>
               <CardDescription>Mobile money / bank payouts, 30+ countries</CardDescription>
             </CardHeader>
             <CardContent className="admin-form admin-form--embedded">
@@ -235,7 +254,10 @@ export function SettingsForm({ initial }: SettingsFormProps) {
         <TabsContent value="email">
           <Card variant="admin">
             <CardHeader>
-              <CardTitle>Email (Resend)</CardTitle>
+              <CardTitle>
+                Email (Resend)
+                <ConfiguredBadge configured={initial.resendApiKeySet} />
+              </CardTitle>
               <CardDescription>Primary — tried first when configured.</CardDescription>
             </CardHeader>
             <CardContent className="admin-form admin-form--embedded">
@@ -268,7 +290,10 @@ export function SettingsForm({ initial }: SettingsFormProps) {
 
           <Card variant="admin" className="mt-4">
             <CardHeader>
-              <CardTitle>SMTP</CardTitle>
+              <CardTitle>
+                SMTP
+                <ConfiguredBadge configured={Boolean(initial.smtpHost)} />
+              </CardTitle>
               <CardDescription>
                 Fallback — used only when Resend isn&apos;t configured above, or a Resend send fails. Never sends the
                 same email through both at once.
