@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 
 const SETTINGS_ID = "singleton";
@@ -5,13 +6,30 @@ const SETTINGS_ID = "singleton";
 // Admin-entered values in the Settings table win; unset (null/empty) falls
 // back to the env var, so a fresh deploy still works from .env before anyone
 // has visited /admin/settings.
-export async function getSettings() {
+//
+// Wrapped in React's cache() — every page renders SiteHeader, Footer, and
+// (via the root layout's generateMetadata) this same lookup independently,
+// so one request used to fire this 3+ times with no dedup. cache() memoizes
+// by argument within a single request's render pass, collapsing that back
+// to one real call — a request-scoped memo, not a cross-request one, so an
+// admin's saved change is still visible on the very next request.
+export const getSettings = cache(async function getSettings() {
+  // The plain SELECT covers the overwhelmingly common case (the row
+  // already exists) without writing anything — the previous unconditional
+  // upsert() ran a real UPDATE (touching updatedAt) on every single page
+  // view across the whole site, load-bearing traffic for a table that only
+  // actually needs writing when an admin saves a change in /admin/settings.
+  const existing = await prisma.settings.findUnique({ where: { id: SETTINGS_ID } });
+  if (existing) {
+    return existing;
+  }
+  // Only reached once, ever, on a fresh deploy before the singleton row exists.
   return prisma.settings.upsert({
     where: { id: SETTINGS_ID },
     update: {},
     create: { id: SETTINGS_ID },
   });
-}
+});
 
 function resolve(dbValue: string | null | undefined, envValue: string | undefined): string | undefined {
   return dbValue && dbValue.length > 0 ? dbValue : envValue;
