@@ -42,6 +42,7 @@
     "@types/react": "latest",
     "@types/react-dom": "latest",
     "@types/styled-components": "^5.1.36",
+    "artillery": "^2.0.21",
     "tsx": "^4.23.12",
     "typescript": "latest"
   }

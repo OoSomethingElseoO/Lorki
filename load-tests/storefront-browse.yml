@@ -1,0 +1,79 @@
+# Read-only load test of the public storefront — deliberately no POST
+# endpoints (signup, inquiries, checkout): those write real rows into
+# whatever DATABASE_URL the target is running against, and against
+# production that means fake data mixed into the real catalog/inbox.
+# Each scenario is a multi-page session (a visitor clicking around), not a
+# single isolated GET. See load-tests/crud-flows.yml for the write-path
+# test (signup/onboarding/uploads/CRUD), run separately and rate-limit-safe.
+#
+# Run: npx artillery run load-tests/storefront-browse.yml
+config:
+  target: "https://lorki.onrender.com"
+  phases:
+    - name: warm-up
+      duration: 20
+      arrivalRate: 2
+    - name: ramp-to-20
+      duration: 40
+      arrivalRate: 2
+      rampTo: 20
+    - name: hold-20
+      duration: 60
+      arrivalRate: 20
+  http:
+    timeout: 15
+
+scenarios:
+  - name: Browse originals then an artist profile
+    weight: 30
+    flow:
+      - get:
+          url: "/"
+      - think: 1
+      - get:
+          url: "/originals"
+      - think: 2
+      - get:
+          url: "/artists"
+      - think: 1
+      - get:
+          url: "/artists/amara-okafor"
+
+  - name: Browse prints then check impact
+    weight: 20
+    flow:
+      - get:
+          url: "/"
+      - think: 1
+      - get:
+          url: "/prints"
+      - think: 2
+      - get:
+          url: "/impact"
+
+  - name: Browse news, mission, contact
+    weight: 15
+    flow:
+      - get:
+          url: "/news"
+      - think: 1
+      - get:
+          url: "/mission-statement"
+      - think: 1
+      - get:
+          url: "/contact-us"
+
+  - name: Search then browse results
+    weight: 15
+    flow:
+      - get:
+          url: "/search?q=lion"
+      - think: 1
+      - get:
+          url: "/originals"
+
+  - name: Quick homepage bounce
+    weight: 20
+    flow:
+      - get:
+          url: "/"

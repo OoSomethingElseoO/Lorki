@@ -1,0 +1,129 @@
+# Write-path load test: real signup -> role onboarding -> image upload ->
+# create -> edit -> delete, against real production API routes. Run
+# SEPARATELY from storefront-browse.yml and kept tiny on purpose:
+# POST /api/signup is rate-limited to 5 attempts/5min/IP (see
+# lib/rate-limit.ts) — every scenario here calls signup exactly once, so
+# total arrivals across this whole file must stay at or under 5 or the
+# excess VUs just get 429'd instead of testing anything real.
+#
+# Every created User/Artist/Conservancy/Campaign/Artwork is tagged with a
+# "loadtest-<timestamp>-<random>" name/email so it's easy to find and
+# remove afterward from /admin — this run does NOT clean up after itself
+# (no admin credentials available to automate that).
+#
+# New artist campaigns are born DRAFT (see app/api/artist/campaigns/
+# route.ts) — never visible on the live public storefront regardless, but
+# the Campaign row itself, and the artist/cause profile + User row, remain
+# in production until manually deleted.
+#
+# Run: npx artillery run load-tests/crud-flows.yml
+config:
+  target: "https://lorki.onrender.com"
+  phases:
+    - name: crud-flows
+      duration: 30
+      arrivalCount: 5
+  http:
+    timeout: 20
+  processor: "./crud-flows-functions.js"
+
+scenarios:
+  - name: New artist - signup, upload, onboard, create/edit/delete artwork
+    weight: 60
+    flow:
+      - function: "setArtistVars"
+      - post:
+          url: "/api/signup"
+          json:
+            name: "{{ artistName }}"
+            email: "{{ email }}"
+            password: "{{ password }}"
+          expect:
+            - statusCode: 201
+      - post:
+          url: "/api/uploads"
+          formData:
+            file:
+              fromFile: "./test-upload.svg"
+              contentType: "image/svg+xml"
+          capture:
+            - json: "$.url"
+              as: "portraitUrl"
+      - post:
+          url: "/api/artist/onboarding"
+          json:
+            name: "{{ artistName }}"
+            country: "Kenya"
+            bio: "Load-test artist profile — safe to delete."
+            imageUrl: "{{ portraitUrl }}"
+          expect:
+            - statusCode: 201
+      - get:
+          url: "/api/campaigns"
+          capture:
+            - json: "$.campaigns[0].conservancyId"
+              as: "conservancyId"
+      - post:
+          url: "/api/artist/campaigns"
+          json:
+            conservancyId: "{{ conservancyId }}"
+          capture:
+            - json: "$.campaign.id"
+              as: "campaignId"
+      - post:
+          url: "/api/uploads"
+          formData:
+            file:
+              fromFile: "./test-upload.svg"
+              contentType: "image/svg+xml"
+          capture:
+            - json: "$.url"
+              as: "artworkImageUrl"
+      - post:
+          url: "/api/artist/artworks"
+          json:
+            campaignId: "{{ campaignId }}"
+            title: "{{ artworkTitle }}"
+            kind: "ORIGINAL"
+            priceCents: 5000
+            imageUrl: "{{ artworkImageUrl }}"
+            altText: "Load-test artwork"
+          capture:
+            - json: "$.artwork.id"
+              as: "artworkId"
+      - patch:
+          url: "/api/artist/artworks/{{ artworkId }}"
+          json:
+            title: "{{ artworkTitle }} (edited)"
+            kind: "ORIGINAL"
+            priceCents: 5500
+            imageUrl: "{{ artworkImageUrl }}"
+            altText: "Load-test artwork, edited"
+      - get:
+          url: "/api/artist/artworks"
+      - delete:
+          url: "/api/artist/artworks/{{ artworkId }}"
+
+  - name: New cause - signup and onboard
+    weight: 40
+    flow:
+      - function: "setCauseVars"
+      - post:
+          url: "/api/signup"
+          json:
+            name: "{{ causeContactName }}"
+            email: "{{ email }}"
+            password: "{{ password }}"
+          expect:
+            - statusCode: 201
+      - post:
+          url: "/api/cause/onboarding"
+          json:
+            name: "{{ causeName }}"
+            region: "Kenya"
+            mission: "Load-test cause profile — safe to delete."
+            website: "https://example.com"
+            contactEmail: "{{ email }}"
+            registrationNumber: "{{ registrationNumber }}"
+          expect:
+            - statusCode: 201
