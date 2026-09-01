@@ -1,7 +1,7 @@
 // In-memory sliding-window limiter. Fine for a single self-hosted server —
-// like the local-disk image uploads, this resets on redeploy and doesn't
-// share state across instances, so swap it for a Redis-backed limiter before
-// running multiple instances behind a load balancer.
+// this resets on redeploy and doesn't share state across instances, so
+// swap it for a Redis-backed limiter before running multiple instances
+// behind a load balancer.
 const hits = new Map<string, number[]>();
 
 export function isRateLimited(key: string, maxHits: number, windowMs: number): boolean {

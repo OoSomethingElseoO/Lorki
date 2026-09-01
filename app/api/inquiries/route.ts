@@ -64,10 +64,14 @@ export async function POST(request: Request) {
     },
   });
 
-  await sendInquiryConfirmationEmail({ email: body.email, artworkTitle: artwork.title });
+  // Not awaited — the reservation hold and the inquiry row above are
+  // already committed; a visitor submitting this form shouldn't sit
+  // waiting on two Resend calls before seeing the confirmation, and
+  // neither send can throw (see sendEmail's own try/catch in lib/email.ts).
+  sendInquiryConfirmationEmail({ email: body.email, artworkTitle: artwork.title });
 
   const holdMinutes = Math.round(RESERVATION_TTL_MS / 60_000);
-  await sendOperationsAlert(
+  sendOperationsAlert(
     `New inquiry: ${artwork.title}`,
     `<p><strong>${body.name}</strong> (${body.email}) is interested in <strong>${artwork.title}</strong> — a one-of-one original, so this needs a personal follow-up, not automated fulfillment.</p>${
       body.message ? `<p>Their message: "${body.message}"</p>` : ""

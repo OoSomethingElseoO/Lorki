@@ -185,7 +185,10 @@ async function handleDisputeCreated(dispute: Stripe.Dispute) {
     }),
   ]);
 
-  await sendOperationsAlert(
+  // Not awaited — same reasoning as handleCheckoutCompleted above: the
+  // order/payout state is already committed, don't make this response
+  // wait on Resend.
+  sendOperationsAlert(
     `URGENT — chargeback opened: ${order.artwork.title}`,
     `<p>A dispute was opened on the charge for <strong>${order.artwork.title}</strong> ($${(order.amountCents / 100).toFixed(2)}, buyer ${order.buyerEmail}).</p>` +
       `<p>Stripe requires evidence to be submitted by a deadline — respond from the <a href="https://dashboard.stripe.com/disputes">Stripe dashboard</a> as soon as possible.</p>` +
@@ -217,7 +220,8 @@ async function handleDisputeClosed(dispute: Stripe.Dispute) {
   // unrelated refund," reviving them safely needs a human, per the warning
   // already sent when the dispute opened.
   await prisma.order.update({ where: { id: order.id }, data: { disputedAt: null } });
-  await sendOperationsAlert(
+  // Not awaited — same reasoning as handleCheckoutCompleted above.
+  sendOperationsAlert(
     `Chargeback resolved in our favor: ${order.artwork.title}`,
     `<p>The dispute on <strong>${order.artwork.title}</strong> was closed as "${dispute.status}." If any payout on this order was held, check /admin/orders and release it manually — this was not automatic.</p>`,
   );

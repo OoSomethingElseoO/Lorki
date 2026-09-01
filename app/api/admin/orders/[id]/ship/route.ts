@@ -52,7 +52,9 @@ export async function POST(request: Request, { params }: RouteParams) {
     }),
   ]);
 
-  await sendShippingNotificationEmail({
+  // Not awaited — the shipment above is already committed, same reasoning
+  // as the Stripe webhook (app/api/webhooks/stripe/route.ts).
+  sendShippingNotificationEmail({
     buyerEmail: order.buyerEmail,
     artworkTitle: order.artwork.title,
     carrier: body.carrier,

@@ -122,13 +122,15 @@ export async function POST(request: Request) {
     return order;
   });
 
-  await sendOrderConfirmationEmail({
+  // Not awaited — the order/payout transaction above is already committed,
+  // same reasoning as the Stripe webhook (app/api/webhooks/stripe/route.ts).
+  sendOrderConfirmationEmail({
     buyerEmail: order.buyerEmail,
     artworkTitle: artwork.title,
     amountCents: order.amountCents,
   });
 
-  await sendOperationsAlert(
+  sendOperationsAlert(
     `Cash sale recorded: ${artwork.title}`,
     `<p>${order.buyerEmail} bought <strong>${artwork.title}</strong> for $${(order.amountCents / 100).toFixed(2)} (cash).</p>`,
   );

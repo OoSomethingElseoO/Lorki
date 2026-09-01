@@ -41,7 +41,10 @@ export async function POST(request: Request) {
   });
 
   if (status === "FAILED") {
-    await sendOperationsAlert(
+    // Not awaited — the payout row is already updated above; same reasoning
+    // as the Stripe webhook (app/api/webhooks/stripe/route.ts), don't make
+    // this response wait on Resend.
+    sendOperationsAlert(
       "Automatic M-Pesa payout failed",
       `<p>A Flutterwave transfer (payout ${payout.id}, $${(payout.amountCents / 100).toFixed(2)}) came back FAILED. It's still marked RELEASED — it needs to be paid out manually.</p>`,
     );

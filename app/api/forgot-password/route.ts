@@ -39,8 +39,12 @@ export async function POST(request: Request) {
       },
     });
 
+    // Not awaited — the reset token above is already committed, and not
+    // blocking on Resend here also narrows the timing gap between a
+    // registered and unregistered email a little further (see this
+    // route's own "always report success" comment above).
     const origin = request.headers.get("origin") ?? new URL(request.url).origin;
-    await sendPasswordResetEmail({
+    sendPasswordResetEmail({
       to: user.email,
       resetUrl: `${origin}/reset-password/${rawToken}`,
     });

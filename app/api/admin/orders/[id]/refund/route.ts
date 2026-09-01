@@ -33,7 +33,9 @@ export async function POST(_request: Request, { params }: RouteParams) {
 
   const updated = await processRefund(order.id);
 
-  await sendRefundConfirmationEmail({
+  // Not awaited — processRefund above already committed, same reasoning as
+  // the Stripe webhook (app/api/webhooks/stripe/route.ts).
+  sendRefundConfirmationEmail({
     buyerEmail: order.buyerEmail,
     artworkTitle: order.artwork.title,
     amountCents: order.amountCents,
