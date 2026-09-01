@@ -33,6 +33,44 @@ const nextConfig: NextConfig = {
       { source: "/api/seller/:path*", destination: "/api/artist/:path*", permanent: true },
     ];
   },
+  // No security headers were set anywhere in the app before this — Next.js
+  // doesn't add any by default. This is a real, meaningful CSP, not a
+  // maximal one: script-src/style-src need 'unsafe-inline' because this
+  // app genuinely uses inline scripts (the theme/no-JS-reveal bootstrap in
+  // app/layout.tsx, which must run before paint) and styled-components
+  // renders inline <style> tags — a nonce-based CSP would remove that
+  // need, but is a much larger, riskier rewrite than this gap warrants
+  // right now. img-src stays broad (not 'self') because admin settings
+  // and artist/artwork forms explicitly accept "paste any image URL", a
+  // real, intended feature, not an oversight.
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+          {
+            key: "Content-Security-Policy",
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline'",
+              "style-src 'self' 'unsafe-inline'",
+              "img-src * data: blob:",
+              "font-src 'self' data:",
+              "connect-src 'self'",
+              "frame-ancestors 'none'",
+              "object-src 'none'",
+              "base-uri 'self'",
+              "form-action 'self'",
+            ].join("; "),
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;
