@@ -433,6 +433,15 @@ model Settings {
   flutterwaveSecretKey     String?
   flutterwaveWebhookSecret String?
   resendApiKey        String?
+  // SMTP is the fallback channel — sendEmail (lib/email.ts) tries Resend
+  // first when configured, and only falls back to SMTP if Resend isn't
+  // configured or a send through it fails. Not both-always: a customer
+  // getting the same order confirmation twice is worse than one channel
+  // occasionally covering for the other.
+  smtpHost            String?
+  smtpPort            String?
+  smtpUser            String?
+  smtpPassword        String?
   emailFrom           String?
   operationsEmail     String?
 
@@ -449,6 +458,35 @@ model Settings {
   contactPhone     String?
 
   updatedAt DateTime @updatedAt
+}
+
+enum EmailProvider {
+  RESEND
+  SMTP
+  NONE
+}
+
+enum EmailStatus {
+  SENT
+  FAILED
+  SKIPPED
+}
+
+// One row per send attempt from lib/email.ts's sendEmail — the only way to
+// actually answer "did this order confirmation/password reset/etc. go
+// out," since sendEmail itself never throws (a broken provider must never
+// break checkout, a webhook, or order fulfillment) and previously only
+// logged to console, which nothing keeps past the process's own lifetime.
+model EmailLog {
+  id        String        @id @default(cuid())
+  to        String
+  subject   String
+  provider  EmailProvider
+  status    EmailStatus
+  error     String?
+  createdAt DateTime      @default(now())
+
+  @@index([createdAt])
 }
 
 model NewsArticle {

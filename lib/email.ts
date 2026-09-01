@@ -1,18 +1,10 @@
-import { getEmailFrom, getOperationsEmail, getResendApiKey } from "@/lib/settings";
+import nodemailer from "nodemailer";
+import { prisma } from "@/lib/prisma";
+import { getEmailFrom, getOperationsEmail, getResendApiKey, getSmtpConfig, type SmtpConfig } from "@/lib/settings";
 
-// Best-effort transactional email via Resend's REST API. Deliberately never
-// throws: a missing key or a failed send must not break checkout, the Stripe
-// webhook, or order fulfillment — those are the flows that move money and
-// inventory, and are far more important than a notification.
-async function sendEmail(to: string, subject: string, html: string): Promise<void> {
-  const apiKey = await getResendApiKey();
-  const from = await getEmailFrom();
+type SendResult = { ok: true } | { ok: false; error: string };
 
-  if (!apiKey) {
-    console.log(`[email:skipped, no Resend key configured] to=${to} subject="${subject}"`);
-    return;
-  }
-
+async function sendViaResend(apiKey: string, from: string, to: string, subject: string, html: string): Promise<SendResult> {
   try {
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -24,11 +16,88 @@ async function sendEmail(to: string, subject: string, html: string): Promise<voi
     });
 
     if (!response.ok) {
-      console.error(`[email:failed] to=${to} subject="${subject}" status=${response.status}`);
+      return { ok: false, error: `Resend responded ${response.status}: ${await response.text().catch(() => "")}` };
     }
+    return { ok: true };
   } catch (error) {
-    console.error(`[email:failed] to=${to} subject="${subject}"`, error);
+    return { ok: false, error: (error as Error).message };
   }
+}
+
+async function sendViaSmtp(config: SmtpConfig, from: string, to: string, subject: string, html: string): Promise<SendResult> {
+  try {
+    const transporter = nodemailer.createTransport({
+      host: config.host,
+      port: config.port,
+      secure: config.port === 465,
+      auth: config.user ? { user: config.user, pass: config.password } : undefined,
+    });
+    await transporter.sendMail({ from, to, subject, html });
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: (error as Error).message };
+  }
+}
+
+async function logEmail(
+  to: string,
+  subject: string,
+  provider: "RESEND" | "SMTP" | "NONE",
+  status: "SENT" | "FAILED" | "SKIPPED",
+  error: string | null,
+): Promise<void> {
+  try {
+    await prisma.emailLog.create({ data: { to, subject, provider, status, error } });
+  } catch (logError) {
+    // The send itself already happened (or was skipped) by the time this
+    // runs — a broken EmailLog write must not look like a broken send.
+    console.error("[email:log-failed]", logError);
+  }
+}
+
+// Best-effort transactional email. Deliberately never throws: a missing
+// key/config or a failed send must not break checkout, the Stripe webhook,
+// or order fulfillment — those are the flows that move money and
+// inventory, and are far more important than a notification.
+//
+// Resend is tried first when configured; SMTP is the fallback, used when
+// Resend isn't configured at all or a Resend attempt fails — not both
+// unconditionally, since a customer getting the same order confirmation
+// twice is worse than one channel occasionally covering for the other.
+// Every attempt (sent, failed, or skipped entirely) is recorded in
+// EmailLog — sendEmail never throwing means the console.log this used to
+// rely on was the only record of whether anything actually went out, and
+// that vanishes with the process.
+async function sendEmail(to: string, subject: string, html: string): Promise<void> {
+  const from = await getEmailFrom();
+  const resendApiKey = await getResendApiKey();
+  const smtpConfig = await getSmtpConfig();
+
+  if (resendApiKey) {
+    const result = await sendViaResend(resendApiKey, from, to, subject, html);
+    if (result.ok) {
+      await logEmail(to, subject, "RESEND", "SENT", null);
+      return;
+    }
+    console.error(`[email:resend-failed] to=${to} subject="${subject}" ${result.error}`);
+    if (!smtpConfig) {
+      await logEmail(to, subject, "RESEND", "FAILED", result.error);
+      return;
+    }
+    // Fall through to the SMTP fallback below.
+  }
+
+  if (smtpConfig) {
+    const result = await sendViaSmtp(smtpConfig, from, to, subject, html);
+    if (!result.ok) {
+      console.error(`[email:smtp-failed] to=${to} subject="${subject}" ${result.error}`);
+    }
+    await logEmail(to, subject, "SMTP", result.ok ? "SENT" : "FAILED", result.ok ? null : result.error);
+    return;
+  }
+
+  console.log(`[email:skipped, no provider configured] to=${to} subject="${subject}"`);
+  await logEmail(to, subject, "NONE", "SKIPPED", null);
 }
 
 export async function sendOrderConfirmationEmail(params: {

@@ -13,6 +13,10 @@ const SECRET_FIELDS = [
   "flutterwaveSecretKey",
   "flutterwaveWebhookSecret",
   "resendApiKey",
+  "smtpHost",
+  "smtpPort",
+  "smtpUser",
+  "smtpPassword",
   "emailFrom",
   "operationsEmail",
 ];
@@ -34,6 +38,10 @@ type SettingsFormProps = {
     flutterwaveSecretKeySet: boolean;
     flutterwaveWebhookSecretSet: boolean;
     resendApiKeySet: boolean;
+    smtpHost: string;
+    smtpPort: string;
+    smtpUser: string;
+    smtpPasswordSet: boolean;
     emailFrom: string;
     operationsEmail: string;
     siteName: string;
@@ -228,6 +236,7 @@ export function SettingsForm({ initial }: SettingsFormProps) {
           <Card variant="admin">
             <CardHeader>
               <CardTitle>Email (Resend)</CardTitle>
+              <CardDescription>Primary — tried first when configured.</CardDescription>
             </CardHeader>
             <CardContent className="admin-form admin-form--embedded">
               <label htmlFor="resendApiKey">API key</label>
@@ -253,6 +262,34 @@ export function SettingsForm({ initial }: SettingsFormProps) {
                 type="email"
                 defaultValue={initial.operationsEmail}
                 placeholder="you@example.com"
+              />
+            </CardContent>
+          </Card>
+
+          <Card variant="admin" className="mt-4">
+            <CardHeader>
+              <CardTitle>SMTP</CardTitle>
+              <CardDescription>
+                Fallback — used only when Resend isn&apos;t configured above, or a Resend send fails. Never sends the
+                same email through both at once.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="admin-form admin-form--embedded">
+              <label htmlFor="smtpHost">Host</label>
+              <input id="smtpHost" name="smtpHost" defaultValue={initial.smtpHost} placeholder="smtp.example.com" />
+
+              <label htmlFor="smtpPort">Port</label>
+              <input id="smtpPort" name="smtpPort" defaultValue={initial.smtpPort} placeholder="587" />
+
+              <label htmlFor="smtpUser">Username</label>
+              <input id="smtpUser" name="smtpUser" defaultValue={initial.smtpUser} placeholder="you@example.com" />
+
+              <label htmlFor="smtpPassword">Password</label>
+              <input
+                id="smtpPassword"
+                name="smtpPassword"
+                type="password"
+                placeholder={initial.smtpPasswordSet ? "•••••••••••••••• (set — leave blank to keep)" : "app password or SMTP secret"}
               />
             </CardContent>
           </Card>

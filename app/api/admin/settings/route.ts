@@ -8,6 +8,10 @@ const SECRET_FIELDS = [
   "flutterwaveSecretKey",
   "flutterwaveWebhookSecret",
   "resendApiKey",
+  "smtpHost",
+  "smtpPort",
+  "smtpUser",
+  "smtpPassword",
 ] as const;
 const BRANDING_FIELDS = [
   "siteName",
@@ -30,6 +34,13 @@ export async function GET() {
       flutterwaveSecretKeySet: Boolean(settings.flutterwaveSecretKey),
       flutterwaveWebhookSecretSet: Boolean(settings.flutterwaveWebhookSecret),
       resendApiKeySet: Boolean(settings.resendApiKey),
+      // Host/port/user are shown as plain text (an admin needs to actually
+      // see what's configured, unlike a secret) — only the password stays
+      // masked-only, same treatment as the other provider secrets above.
+      smtpHost: settings.smtpHost ?? "",
+      smtpPort: settings.smtpPort ?? "",
+      smtpUser: settings.smtpUser ?? "",
+      smtpPasswordSet: Boolean(settings.smtpPassword),
       emailFrom: settings.emailFrom ?? "",
       operationsEmail: settings.operationsEmail ?? "",
       siteName: settings.siteName ?? "",
@@ -50,8 +61,9 @@ export async function PATCH(request: Request) {
   const body = (await request.json()) as UpdateBody;
   const data: Record<string, string> = {};
 
-  // Secrets: blank means "leave alone" — the admin UI shows them masked, so
-  // a blank submit is never an intentional clear.
+  // Secrets (and smtpHost/Port/User, which aren't secret but share the same
+  // "blank means leave alone" treatment): a blank submit is never an
+  // intentional clear.
   for (const key of [...SECRET_FIELDS, "emailFrom", "operationsEmail"] as const) {
     const value = body[key];
     if (typeof value === "string" && value.trim().length > 0) {

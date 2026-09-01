@@ -42,6 +42,25 @@ export async function getResendApiKey(): Promise<string | undefined> {
   return resolve(settings.resendApiKey, process.env.RESEND_API_KEY);
 }
 
+export type SmtpConfig = { host: string; port: number; user?: string; password?: string };
+
+// Undefined means "not configured" — sendEmail (lib/email.ts) treats that
+// as SMTP simply not being an available fallback, not an error.
+export async function getSmtpConfig(): Promise<SmtpConfig | undefined> {
+  const settings = await getSettings();
+  const host = resolve(settings.smtpHost, process.env.SMTP_HOST);
+  if (!host) {
+    return undefined;
+  }
+  const port = Number(resolve(settings.smtpPort, process.env.SMTP_PORT) ?? "587");
+  return {
+    host,
+    port: Number.isFinite(port) ? port : 587,
+    user: resolve(settings.smtpUser, process.env.SMTP_USER),
+    password: resolve(settings.smtpPassword, process.env.SMTP_PASSWORD),
+  };
+}
+
 export async function getEmailFrom(): Promise<string> {
   const settings = await getSettings();
   return resolve(settings.emailFrom, process.env.EMAIL_FROM) ?? "Lorkulup <onboarding@resend.dev>";
