@@ -36,7 +36,7 @@ test.describe("Signup", () => {
       await test.step("When they sign up with a valid name/email/password", async () => {
         await page.getByLabel("Name (optional)").fill("E2E Signup Visitor");
         await page.getByLabel("Email").fill(email);
-        await page.getByLabel("Password").fill("correct-horse-battery-1");
+        await page.getByLabel("Password", { exact: true }).fill("correct-horse-battery-1");
         await page.getByRole("button", { name: "Create account" }).click();
       });
 
@@ -65,7 +65,7 @@ test.describe("Signup", () => {
       await test.step("When someone tries to sign up again with that email", async () => {
         await page.goto("/signup");
         await page.getByLabel("Email").fill(existing.email);
-        await page.getByLabel("Password").fill("a-different-password-1");
+        await page.getByLabel("Password", { exact: true }).fill("a-different-password-1");
         await page.getByRole("button", { name: "Create account" }).click();
       });
 
@@ -94,7 +94,7 @@ test.describe("Login", () => {
       await test.step("When they log in through /login", async () => {
         await page.goto("/login");
         await page.getByLabel("Email").fill(seeded.email);
-        await page.getByLabel("Password").fill(seeded.password);
+        await page.getByLabel("Password", { exact: true }).fill(seeded.password);
         await page.getByRole("button", { name: "Sign in" }).click();
       });
 
@@ -119,7 +119,7 @@ test.describe("Login", () => {
       await test.step("When they try to log in with the wrong password", async () => {
         await page.goto("/login");
         await page.getByLabel("Email").fill(seeded.email);
-        await page.getByLabel("Password").fill("definitely-the-wrong-password");
+        await page.getByLabel("Password", { exact: true }).fill("definitely-the-wrong-password");
         await page.getByRole("button", { name: "Sign in" }).click();
       });
 

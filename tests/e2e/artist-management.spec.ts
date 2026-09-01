@@ -113,7 +113,16 @@ test.describe("Artist listings", () => {
       });
 
       await test.step("And the underlying API also refuses to edit or delete it", async () => {
+        // page.request.* is a raw HTTP client, not a real page fetch() — it
+        // doesn't automatically carry an Origin header the way an in-page
+        // fetch does, so proxy.ts's CSRF same-origin check would otherwise
+        // reject these before they ever reach the route's own 409 logic.
+        // A real browser-driven call from this app always sends a matching
+        // Origin; setting it here just reproduces that.
+        const csrfHeaders = { origin: "http://localhost:3000" };
+
         const patchResponse = await page.request.patch(`/api/artist/artworks/${artist.artwork.id}`, {
+          headers: csrfHeaders,
           data: {
             title: "Should not apply",
             kind: artist.artwork.kind,
@@ -124,7 +133,9 @@ test.describe("Artist listings", () => {
         });
         expect(patchResponse.status()).toBe(409);
 
-        const deleteResponse = await page.request.delete(`/api/artist/artworks/${artist.artwork.id}`);
+        const deleteResponse = await page.request.delete(`/api/artist/artworks/${artist.artwork.id}`, {
+          headers: csrfHeaders,
+        });
         expect(deleteResponse.status()).toBe(409);
 
         const fresh = await prisma.artwork.findUniqueOrThrow({ where: { id: artist.artwork.id } });

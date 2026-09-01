@@ -13,7 +13,11 @@ import { ADMIN_EMAIL, ADMIN_PASSWORD } from "./db";
 setup("authenticate as admin", async ({ page }) => {
   await page.goto("/login");
   await page.getByLabel("Email").fill(ADMIN_EMAIL);
-  await page.getByLabel("Password").fill(ADMIN_PASSWORD);
+  // Exact match: PasswordInput's show/hide toggle button carries its own
+  // aria-label ("Show password"/"Hide password"), which a non-exact
+  // getByLabel("Password") also matches as a substring, breaking strict
+  // mode with two results.
+  await page.getByLabel("Password", { exact: true }).fill(ADMIN_PASSWORD);
   await page.getByRole("button", { name: "Sign in" }).click();
 
   // LoginForm redirects an admin straight to /admin on success now (see

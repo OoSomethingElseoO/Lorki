@@ -27,6 +27,9 @@ test.describe("Admin CRUD: artists", () => {
       });
 
       await test.step("When they create a new artist via the form", async () => {
+        // The create form lives behind its own "Add artist" tab.
+        await page.getByRole("tab", { name: "Add artist" }).click();
+
         // Scoped to the create form itself — the AdminSearchForm just below
         // it has an aria-label ("Search by name or country") that overlaps
         // "Name"/"Country" enough to make a page-wide getByLabel ambiguous,
@@ -118,6 +121,9 @@ test.describe("Admin CRUD: users", () => {
       });
 
       await test.step("When they create a new admin user via the form", async () => {
+        // The create form lives behind its own "Add admin" tab.
+        await page.getByRole("tab", { name: "Add admin" }).click();
+
         const form = page.locator("form.admin-form");
         await form.getByLabel("Name").fill(name);
         await form.getByLabel("Email").fill(email);
@@ -142,7 +148,7 @@ test.describe("Admin CRUD: users", () => {
         // tests load fresh per-test.
         await page.goto("/login");
         await page.getByLabel("Email").fill(email);
-        await page.getByLabel("Password").fill(password);
+        await page.getByLabel("Password", { exact: true }).fill(password);
         await page.getByRole("button", { name: "Sign in" }).click();
 
         // An admin now lands straight on /admin (see

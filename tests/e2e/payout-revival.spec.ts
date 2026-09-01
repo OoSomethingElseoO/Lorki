@@ -88,7 +88,13 @@ test.describe("FAILED payout revival", () => {
       let status = 0;
       let body: { error?: string } = {};
       await test.step("When Revive is attempted again by hitting the API directly", async () => {
-        const response = await page.request.post(`/api/admin/payouts/${releasedPayout.payout.id}/revive`);
+        // page.request.* doesn't carry an Origin header the way a real
+        // page fetch() does — proxy.ts's CSRF check needs one to recognize
+        // this as the same-origin call it actually is (see the identical
+        // note in artist-management.spec.ts).
+        const response = await page.request.post(`/api/admin/payouts/${releasedPayout.payout.id}/revive`, {
+          headers: { origin: "http://localhost:3000" },
+        });
         status = response.status();
         body = await response.json();
       });

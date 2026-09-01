@@ -79,7 +79,14 @@ test.describe("Original-artwork reservation lifecycle", () => {
     // directly is the faithful way to reproduce that.
     let response: Awaited<ReturnType<typeof request.post>>;
     await test.step("When a second visitor tries to submit another inquiry on the same artwork", async () => {
+      // The `request` fixture is a standalone APIRequestContext, not tied
+      // to a page — it doesn't carry an Origin header the way a real
+      // in-page fetch (e.g. the actual inquiry form) does, so proxy.ts's
+      // CSRF same-origin check would otherwise reject this before it ever
+      // reaches the route's own 409 logic. A real visitor's browser always
+      // sends a matching Origin; setting it here just reproduces that.
       response = await request.post("/api/inquiries", {
+        headers: { origin: "http://localhost:3000" },
         data: {
           artworkId: reservedArtwork.artwork.id,
           name: "E2E Visitor Two",
