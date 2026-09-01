@@ -46,5 +46,8 @@
     "artillery": "^2.0.21",
     "tsx": "^4.23.12",
     "typescript": "latest"
+  },
+  "overrides": {
+    "deepmerge-ts": "^8.0.2"
   }
 }
