@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { ImageUploadField } from "@/components/admin/image-upload-field";
 import { Button } from "@/components/ui/button";
+import { useOptionalTabs } from "@/components/ui/tabs";
 
 type NewsArticleFormProps = {
   id?: string;
@@ -17,6 +18,7 @@ type NewsArticleFormProps = {
 
 export function NewsArticleForm({ id, initial }: NewsArticleFormProps) {
   const router = useRouter();
+  const tabs = useOptionalTabs();
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const isEditing = Boolean(id);
@@ -57,6 +59,9 @@ export function NewsArticleForm({ id, initial }: NewsArticleFormProps) {
     }
 
     formElement.reset();
+    // Switch back to the list tab so the new row is actually visible —
+    // Tabs is uncontrolled local state, unaffected by router.refresh().
+    tabs?.setValue("news");
     router.refresh();
   }
 

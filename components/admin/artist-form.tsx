@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { ImageUploadField } from "@/components/admin/image-upload-field";
 import { Button } from "@/components/ui/button";
+import { useOptionalTabs } from "@/components/ui/tabs";
 
 type SocialLinkInput = { platform: string; url: string };
 
@@ -22,6 +23,7 @@ type ArtistFormProps = {
 
 export function ArtistForm({ coOps, id, initial }: ArtistFormProps) {
   const router = useRouter();
+  const tabs = useOptionalTabs();
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [socialLinks, setSocialLinks] = useState<SocialLinkInput[]>(
@@ -84,6 +86,9 @@ export function ArtistForm({ coOps, id, initial }: ArtistFormProps) {
 
     formElement.reset();
     setSocialLinks([{ platform: "", url: "" }]);
+    // Switch back to the list tab so the new row is actually visible —
+    // Tabs is uncontrolled local state, unaffected by router.refresh().
+    tabs?.setValue("artists");
     router.refresh();
   }
 

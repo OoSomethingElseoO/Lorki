@@ -3,9 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
+import { useOptionalTabs } from "@/components/ui/tabs";
 
 export function AdminUserForm() {
   const router = useRouter();
+  const tabs = useOptionalTabs();
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -39,6 +41,9 @@ export function AdminUserForm() {
     }
 
     formElement.reset();
+    // Switch back to the list tab so the new row is actually visible —
+    // Tabs is uncontrolled local state, unaffected by router.refresh().
+    tabs?.setValue("users");
     router.refresh();
   }
 

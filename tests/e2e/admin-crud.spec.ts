@@ -31,6 +31,11 @@ test.describe("Admin CRUD: conservancies", () => {
       });
 
       await test.step("When they create a new conservancy via the form", async () => {
+        // The create form lives behind its own "Add conservancy" tab (see
+        // Convert admin CRUD list pages to tabs) — the list tab is shown
+        // by default.
+        await page.getByRole("tab", { name: "Add conservancy" }).click();
+
         // Scoped to the create form itself (class "admin-form"), not just
         // the page — the AdminSearchForm's search box just below it has an
         // aria-label ("Search by name, region, or contact email") whose
@@ -126,6 +131,9 @@ test.describe("Admin CRUD: animals", () => {
 
       await test.step("When the admin creates a new animal via /admin/animals referencing it", async () => {
         await page.goto("/admin/animals");
+        // The create form lives behind its own "Add animal" tab.
+        await page.getByRole("tab", { name: "Add animal" }).click();
+
         // Scoped to the create form — the search box's aria-label ("Search
         // by name, species, or region") overlaps "Name"/"Species"/"Region"
         // enough to make a page-wide getByLabel ambiguous.
@@ -168,6 +176,9 @@ test.describe("Admin CRUD: news", () => {
     try {
       await test.step("Given an admin creates a news article via /admin/news", async () => {
         await page.goto("/admin/news");
+        // The create form lives behind its own "Add article" tab.
+        await page.getByRole("tab", { name: "Add article" }).click();
+
         // Scoped to the create form — the search box's aria-label ("Search
         // by title or summary") overlaps "Title"/"Summary" enough to make
         // a page-wide getByLabel ambiguous.

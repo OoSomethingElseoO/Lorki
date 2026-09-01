@@ -34,6 +34,9 @@ test.describe("Cause profile", () => {
     });
 
     await test.step("When they update non-identity fields (mission, website) and save", async () => {
+      // The profile form lives behind the page's own "Manage your cause"
+      // tab — "Campaigns" is shown by default.
+      await page.getByRole("tab", { name: "Manage your cause" }).click();
       await page.getByLabel("Mission").fill(newMission);
       await page.getByLabel("Website").fill(newWebsite);
       await page.getByRole("button", { name: "Save profile" }).click();
@@ -68,6 +71,9 @@ test.describe("Cause profile", () => {
       });
 
       await test.step("When they change the organization's name and save", async () => {
+        // The profile form lives behind the page's own "Manage your cause"
+        // tab — "Campaigns" is shown by default.
+        await page.getByRole("tab", { name: "Manage your cause" }).click();
         await page.getByLabel("Organization name").fill(newName);
         await page.getByRole("button", { name: "Save profile" }).click();
         await expect(page.getByText("Organization details saved.")).toBeVisible();

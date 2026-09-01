@@ -31,6 +31,14 @@ function useTabsContext(component: string): TabsContextValue {
   return ctx;
 }
 
+/** Like useTabsContext, but returns null instead of throwing when there's
+ *  no enclosing <Tabs> — for components (e.g. a create/edit form) that are
+ *  sometimes rendered inside a <Tabs> layout and sometimes on their own
+ *  standalone page. */
+export function useOptionalTabs(): TabsContextValue | null {
+  return useContext(TabsContext);
+}
+
 export type TabsProps = {
   /** Initial active tab value (uncontrolled). Ignored once `value` is passed. */
   defaultValue?: string;

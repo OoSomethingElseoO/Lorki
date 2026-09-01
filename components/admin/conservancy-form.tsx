@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
+import { useOptionalTabs } from "@/components/ui/tabs";
 
 type ConservancyFormProps = {
   id?: string;
@@ -17,6 +18,7 @@ type ConservancyFormProps = {
 
 export function ConservancyForm({ id, initial }: ConservancyFormProps) {
   const router = useRouter();
+  const tabs = useOptionalTabs();
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const isEditing = Boolean(id);
@@ -59,6 +61,9 @@ export function ConservancyForm({ id, initial }: ConservancyFormProps) {
     }
 
     formElement.reset();
+    // Switch back to the list tab so the new row is actually visible —
+    // Tabs is uncontrolled local state, unaffected by router.refresh().
+    tabs?.setValue("conservancies");
     router.refresh();
   }
 
