@@ -4,21 +4,23 @@ import { Suspense, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { PasswordInput } from "@/components/ui/password-input";
+import { FormFieldError } from "@/components/ui/form-field-error";
 import { useRouter, useSearchParams } from "next/navigation";
 import { resolvePostLoginRedirect } from "@/lib/post-login-redirect";
+import { useFormErrors } from "@/hooks/useFormErrors";
 
 function LoginFormInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { error, clearErrors, setError, getFieldError } = useFormErrors();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitting(true);
-    setError(null);
+    clearErrors();
 
     const response = await fetch("/api/login", {
       method: "POST",
@@ -31,7 +33,7 @@ function LoginFormInner() {
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      setError(data.error ?? "Login failed");
+      setError(data);
       return;
     }
 
@@ -49,7 +51,17 @@ function LoginFormInner() {
   return (
     <form className="account-form" onSubmit={handleSubmit}>
       <label htmlFor="email">Email</label>
-      <input id="email" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} />
+      <input
+        id="email"
+        type="email"
+        required
+        value={email}
+        onChange={(event) => setEmail(event.target.value)}
+        className={getFieldError("email") ? "form-input--error" : ""}
+        aria-invalid={!!getFieldError("email")}
+        aria-describedby={getFieldError("email") ? "email-error" : undefined}
+      />
+      {getFieldError("email") && <FormFieldError id="email-error" message={getFieldError("email")} />}
 
       <label htmlFor="password">Password</label>
       <PasswordInput
@@ -57,7 +69,11 @@ function LoginFormInner() {
         required
         value={password}
         onChange={(event) => setPassword(event.target.value)}
+        className={getFieldError("password") ? "form-input--error" : ""}
+        aria-invalid={!!getFieldError("password")}
+        aria-describedby={getFieldError("password") ? "password-error" : undefined}
       />
+      {getFieldError("password") && <FormFieldError id="password-error" message={getFieldError("password")} />}
 
       {error ? <p className="buy-form__error">{error}</p> : null}
       <Button type="submit" disabled={submitting}>
