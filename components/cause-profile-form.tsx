@@ -2,6 +2,8 @@
 
 import { forwardRef, useImperativeHandle, useRef, useState, type FormEvent } from "react";
 import { DocumentUploadField } from "@/components/document-upload-field";
+import { FormFieldError } from "@/components/ui/form-field-error";
+import { useFormErrors } from "@/hooks/useFormErrors";
 
 export type SaveFormHandle = { submit: () => Promise<boolean> };
 
@@ -28,14 +30,14 @@ export const CauseProfileForm = forwardRef<SaveFormHandle, CauseProfileFormProps
   ref,
 ) {
   const formRef = useRef<HTMLFormElement>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { error, clearErrors, setError, getFieldError } = useFormErrors();
   const [success, setSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   async function doSubmit(): Promise<boolean> {
     if (!formRef.current) return false;
     setSubmitting(true);
-    setError(null);
+    clearErrors();
     setSuccess(false);
 
     const form = new FormData(formRef.current);
@@ -57,7 +59,7 @@ export const CauseProfileForm = forwardRef<SaveFormHandle, CauseProfileFormProps
 
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));
-      setError(data.error ?? "Failed to save profile");
+      setError(data);
       return false;
     }
 
@@ -78,36 +80,102 @@ export const CauseProfileForm = forwardRef<SaveFormHandle, CauseProfileFormProps
 
   return (
     <form ref={formRef} className="admin-form" onSubmit={handleSubmit}>
-      <label htmlFor="name">Organization name</label>
-      <input id="name" name="name" required defaultValue={initial.name} disabled={submitting} />
+      <div>
+        <label htmlFor="name">Organization name</label>
+        <input
+          id="name"
+          name="name"
+          required
+          defaultValue={initial.name}
+          disabled={submitting}
+          className={getFieldError("name") ? "form-input--error" : ""}
+          aria-invalid={!!getFieldError("name")}
+          aria-describedby={getFieldError("name") ? "name-error" : undefined}
+        />
+        {getFieldError("name") && <FormFieldError id="name-error" message={getFieldError("name")} />}
+      </div>
 
-      <label htmlFor="region">Region</label>
-      <input id="region" name="region" required defaultValue={initial.region} disabled={submitting} />
+      <div>
+        <label htmlFor="region">Region</label>
+        <input
+          id="region"
+          name="region"
+          required
+          defaultValue={initial.region}
+          disabled={submitting}
+          className={getFieldError("region") ? "form-input--error" : ""}
+          aria-invalid={!!getFieldError("region")}
+          aria-describedby={getFieldError("region") ? "region-error" : undefined}
+        />
+        {getFieldError("region") && <FormFieldError id="region-error" message={getFieldError("region")} />}
+      </div>
 
-      <label htmlFor="mission">Mission</label>
-      <textarea id="mission" name="mission" required rows={4} defaultValue={initial.mission} disabled={submitting} />
+      <div>
+        <label htmlFor="mission">Mission</label>
+        <textarea
+          id="mission"
+          name="mission"
+          required
+          rows={4}
+          defaultValue={initial.mission}
+          disabled={submitting}
+          className={getFieldError("mission") ? "form-input--error" : ""}
+          aria-invalid={!!getFieldError("mission")}
+          aria-describedby={getFieldError("mission") ? "mission-error" : undefined}
+        />
+        {getFieldError("mission") && <FormFieldError id="mission-error" message={getFieldError("mission")} />}
+      </div>
 
-      <label htmlFor="website">Website</label>
-      <input id="website" name="website" type="url" required defaultValue={initial.website} disabled={submitting} />
+      <div>
+        <label htmlFor="website">Website</label>
+        <input
+          id="website"
+          name="website"
+          type="url"
+          required
+          defaultValue={initial.website}
+          disabled={submitting}
+          className={getFieldError("website") ? "form-input--error" : ""}
+          aria-invalid={!!getFieldError("website")}
+          aria-describedby={getFieldError("website") ? "website-error" : undefined}
+        />
+        {getFieldError("website") && <FormFieldError id="website-error" message={getFieldError("website")} />}
+      </div>
 
-      <label htmlFor="contactEmail">Contact email</label>
-      <input
-        id="contactEmail"
-        name="contactEmail"
-        type="email"
-        required
-        defaultValue={initial.contactEmail}
-        disabled={submitting}
-      />
+      <div>
+        <label htmlFor="contactEmail">Contact email</label>
+        <input
+          id="contactEmail"
+          name="contactEmail"
+          type="email"
+          required
+          defaultValue={initial.contactEmail}
+          disabled={submitting}
+          className={getFieldError("contactEmail") ? "form-input--error" : ""}
+          aria-invalid={!!getFieldError("contactEmail")}
+          aria-describedby={getFieldError("contactEmail") ? "contactEmail-error" : undefined}
+        />
+        {getFieldError("contactEmail") && (
+          <FormFieldError id="contactEmail-error" message={getFieldError("contactEmail")} />
+        )}
+      </div>
 
-      <label htmlFor="registrationNumber">Registration number</label>
-      <input
-        id="registrationNumber"
-        name="registrationNumber"
-        required
-        defaultValue={initial.registrationNumber ?? ""}
-        disabled={submitting}
-      />
+      <div>
+        <label htmlFor="registrationNumber">Registration number</label>
+        <input
+          id="registrationNumber"
+          name="registrationNumber"
+          required
+          defaultValue={initial.registrationNumber ?? ""}
+          disabled={submitting}
+          className={getFieldError("registrationNumber") ? "form-input--error" : ""}
+          aria-invalid={!!getFieldError("registrationNumber")}
+          aria-describedby={getFieldError("registrationNumber") ? "registrationNumber-error" : undefined}
+        />
+        {getFieldError("registrationNumber") && (
+          <FormFieldError id="registrationNumber-error" message={getFieldError("registrationNumber")} />
+        )}
+      </div>
 
       <DocumentUploadField
         name="registrationDocumentUrl"
