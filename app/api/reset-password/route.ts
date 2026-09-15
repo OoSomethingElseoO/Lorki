@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/password";
+import { validatePassword } from "@/lib/validation";
 
 function hashToken(rawToken: string): string {
   return createHash("sha256").update(rawToken).digest("hex");
@@ -14,8 +15,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Token and password are required" }, { status: 400 });
   }
 
-  if (body.password.length < 8) {
-    return NextResponse.json({ error: "Password must be at least 8 characters" }, { status: 400 });
+  // ✅ Password validation
+  const passwordError = validatePassword(body.password);
+  if (passwordError) {
+    return NextResponse.json({ error: passwordError }, { status: 400 });
   }
 
   const resetToken = await prisma.passwordResetToken.findUnique({

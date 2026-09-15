@@ -4,7 +4,7 @@ import { hashPassword } from "@/lib/password";
 import { createUserSessionToken, SESSION_COOKIE } from "@/lib/auth";
 import { isUniqueConstraintError, uniqueConstraintResponse } from "@/lib/prisma-errors";
 import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
-import { validateEmail } from "@/lib/validation";
+import { validateEmail, validatePassword } from "@/lib/validation";
 
 // Creates a plain account — nothing more. Becoming an artist (linking an
 // Artist profile) or an admin are separate, later steps on top of this
@@ -27,8 +27,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: emailError }, { status: 400 });
   }
 
-  if (body.password.length < 8) {
-    return NextResponse.json({ error: "Password must be at least 8 characters" }, { status: 400 });
+  // ✅ Password validation
+  const passwordError = validatePassword(body.password);
+  if (passwordError) {
+    return NextResponse.json({ error: passwordError }, { status: 400 });
   }
 
   try {
