@@ -4,6 +4,7 @@ import { getStripe } from "@/lib/stripe";
 import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
 import { getCurrentUser } from "@/lib/auth";
 import { PRINT_SHIPPING_CENTS } from "@/lib/pricing";
+import { validateEmail } from "@/lib/validation";
 
 type CheckoutBody = {
   artworkId: string;
@@ -38,6 +39,12 @@ export async function POST(request: Request) {
 
   if (!buyerEmail) {
     return NextResponse.json({ error: "buyerEmail is required" }, { status: 400 });
+  }
+
+  // ✅ Email validation
+  const emailError = validateEmail(buyerEmail);
+  if (emailError) {
+    return NextResponse.json({ error: emailError }, { status: 400 });
   }
 
   let stripe;

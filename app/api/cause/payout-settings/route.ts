@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { validatePayoutSettings, validateTextField } from "@/lib/validation";
 
 type PayoutSettingsBody = {
   payoutChannel: "MANUAL" | "FLUTTERWAVE" | "CRYPTO";
@@ -38,30 +39,29 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: `payoutChannel must be one of ${VALID_CHANNELS.join(", ")}` }, { status: 400 });
   }
 
-  if (body.payoutChannel === "FLUTTERWAVE") {
-    const country = body.payoutCountry?.trim() ?? "";
-    const currency = body.payoutCurrency?.trim() ?? "";
-    const accountNumber = body.payoutAccountNumber?.trim() ?? "";
-    const accountHolderName = body.payoutAccountHolderName?.trim() ?? "";
-    const usingMobileMoney = Boolean(body.payoutMobileNetwork?.trim());
+  // ✅ Comprehensive validation
+  const validation = validatePayoutSettings({
+    payoutChannel: body.payoutChannel,
+    payoutCountry: body.payoutCountry,
+    payoutCurrency: body.payoutCurrency,
+    payoutMobileNetwork: body.payoutMobileNetwork,
+    payoutAccountNumber: body.payoutAccountNumber,
+    payoutBankCode: body.payoutBankCode,
+  });
 
-    if (!country || !currency || !accountNumber || !accountHolderName) {
-      return NextResponse.json(
-        { error: "payoutCountry, payoutCurrency, payoutAccountNumber, and payoutAccountHolderName are required" },
-        { status: 400 },
-      );
-    }
-    if (!usingMobileMoney && !body.payoutBankCode?.trim()) {
-      return NextResponse.json(
-        { error: "Set either payoutMobileNetwork (mobile money) or payoutBankCode (bank transfer)" },
-        { status: 400 },
-      );
-    }
+  if (!validation.isValid) {
+    return NextResponse.json({ errors: validation.errors }, { status: 400 });
   }
 
-  if (body.payoutChannel === "CRYPTO") {
-    if (!body.cryptoNetwork?.trim() || !body.cryptoAddress?.trim()) {
-      return NextResponse.json({ error: "cryptoNetwork and cryptoAddress are required" }, { status: 400 });
+  // ✅ Account holder name validation (org name, not individual)
+  if (body.payoutChannel === "FLUTTERWAVE") {
+    const nameError = validateTextField(body.payoutAccountHolderName || "", {
+      minLength: 1,
+      maxLength: 200,
+      name: "Account holder name",
+    });
+    if (nameError) {
+      return NextResponse.json({ error: nameError }, { status: 400 });
     }
   }
 

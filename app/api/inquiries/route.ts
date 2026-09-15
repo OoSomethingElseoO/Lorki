@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
 import { sendInquiryConfirmationEmail, sendOperationsAlert } from "@/lib/email";
 import { RESERVATION_TTL_MS } from "@/lib/reservations";
+import { validateEmail, validateTextField } from "@/lib/validation";
 
 type InquiryBody = {
   artworkId: string;
@@ -26,6 +27,31 @@ export async function POST(request: Request) {
 
   if (!body.artworkId || !body.name || !body.email) {
     return NextResponse.json({ error: "artworkId, name, and email are required" }, { status: 400 });
+  }
+
+  // ✅ Comprehensive validation
+  const nameError = validateTextField(body.name, {
+    minLength: 1,
+    maxLength: 200,
+    name: "Name",
+  });
+  if (nameError) {
+    return NextResponse.json({ error: nameError }, { status: 400 });
+  }
+
+  const emailError = validateEmail(body.email);
+  if (emailError) {
+    return NextResponse.json({ error: emailError }, { status: 400 });
+  }
+
+  if (body.message) {
+    const messageError = validateTextField(body.message, {
+      maxLength: 5000,
+      name: "Message",
+    });
+    if (messageError) {
+      return NextResponse.json({ error: messageError }, { status: 400 });
+    }
   }
 
   const artwork = await prisma.artwork.findUnique({ where: { id: body.artworkId } });

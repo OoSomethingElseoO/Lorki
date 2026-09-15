@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isUniqueConstraintError, uniqueConstraintResponse } from "@/lib/prisma-errors";
 import { slugify } from "@/lib/slugify";
+import { validateSplit } from "@/lib/validation";
 
 export async function GET() {
   const campaigns = await prisma.campaign.findMany({
@@ -49,8 +50,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Provide exactly one of animalId or conservancyId" }, { status: 400 });
   }
 
-  if (body.artistPercent + body.conservancyPercent + body.operationsPercent !== 100) {
-    return NextResponse.json({ error: "Split percentages must sum to 100" }, { status: 400 });
+  // ✅ Comprehensive validation of split percentages
+  const splitError = validateSplit(
+    body.artistPercent,
+    body.conservancyPercent,
+    body.operationsPercent
+  );
+  if (splitError) {
+    return NextResponse.json({ error: splitError }, { status: 400 });
   }
 
   const [animal, conservancy, artist] = await Promise.all([

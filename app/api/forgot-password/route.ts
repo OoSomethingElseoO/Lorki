@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendPasswordResetEmail } from "@/lib/email";
 import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
+import { validateEmail } from "@/lib/validation";
 
 const RATE_LIMIT = 5;
 const RATE_WINDOW_MS = 15 * 60 * 1000;
@@ -22,6 +23,12 @@ export async function POST(request: Request) {
 
   if (!body.email) {
     return NextResponse.json({ error: "Email is required" }, { status: 400 });
+  }
+
+  // ✅ Email validation
+  const emailError = validateEmail(body.email);
+  if (emailError) {
+    return NextResponse.json({ error: emailError }, { status: 400 });
   }
 
   const user = await prisma.user.findUnique({ where: { email: body.email.toLowerCase().trim() } });
