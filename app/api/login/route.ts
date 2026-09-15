@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/password";
 import { createUserSessionToken, SESSION_COOKIE } from "@/lib/auth";
 import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
+import { validateEmail } from "@/lib/validation";
 
 export async function POST(request: Request) {
   const ip = getRequestIp(request);
@@ -14,6 +15,12 @@ export async function POST(request: Request) {
 
   if (!body.email || !body.password) {
     return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
+  }
+
+  // ✅ Email validation
+  const emailError = validateEmail(body.email);
+  if (emailError) {
+    return NextResponse.json({ error: emailError }, { status: 400 });
   }
 
   const user = await prisma.user.findUnique({

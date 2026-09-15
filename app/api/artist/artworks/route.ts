@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { isPriceTooLow, isPriceTooHigh, MIN_PRICE_CENTS, MAX_PRICE_CENTS } from "@/lib/pricing";
+import { validateArtworkCreation } from "@/lib/validation";
 
 export async function GET() {
   const currentUser = await getCurrentUser();
@@ -53,12 +54,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "kind must be ORIGINAL or PRINT" }, { status: 400 });
   }
 
-  if (isPriceTooLow(body.priceCents)) {
-    return NextResponse.json({ error: `Price must be at least $${(MIN_PRICE_CENTS / 100).toFixed(2)}` }, { status: 400 });
-  }
+  // ✅ Comprehensive validation
+  const validation = validateArtworkCreation({
+    title: body.title,
+    priceDollars: body.priceCents / 100,
+    altText: body.altText,
+    imageUrl: body.imageUrl,
+    story: body.story,
+  });
 
-  if (isPriceTooHigh(body.priceCents)) {
-    return NextResponse.json({ error: `Price cannot exceed $${(MAX_PRICE_CENTS / 100).toFixed(2)}` }, { status: 400 });
+  if (!validation.isValid) {
+    return NextResponse.json({ errors: validation.errors }, { status: 400 });
   }
 
   // Ownership check: this campaign must actually belong to the artist
