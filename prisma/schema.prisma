@@ -523,6 +523,33 @@ enum NewsStatus {
   LIVE
 }
 
+// Audit trail for all manual financial interventions: marking payouts paid,
+// refunding orders, creating missing payouts due to webhook failures, etc.
+// Every change to financial records must be logged with the reason, who made
+// it, and metadata about the external system state (Stripe/Flutterwave IDs,
+// API responses, etc.) so reconciliation discrepancies can be traced to root
+// cause and the chain of decisions is visible for compliance/dispute purposes.
+model AuditLog {
+  id                  String    @id @default(cuid())
+  // Action type: PAYOUT_MARKED_PAID_MANUAL, PAYOUT_CREATED_MANUAL, PAYOUT_MARKED_FAILED, etc.
+  action              String
+  // What was affected: "Order", "Payout", "Artist", "Conservancy"
+  affectedEntityType  String
+  // ID of the affected entity (Order/Payout/Artist ID, etc.)
+  affectedEntityId    String
+  // Why this action was taken (human-readable explanation)
+  reason              String
+  // Email of the admin who made the change
+  changedBy           String
+  // JSON metadata: external transfer IDs, API responses, payment methods, amounts, etc.
+  metadata            Json?
+  createdAt           DateTime  @default(now())
+
+  @@index([createdAt])
+  @@index([affectedEntityType, affectedEntityId])
+  @@index([changedBy])
+}
+
 // One identity, one login, for everyone — a single email+password gets you
 // in through the same page regardless of what you're here to do. What you
 // can actually access is layered on top of this one row, not a separate
