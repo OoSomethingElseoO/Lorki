@@ -2,11 +2,17 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
-  const released = await prisma.payout.groupBy({
-    by: ["recipientType"],
-    where: { status: "RELEASED" },
-    _sum: { amountCents: true },
-  });
+  // Parallelize both queries instead of sequential fetches
+  const [released, piecesSold] = await Promise.all([
+    prisma.payout.groupBy({
+      by: ["recipientType"],
+      where: { status: "RELEASED" },
+      _sum: { amountCents: true },
+    }),
+    prisma.artwork.count({
+      where: { inventoryState: "SOLD" },
+    }),
+  ]);
 
   const totals = {
     artistCents: 0,
@@ -20,10 +26,6 @@ export async function GET() {
     if (row.recipientType === "CONSERVANCY") totals.conservancyCents = cents;
     if (row.recipientType === "OPERATIONS") totals.operationsCents = cents;
   }
-
-  const piecesSold = await prisma.artwork.count({
-    where: { inventoryState: "SOLD" },
-  });
 
   return NextResponse.json({ totals, piecesSold });
 }

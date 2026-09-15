@@ -12,21 +12,21 @@ export async function GET() {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
 
-  const orders = await prisma.order.findMany({
-    where: { artwork: { campaign: { artistId: artist.id } } },
-    include: { artwork: true, payouts: { where: { recipientType: "ARTIST" } }, shipment: true },
-    orderBy: { createdAt: "desc" },
-  });
+  const [orders, totals] = await Promise.all([
+    prisma.order.findMany({
+      where: { artwork: { campaign: { artistId: artist.id } } },
+      include: { artwork: true, payouts: { where: { recipientType: "ARTIST" } }, shipment: true },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.payout.aggregate({
+      where: { order: { artwork: { campaign: { artistId: artist.id } } }, recipientType: "ARTIST" },
+      _sum: { amountCents: true },
+      by: ["status"],
+    }),
+  ]);
 
-  const releasedCents = orders
-    .flatMap((order) => order.payouts)
-    .filter((payout) => payout.status === "RELEASED")
-    .reduce((sum, payout) => sum + payout.amountCents, 0);
-
-  const pendingCents = orders
-    .flatMap((order) => order.payouts)
-    .filter((payout) => payout.status === "PENDING")
-    .reduce((sum, payout) => sum + payout.amountCents, 0);
+  const releasedCents = totals.find((t) => t.status === "RELEASED")?._sum?.amountCents ?? 0;
+  const pendingCents = totals.find((t) => t.status === "PENDING")?._sum?.amountCents ?? 0;
 
   return NextResponse.json({ orders, totals: { releasedCents, pendingCents } });
 }

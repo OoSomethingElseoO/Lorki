@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 
 export const RESERVATION_TTL_MS = 30 * 60 * 1000;
+const CLEANUP_THROTTLE_MS = 60 * 1000; // Run cleanup at most once per minute
+let lastCleanupAt = 0;
 
 // Originals get RESERVED the moment someone submits an inquiry (see
 // /api/inquiries) and stay that way — invisible to other buyers — until
@@ -9,7 +11,14 @@ export const RESERVATION_TTL_MS = 30 * 60 * 1000;
 // read paths rather than via a scheduled job, since a stale reservation
 // only matters the next time someone looks at the artwork.
 export async function releaseExpiredReservations() {
-  const cutoff = new Date(Date.now() - RESERVATION_TTL_MS);
+  const now = Date.now();
+  // Throttle: only run cleanup once per minute to avoid hammering the DB on every request
+  if (now - lastCleanupAt < CLEANUP_THROTTLE_MS) {
+    return;
+  }
+  lastCleanupAt = now;
+
+  const cutoff = new Date(now - RESERVATION_TTL_MS);
 
   await prisma.artwork.updateMany({
     where: {
