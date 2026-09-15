@@ -32,8 +32,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   }
 
   // ✅ Validate content fields if present
-  if (hasContentFields) {
-    const titleError = validateTextField(body.title, {
+  if (hasContentFields && body.title && body.summary && body.body && body.imageUrl) {
+    const titleError = validateTextField(body.title as string, {
       minLength: 1,
       maxLength: 200,
       name: "Title",
@@ -42,7 +42,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: titleError }, { status: 400 });
     }
 
-    const summaryError = validateTextField(body.summary, {
+    const summaryError = validateTextField(body.summary as string, {
       minLength: 1,
       maxLength: 500,
       name: "Summary",
@@ -51,7 +51,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: summaryError }, { status: 400 });
     }
 
-    const bodyError = validateTextField(body.body, {
+    const bodyError = validateTextField(body.body as string, {
       minLength: 1,
       maxLength: 50000,
       name: "Body",
@@ -60,7 +60,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: bodyError }, { status: 400 });
     }
 
-    const imageError = validateImageUrl(body.imageUrl);
+    const imageError = validateImageUrl(body.imageUrl as string);
     if (imageError) {
       return NextResponse.json({ error: imageError }, { status: 400 });
     }
