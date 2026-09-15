@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
+import { TooltipIcon } from "@/components/ui/tooltip";
 
 type CampaignFormProps = {
   animals: { id: string; name: string }[];
@@ -160,7 +161,9 @@ export function CampaignForm({ animals, conservancies, artists, id, initial }: C
 
       <div className="admin-form__split-row">
         <div>
-          <label htmlFor="artistPercent">Artist %</label>
+          <label htmlFor="artistPercent">
+            Artist % <TooltipIcon tooltip="Percentage of each sale that goes to the artist" />
+          </label>
           <input
             id="artistPercent"
             type="number"
@@ -171,7 +174,9 @@ export function CampaignForm({ animals, conservancies, artists, id, initial }: C
           />
         </div>
         <div>
-          <label htmlFor="conservancyPercent">Conservancy %</label>
+          <label htmlFor="conservancyPercent">
+            Conservancy % <TooltipIcon tooltip="Percentage of each sale that goes to the conservation organization" />
+          </label>
           <input
             id="conservancyPercent"
             type="number"
@@ -182,7 +187,9 @@ export function CampaignForm({ animals, conservancies, artists, id, initial }: C
           />
         </div>
         <div>
-          <label htmlFor="operationsPercent">Operations %</label>
+          <label htmlFor="operationsPercent">
+            Operations % <TooltipIcon tooltip="Percentage of each sale that covers platform costs" />
+          </label>
           <input
             id="operationsPercent"
             type="number"

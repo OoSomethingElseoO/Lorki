@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { ImageUploadField } from "@/components/admin/image-upload-field";
 import { Button } from "@/components/ui/button";
+import { TooltipIcon } from "@/components/ui/tooltip";
 import { MIN_PRICE_CENTS, MAX_PRICE_CENTS } from "@/lib/pricing";
 
 type ArtistNewArtworkFormProps = {
@@ -77,7 +78,10 @@ export function ArtistNewArtworkForm({ campaigns, defaultCampaignId }: ArtistNew
         <option value="PRINT">Print</option>
       </select>
 
-      <label htmlFor="priceDollars">Your asking price (USD)</label>
+      <label htmlFor="priceDollars">
+        Your asking price (USD)
+        <TooltipIcon tooltip={`Minimum $${(MIN_PRICE_CENTS / 100).toFixed(2)}, maximum $${(MAX_PRICE_CENTS / 100).toFixed(0)}`} />
+      </label>
       <input id="priceDollars" name="priceDollars" type="number" min={MIN_PRICE_CENTS / 100} max={MAX_PRICE_CENTS / 100} step="0.01" required />
 
       <ImageUploadField name="imageUrl" label="Image" />

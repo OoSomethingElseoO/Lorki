@@ -2,6 +2,7 @@
 
 import { forwardRef, useImperativeHandle, useRef, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
+import { TooltipIcon } from "@/components/ui/tooltip";
 import type { SaveFormHandle } from "@/components/cause-profile-form";
 
 type PayoutChannel = "MANUAL" | "FLUTTERWAVE" | "STRIPE_CONNECT" | "CRYPTO";
@@ -166,11 +167,15 @@ export const PayoutSettingsForm = forwardRef<SaveFormHandle, PayoutSettingsFormP
           </p>
           <div className="admin-form__split-row">
             <div>
-              <label htmlFor="payoutCountry">Country</label>
+              <label htmlFor="payoutCountry">
+                Country <TooltipIcon tooltip="2-letter country code (KE, ET, ZA, NG, etc.)" />
+              </label>
               <input id="payoutCountry" name="payoutCountry" defaultValue={initial.payoutCountry ?? ""} placeholder="e.g. KE, ET, ZA, NG" required disabled={submitting} />
             </div>
             <div>
-              <label htmlFor="payoutCurrency">Currency</label>
+              <label htmlFor="payoutCurrency">
+                Currency <TooltipIcon tooltip="3-letter currency code (KES, ETB, ZAR, NGN, etc.)" />
+              </label>
               <input id="payoutCurrency" name="payoutCurrency" defaultValue={initial.payoutCurrency ?? ""} placeholder="e.g. KES, ETB, ZAR, NGN" required disabled={submitting} />
             </div>
           </div>
@@ -201,7 +206,9 @@ export const PayoutSettingsForm = forwardRef<SaveFormHandle, PayoutSettingsFormP
 
           {usingMobileMoney ? (
             <>
-              <label htmlFor="payoutMobileNetwork">Mobile money network</label>
+              <label htmlFor="payoutMobileNetwork">
+                Mobile money network <TooltipIcon tooltip="M-Pesa (Kenya), MTN, Airtel, etc." side="right" />
+              </label>
               <input
                 id="payoutMobileNetwork"
                 name="payoutMobileNetwork"
@@ -210,7 +217,9 @@ export const PayoutSettingsForm = forwardRef<SaveFormHandle, PayoutSettingsFormP
                 required
                 disabled={submitting}
               />
-              <label htmlFor="payoutAccountNumber">Phone number (with country code)</label>
+              <label htmlFor="payoutAccountNumber">
+                Phone number <TooltipIcon tooltip="Include country code: +254 for Kenya, +251 for Ethiopia, etc." side="right" />
+              </label>
               <input
                 id="payoutAccountNumber"
                 name="payoutAccountNumber"
@@ -241,7 +250,9 @@ export const PayoutSettingsForm = forwardRef<SaveFormHandle, PayoutSettingsFormP
             No automated sending yet — we send this manually from our own wallet/exchange and mark it paid
             once it's sent, so payouts may take a little longer than other channels.
           </p>
-          <label htmlFor="cryptoNetwork">Network / token</label>
+          <label htmlFor="cryptoNetwork">
+            Network / token <TooltipIcon tooltip="e.g., USDC on Base, USDC on Polygon, ETH on Ethereum" side="right" />
+          </label>
           <input
             id="cryptoNetwork"
             name="cryptoNetwork"
@@ -250,7 +261,9 @@ export const PayoutSettingsForm = forwardRef<SaveFormHandle, PayoutSettingsFormP
             required
             disabled={submitting}
           />
-          <label htmlFor="cryptoAddress">Wallet address</label>
+          <label htmlFor="cryptoAddress">
+            Wallet address <TooltipIcon tooltip="Your public wallet address (never send your private key)" side="right" />
+          </label>
           <input id="cryptoAddress" name="cryptoAddress" defaultValue={initial.cryptoAddress ?? ""} required disabled={submitting} />
         </form>
       ) : (
