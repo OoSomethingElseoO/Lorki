@@ -15,6 +15,7 @@ export async function POST(request: Request) {
   const receivedSecret = request.headers.get("verif-hash");
 
   if (!expectedSecret || !receivedSecret || receivedSecret !== expectedSecret) {
+    console.error("[flutterwave:webhook] Invalid or missing webhook signature");
     return NextResponse.json({ error: "Invalid or missing webhook signature" }, { status: 400 });
   }
 
@@ -24,11 +25,15 @@ export async function POST(request: Request) {
   const status: string | undefined = data?.status;
 
   if (!transferId || !status) {
+    console.warn("[flutterwave:webhook] Missing transferId or status", { transferId, status });
     return NextResponse.json({ received: true });
   }
 
+  console.log(`[flutterwave:webhook] Received transfer status update: ${transferId} → ${status}`);
+
   const payout = await prisma.payout.findFirst({ where: { flutterwaveTransferId: transferId } });
   if (!payout) {
+    console.error(`[flutterwave:webhook] Payout not found for transfer ${transferId}`);
     return NextResponse.json({ received: true });
   }
 
@@ -41,7 +46,10 @@ export async function POST(request: Request) {
     },
   });
 
+  console.log(`[flutterwave:webhook] ✓ Payout updated: ${payout.id} status=${status}`);
+
   if (status === "FAILED") {
+    console.error(`[flutterwave:webhook] ⚠ Transfer failed: ${transferId} (payout ${payout.id})`);
     // Not awaited — the payout row is already updated above; same reasoning
     // as the Stripe webhook (app/api/webhooks/stripe/route.ts), don't make
     // this response wait on Resend.

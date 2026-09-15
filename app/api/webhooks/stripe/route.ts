@@ -12,6 +12,7 @@ export async function POST(request: Request) {
   const webhookSecret = await getStripeWebhookSecret();
 
   if (!signature || !webhookSecret) {
+    console.error("[stripe:webhook] Missing signature or secret");
     return NextResponse.json({ error: "Missing webhook signature or secret" }, { status: 400 });
   }
 
@@ -22,30 +23,46 @@ export async function POST(request: Request) {
     const stripe = await getStripe();
     event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
   } catch (error) {
+    console.error("[stripe:webhook] Invalid signature:", (error as Error).message);
     return NextResponse.json({ error: `Invalid signature: ${(error as Error).message}` }, { status: 400 });
   }
 
-  if (event.type === "checkout.session.completed") {
-    await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
-  }
+  console.log(`[stripe:webhook] Received event: ${event.type} (${event.id})`);
 
-  if (event.type === "charge.refunded") {
-    await handleRefund(event.data.object as Stripe.Charge);
-  }
+  try {
+    if (event.type === "checkout.session.completed") {
+      await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
+    }
 
-  if (event.type === "charge.dispute.created") {
-    await handleDisputeCreated(event.data.object as Stripe.Dispute);
-  }
+    if (event.type === "charge.refunded") {
+      await handleRefund(event.data.object as Stripe.Charge);
+    }
 
-  if (event.type === "charge.dispute.closed") {
-    await handleDisputeClosed(event.data.object as Stripe.Dispute);
-  }
+    if (event.type === "charge.dispute.created") {
+      await handleDisputeCreated(event.data.object as Stripe.Dispute);
+    }
 
-  if (event.type === "account.updated") {
-    await handleConnectAccountUpdated(event.data.object as Stripe.Account);
-  }
+    if (event.type === "charge.dispute.closed") {
+      await handleDisputeClosed(event.data.object as Stripe.Dispute);
+    }
 
-  return NextResponse.json({ received: true });
+    if (event.type === "account.updated") {
+      await handleConnectAccountUpdated(event.data.object as Stripe.Account);
+    }
+
+    console.log(`[stripe:webhook] ✓ Successfully processed ${event.type}`);
+    return NextResponse.json({ received: true });
+  } catch (error) {
+    console.error(`[stripe:webhook] ✗ Failed to process ${event.type}:`, (error as Error).message);
+    console.error((error as Error).stack);
+
+    sendOperationsAlert(
+      `[CRITICAL] Stripe webhook failed: ${event.type}`,
+      `<p>Event ID: <code>${event.id}</code></p><p>Type: <code>${event.type}</code></p><p>Error: <code>${(error as Error).message}</code></p><p>Check logs for full stack trace.</p>`,
+    ).catch((e) => console.error("[stripe:webhook-alert-send-failed]", e));
+
+    return NextResponse.json({ received: true }, { status: 202 });
+  }
 }
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
@@ -53,6 +70,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const artworkId = session.metadata?.artworkId;
 
   if (!paymentIntentId || !artworkId) {
+    console.warn("[stripe:checkout] Missing paymentIntentId or artworkId", { paymentIntentId, artworkId });
     return;
   }
 
@@ -60,6 +78,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   // already recorded an Order for must be a no-op, not a duplicate Order.
   const existing = await prisma.order.findUnique({ where: { stripePaymentIntentId: paymentIntentId } });
   if (existing) {
+    console.log(`[stripe:checkout] ℹ Order already exists for payment intent ${paymentIntentId}`);
     return;
   }
 
@@ -69,6 +88,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   });
 
   if (!artwork) {
+    console.error(`[stripe:checkout] Artwork not found: ${artworkId}`);
     return;
   }
 
@@ -119,6 +139,8 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
     return order;
   });
+
+  console.log(`[stripe:checkout] ✓ Order created: ${order.id} (${order.amountCents} cents) for ${artwork.title}`);
 
   // Not awaited: the order/inventory/payout rows are already committed
   // above, so Stripe's webhook response shouldn't sit blocked on Resend —
