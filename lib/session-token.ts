@@ -4,6 +4,8 @@
 // versa) plus the subject id. No DB lookup needed to verify, so this stays
 // safe to call from Next.js middleware (Edge runtime) as well as normal
 // server code — Web Crypto, not Node's crypto module.
+import { timingSafeEqual } from "node:crypto";
+
 const encoder = new TextEncoder();
 
 function toBase64Url(bytes: ArrayBuffer): string {
@@ -44,5 +46,11 @@ export async function verifySessionToken(purpose: string, token: string | undefi
   const subjectId = token.slice(0, separatorIndex);
   const signature = token.slice(separatorIndex + 1);
   const expected = await sign(purpose, subjectId);
-  return signature === expected ? subjectId : null;
+  try {
+    const signatureBuf = Buffer.from(signature, "utf-8");
+    const expectedBuf = Buffer.from(expected, "utf-8");
+    return timingSafeEqual(signatureBuf, expectedBuf) ? subjectId : null;
+  } catch {
+    return null;
+  }
 }

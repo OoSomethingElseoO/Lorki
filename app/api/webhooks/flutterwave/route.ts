@@ -37,6 +37,7 @@ export async function POST(request: Request) {
     data: {
       flutterwaveTransferStatus: status,
       ...(status === "SUCCESSFUL" ? { paidOutAt: new Date() } : {}),
+      ...(status === "FAILED" ? { status: "FAILED" } : {}),
     },
   });
 

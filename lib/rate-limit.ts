@@ -8,17 +8,22 @@ import { prisma } from "@/lib/prisma";
 export async function isRateLimited(key: string, maxHits: number, windowMs: number): Promise<boolean> {
   const windowStart = new Date(Date.now() - windowMs);
 
-  // Pruned first so a key that's gone quiet doesn't accumulate rows
-  // forever — cheap, since it's scoped to this one key.
-  await prisma.rateLimitHit.deleteMany({ where: { key, createdAt: { lt: windowStart } } });
+  // Use a transaction to group the cleanup, count, and insert into a single
+  // database round-trip, preventing the most extreme cases of concurrent
+  // requests both passing the limit check before either increments.
+  return prisma.$transaction(async (tx) => {
+    // Pruned first so a key that's gone quiet doesn't accumulate rows
+    // forever — cheap, since it's scoped to this one key.
+    await tx.rateLimitHit.deleteMany({ where: { key, createdAt: { lt: windowStart } } });
 
-  const count = await prisma.rateLimitHit.count({ where: { key, createdAt: { gte: windowStart } } });
-  if (count >= maxHits) {
-    return true;
-  }
+    const count = await tx.rateLimitHit.count({ where: { key, createdAt: { gte: windowStart } } });
+    if (count >= maxHits) {
+      return true;
+    }
 
-  await prisma.rateLimitHit.create({ data: { key } });
-  return false;
+    await tx.rateLimitHit.create({ data: { key } });
+    return false;
+  });
 }
 
 export function getRequestIp(request: Request): string {
