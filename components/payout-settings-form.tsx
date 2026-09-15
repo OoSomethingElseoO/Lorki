@@ -116,6 +116,12 @@ export const PayoutSettingsForm = forwardRef<SaveFormHandle, PayoutSettingsFormP
       return;
     }
 
+    if (!data.url) {
+      setStripeConnecting(false);
+      setError("Could not start Stripe onboarding. Please try again.");
+      return;
+    }
+
     window.location.href = data.url;
   }
 

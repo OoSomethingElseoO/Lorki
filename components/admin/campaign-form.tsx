@@ -62,15 +62,15 @@ export function CampaignForm({ animals, conservancies, artists, id, initial }: C
       }),
     });
 
-    setSubmitting(false);
-
     if (!response.ok) {
+      setSubmitting(false);
       const data = await response.json().catch(() => ({}));
       setError(data.error ?? `Failed to ${isEditing ? "save" : "create"} campaign`);
       return;
     }
 
     if (isEditing) {
+      setSubmitting(false);
       router.push("/admin/campaigns");
       return;
     }
@@ -80,6 +80,7 @@ export function CampaignForm({ animals, conservancies, artists, id, initial }: C
     setConservancyPercent(25);
     setOperationsPercent(25);
     router.refresh();
+    // Leave setSubmitting(true) through refresh to prevent duplicate submissions
   }
 
   if (artists.length === 0 || (animals.length === 0 && conservancies.length === 0)) {

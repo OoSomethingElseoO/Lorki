@@ -56,7 +56,11 @@ export async function POST(request: Request) {
 
   const inPerson = body.inPerson === true;
   const conservancyId = getCampaignConservancyId(artwork.campaign);
-  const conservancy = artwork.campaign.animal?.conservancy ?? artwork.campaign.conservancy!;
+  const conservancy = artwork.campaign.animal?.conservancy ?? artwork.campaign.conservancy;
+
+  if (!conservancy) {
+    return NextResponse.json({ error: "Campaign has no conservancy — cannot complete sale" }, { status: 400 });
+  }
 
   const order = await prisma.$transaction(async (tx) => {
     const order = await tx.order.create({

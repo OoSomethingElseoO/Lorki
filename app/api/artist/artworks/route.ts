@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { isPriceTooLow, MIN_PRICE_CENTS } from "@/lib/pricing";
+import { isPriceTooLow, isPriceTooHigh, MIN_PRICE_CENTS, MAX_PRICE_CENTS } from "@/lib/pricing";
 
 export async function GET() {
   const currentUser = await getCurrentUser();
@@ -54,7 +54,11 @@ export async function POST(request: Request) {
   }
 
   if (isPriceTooLow(body.priceCents)) {
-    return NextResponse.json({ error: `priceCents must be at least ${MIN_PRICE_CENTS}` }, { status: 400 });
+    return NextResponse.json({ error: `Price must be at least $${(MIN_PRICE_CENTS / 100).toFixed(2)}` }, { status: 400 });
+  }
+
+  if (isPriceTooHigh(body.priceCents)) {
+    return NextResponse.json({ error: `Price cannot exceed $${(MAX_PRICE_CENTS / 100).toFixed(2)}` }, { status: 400 });
   }
 
   // Ownership check: this campaign must actually belong to the artist

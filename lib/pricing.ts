@@ -2,9 +2,14 @@
 // negative price through would put an artwork on the storefront that can
 // never actually be bought — a real liability gap, not a hypothetical one.
 export const MIN_PRICE_CENTS = 50;
+export const MAX_PRICE_CENTS = 100_000_000; // $1,000,000 per artwork
 
 export function isPriceTooLow(priceCents: number): boolean {
   return priceCents < MIN_PRICE_CENTS;
+}
+
+export function isPriceTooHigh(priceCents: number): boolean {
+  return priceCents > MAX_PRICE_CENTS;
 }
 
 // Flat rate charged on top of the print price at checkout — previously
