@@ -5,7 +5,6 @@
  */
 
 import { useCallback } from "react";
-import type { FieldError } from "react-hook-form";
 import {
   validateEmailFormat,
   validatePasswordFormat,

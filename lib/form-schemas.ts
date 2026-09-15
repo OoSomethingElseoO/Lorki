@@ -187,7 +187,7 @@ export const validateCountryFormat = (code: string): string | null => {
   const normalized = code.toUpperCase();
   if (!/^[A-Z]{2}$/.test(normalized))
     return "Country code must be 2 uppercase letters";
-  if (!VALIDATION_RULES.country.validCodes.includes(normalized))
+  if (!VALIDATION_RULES.country.validCodes.includes(normalized as any))
     return VALIDATION_RULES.country.message;
   return null;
 };
