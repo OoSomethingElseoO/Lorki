@@ -285,6 +285,42 @@ export const validateArtworkCreation = (data: {
   };
 };
 
+// ============================================================================
+// PERCENTAGE VALIDATION (for splits)
+// ============================================================================
+
+export const validatePercentage = (value: number, name: string = "Percentage"): string | null => {
+  if (!Number.isInteger(value)) {
+    return `${name} must be a whole number`;
+  }
+  if (value < 0 || value > 100) {
+    return `${name} must be between 0 and 100`;
+  }
+  return null;
+};
+
+export const validateSplit = (
+  artistPercent: number,
+  conservancyPercent: number,
+  operationsPercent: number
+): string | null => {
+  const artistError = validatePercentage(artistPercent, "Artist percentage");
+  if (artistError) return artistError;
+
+  const conservancyError = validatePercentage(conservancyPercent, "Conservancy percentage");
+  if (conservancyError) return conservancyError;
+
+  const operationsError = validatePercentage(operationsPercent, "Operations percentage");
+  if (operationsError) return operationsError;
+
+  const total = artistPercent + conservancyPercent + operationsPercent;
+  if (total !== 100) {
+    return `Split percentages must sum to 100 (currently ${total})`;
+  }
+
+  return null;
+};
+
 export const validatePayoutSettings = (data: {
   payoutChannel: string;
   payoutCountry?: string;
