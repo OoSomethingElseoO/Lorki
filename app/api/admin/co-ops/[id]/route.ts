@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { foreignKeyConstraintResponse, isForeignKeyConstraintError, isNotFoundError } from "@/lib/prisma-errors";
+import { validateTextField, validateCountryCode, validateEmail } from "@/lib/validation";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -16,6 +17,26 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
   if (!body.name || !body.region || !body.contactEmail) {
     return NextResponse.json({ error: "name, region, and contactEmail are required" }, { status: 400 });
+  }
+
+  // ✅ Comprehensive validation
+  const nameError = validateTextField(body.name, {
+    minLength: 1,
+    maxLength: 200,
+    name: "Name",
+  });
+  if (nameError) {
+    return NextResponse.json({ error: nameError }, { status: 400 });
+  }
+
+  const regionError = validateCountryCode(body.region);
+  if (regionError) {
+    return NextResponse.json({ error: regionError }, { status: 400 });
+  }
+
+  const emailError = validateEmail(body.contactEmail);
+  if (emailError) {
+    return NextResponse.json({ error: emailError }, { status: 400 });
   }
 
   try {

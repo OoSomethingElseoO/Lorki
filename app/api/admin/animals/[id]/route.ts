@@ -7,6 +7,7 @@ import {
   isUniqueConstraintError,
   uniqueConstraintResponse,
 } from "@/lib/prisma-errors";
+import { validateTextField, validateCountryCode, validateImageUrl } from "@/lib/validation";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -28,6 +29,44 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       { error: "name, species, region, story, imageUrl, and conservancyId are required" },
       { status: 400 },
     );
+  }
+
+  // ✅ Comprehensive validation
+  const nameError = validateTextField(body.name, {
+    minLength: 1,
+    maxLength: 200,
+    name: "Name",
+  });
+  if (nameError) {
+    return NextResponse.json({ error: nameError }, { status: 400 });
+  }
+
+  const speciesError = validateTextField(body.species, {
+    minLength: 1,
+    maxLength: 100,
+    name: "Species",
+  });
+  if (speciesError) {
+    return NextResponse.json({ error: speciesError }, { status: 400 });
+  }
+
+  const regionError = validateCountryCode(body.region);
+  if (regionError) {
+    return NextResponse.json({ error: regionError }, { status: 400 });
+  }
+
+  const storyError = validateTextField(body.story, {
+    minLength: 1,
+    maxLength: 5000,
+    name: "Story",
+  });
+  if (storyError) {
+    return NextResponse.json({ error: storyError }, { status: 400 });
+  }
+
+  const imageError = validateImageUrl(body.imageUrl);
+  if (imageError) {
+    return NextResponse.json({ error: imageError }, { status: 400 });
   }
 
   const conservancy = await prisma.conservancy.findUnique({ where: { id: body.conservancyId } });

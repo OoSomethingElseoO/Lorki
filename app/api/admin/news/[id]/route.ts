@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isNotFoundError, isUniqueConstraintError, uniqueConstraintResponse } from "@/lib/prisma-errors";
+import { validateTextField, validateImageUrl } from "@/lib/validation";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -28,6 +29,41 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   const hasContentFields = body.title !== undefined;
   if (hasContentFields && (!body.title || !body.summary || !body.body || !body.imageUrl)) {
     return NextResponse.json({ error: "title, summary, body, and imageUrl are required" }, { status: 400 });
+  }
+
+  // ✅ Validate content fields if present
+  if (hasContentFields) {
+    const titleError = validateTextField(body.title, {
+      minLength: 1,
+      maxLength: 200,
+      name: "Title",
+    });
+    if (titleError) {
+      return NextResponse.json({ error: titleError }, { status: 400 });
+    }
+
+    const summaryError = validateTextField(body.summary, {
+      minLength: 1,
+      maxLength: 500,
+      name: "Summary",
+    });
+    if (summaryError) {
+      return NextResponse.json({ error: summaryError }, { status: 400 });
+    }
+
+    const bodyError = validateTextField(body.body, {
+      minLength: 1,
+      maxLength: 50000,
+      name: "Body",
+    });
+    if (bodyError) {
+      return NextResponse.json({ error: bodyError }, { status: 400 });
+    }
+
+    const imageError = validateImageUrl(body.imageUrl);
+    if (imageError) {
+      return NextResponse.json({ error: imageError }, { status: 400 });
+    }
   }
 
   const data: Record<string, string> = {};

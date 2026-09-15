@@ -7,6 +7,7 @@ import {
   isUniqueConstraintError,
   uniqueConstraintResponse,
 } from "@/lib/prisma-errors";
+import { validateTextField, validateCountryCode, validateImageUrl, validateUrl } from "@/lib/validation";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -27,6 +28,35 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: "name, country, bio, and imageUrl are required" }, { status: 400 });
   }
 
+  // ✅ Comprehensive validation
+  const nameError = validateTextField(body.name, {
+    minLength: 1,
+    maxLength: 200,
+    name: "Name",
+  });
+  if (nameError) {
+    return NextResponse.json({ error: nameError }, { status: 400 });
+  }
+
+  const countryError = validateCountryCode(body.country);
+  if (countryError) {
+    return NextResponse.json({ error: countryError }, { status: 400 });
+  }
+
+  const bioError = validateTextField(body.bio, {
+    minLength: 1,
+    maxLength: 2000,
+    name: "Bio",
+  });
+  if (bioError) {
+    return NextResponse.json({ error: bioError }, { status: 400 });
+  }
+
+  const imageError = validateImageUrl(body.imageUrl);
+  if (imageError) {
+    return NextResponse.json({ error: imageError }, { status: 400 });
+  }
+
   if (body.coOpId) {
     const coOp = await prisma.coOp.findUnique({ where: { id: body.coOpId } });
     if (!coOp) {
@@ -34,7 +64,12 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     }
   }
 
-  const socialLinks = (body.socialLinks ?? []).filter((link) => link.platform && link.url);
+  // ✅ Validate social links
+  const socialLinks = (body.socialLinks ?? []).filter((link) => {
+    if (!link.platform || !link.url) return false;
+    const urlError = validateUrl(link.url);
+    return !urlError;
+  });
 
   try {
     // Slug is set once at creation and stays fixed on edit — it's used in

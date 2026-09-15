@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { foreignKeyConstraintResponse, isForeignKeyConstraintError, isNotFoundError } from "@/lib/prisma-errors";
+import { validateSplit } from "@/lib/validation";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -49,8 +50,14 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: "Provide exactly one of animalId or conservancyId" }, { status: 400 });
   }
 
-  if (nextArtistPercent + nextConservancyPercent + nextOperationsPercent !== 100) {
-    return NextResponse.json({ error: "Split percentages must sum to 100" }, { status: 400 });
+  // ✅ Comprehensive validation of split percentages
+  const splitError = validateSplit(
+    nextArtistPercent,
+    nextConservancyPercent,
+    nextOperationsPercent
+  );
+  if (splitError) {
+    return NextResponse.json({ error: splitError }, { status: 400 });
   }
 
   if (nextAnimalId) {
