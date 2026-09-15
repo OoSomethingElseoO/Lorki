@@ -5,6 +5,7 @@ import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
 import { getCurrentUser } from "@/lib/auth";
 import { PRINT_SHIPPING_CENTS } from "@/lib/pricing";
 import { validateEmail } from "@/lib/validation";
+import { checkIdempotency, storeIdempotencyResponse } from "@/lib/idempotency";
 
 type CheckoutBody = {
   artworkId: string;
@@ -20,6 +21,11 @@ const CHECKOUT_RATE_LIMIT = 5;
 const CHECKOUT_RATE_WINDOW_MS = 5 * 60 * 1000;
 
 export async function POST(request: Request) {
+  // ✅ Check for idempotent retry (prevent duplicate Stripe sessions)
+  const customer = await getCurrentUser();
+  const cached = await checkIdempotency(request, customer?.id);
+  if (cached) return cached;
+
   const ip = getRequestIp(request);
   if (await isRateLimited(`checkout:${ip}`, CHECKOUT_RATE_LIMIT, CHECKOUT_RATE_WINDOW_MS)) {
     return NextResponse.json({ error: "Too many checkout attempts. Please try again in a few minutes." }, { status: 429 });
@@ -34,7 +40,6 @@ export async function POST(request: Request) {
   // A logged-in buyer's email comes from their account, not the request
   // body — this is also what links the resulting Order back to them via
   // the webhook. Guests must supply an email explicitly.
-  const customer = await getCurrentUser();
   const buyerEmail = customer?.email ?? body.buyerEmail;
 
   if (!buyerEmail) {
@@ -107,9 +112,28 @@ export async function POST(request: Request) {
       cancel_url: `${origin}/checkout/cancelled`,
     });
 
-    return NextResponse.json({ url: session.url });
+    const response = NextResponse.json({ url: session.url });
+    // ✅ Store idempotency response for future retries
+    await storeIdempotencyResponse(
+      request.headers.get("Idempotency-Key") || "no-key",
+      customer?.id,
+      200,
+      { url: session.url }
+    ).catch((e) => console.error("[idempotency:storage-failed]", e));
+    return response;
   } catch (error) {
     console.error("[checkout] Stripe session creation failed", error);
-    return NextResponse.json({ error: "Checkout is temporarily unavailable. Please try again." }, { status: 502 });
+    const errorResponse = NextResponse.json(
+      { error: "Checkout is temporarily unavailable. Please try again." },
+      { status: 502 }
+    );
+    // ✅ Store error response for idempotency (prevent retry storms)
+    await storeIdempotencyResponse(
+      request.headers.get("Idempotency-Key") || "no-key",
+      customer?.id,
+      502,
+      { error: "Checkout is temporarily unavailable. Please try again." }
+    ).catch((e) => console.error("[idempotency:storage-failed]", e));
+    return errorResponse;
   }
 }

@@ -4,6 +4,7 @@ import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
 import { sendInquiryConfirmationEmail, sendOperationsAlert } from "@/lib/email";
 import { RESERVATION_TTL_MS } from "@/lib/reservations";
 import { validateEmail, validateTextField } from "@/lib/validation";
+import { checkIdempotency, storeIdempotencyResponse } from "@/lib/idempotency";
 
 type InquiryBody = {
   artworkId: string;
@@ -18,6 +19,10 @@ const INQUIRY_RATE_LIMIT = 5;
 const INQUIRY_RATE_WINDOW_MS = 5 * 60 * 1000;
 
 export async function POST(request: Request) {
+  // ✅ Check for idempotent retry (prevent duplicate inquiry+reservation)
+  const cached = await checkIdempotency(request, null);
+  if (cached) return cached;
+
   const ip = getRequestIp(request);
   if (await isRateLimited(`inquiry:${ip}`, INQUIRY_RATE_LIMIT, INQUIRY_RATE_WINDOW_MS)) {
     return NextResponse.json({ error: "Too many inquiries. Please try again in a few minutes." }, { status: 429 });
@@ -104,5 +109,13 @@ export async function POST(request: Request) {
     }<p>This piece is now held for ${holdMinutes} minutes and won't show as available to other visitors. Reply directly to their email to arrange payment and shipping — once agreed, record the sale from /admin/orders before the hold expires, or the piece goes back on sale automatically.</p>`,
   ).catch((e) => console.error("[inquiries:alert-failed]", e));
 
-  return NextResponse.json({ inquiry }, { status: 201 });
+  const response = NextResponse.json({ inquiry }, { status: 201 });
+  // ✅ Store idempotency response for future retries
+  await storeIdempotencyResponse(
+    request.headers.get("Idempotency-Key") || "no-key",
+    null,
+    201,
+    { inquiry }
+  ).catch((e) => console.error("[idempotency:storage-failed]", e));
+  return response;
 }

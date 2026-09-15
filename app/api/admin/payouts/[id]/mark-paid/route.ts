@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { checkPermission, unauthorized } from "@/lib/permissions";
 import { getCurrentUser } from "@/lib/auth";
+import { checkIdempotency, storeIdempotencyResponse } from "@/lib/idempotency";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -10,12 +11,16 @@ type RouteParams = { params: Promise<{ id: string }> };
 // confirming it here) and, in principle, for a manual override on an
 // automated one. Idempotent: marking an already-paid-out payout again is a
 // no-op, not an error.
-export async function POST(_request: Request, { params }: RouteParams) {
+export async function POST(request: Request, { params }: RouteParams) {
   const user = await getCurrentUser();
   const { authorized } = checkPermission(user, "FINANCE_ADMIN");
   if (!authorized) {
     return unauthorized("FINANCE_ADMIN");
   }
+
+  // ✅ Check for idempotent retry
+  const cached = await checkIdempotency(request, user?.id);
+  if (cached) return cached;
 
   const { id } = await params;
 
@@ -26,10 +31,18 @@ export async function POST(_request: Request, { params }: RouteParams) {
 
   // ✅ IDEMPOTENCY: If already marked paid, return success (idempotent)
   if (payout.paidOutAt !== null) {
-    return NextResponse.json({
+    const response = NextResponse.json({
       message: "Payout already marked paid",
       payout
     });
+    // ✅ Store for future retries
+    await storeIdempotencyResponse(
+      request.headers.get("Idempotency-Key") || "no-key",
+      user?.id,
+      200,
+      { message: "Payout already marked paid", payout }
+    ).catch((e) => console.error("[idempotency:storage-failed]", e));
+    return response;
   }
 
   if (payout.status !== "RELEASED") {
@@ -41,5 +54,13 @@ export async function POST(_request: Request, { params }: RouteParams) {
     data: { paidOutAt: new Date() },
   });
 
-  return NextResponse.json({ payout: updated });
+  const response = NextResponse.json({ payout: updated });
+  // ✅ Store for future retries
+  await storeIdempotencyResponse(
+    request.headers.get("Idempotency-Key") || "no-key",
+    user?.id,
+    200,
+    { payout: updated }
+  ).catch((e) => console.error("[idempotency:storage-failed]", e));
+  return response;
 }

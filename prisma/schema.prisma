@@ -588,3 +588,21 @@ model PasswordResetToken {
   usedAt     DateTime?
   createdAt  DateTime  @default(now())
 }
+
+// Idempotency store for API requests — prevents duplicate processing on retries.
+// Stores the idempotency key, response status, response body, and timestamp.
+// Allows clients to safely retry requests (e.g., checkout, payout operations)
+// without creating duplicate records or charges. Keyed by (idempotencyKey, userId)
+// where userId is the requester's ID (or null for guest checkouts). Entries older
+// than IDEMPOTENCY_TTL_MS are garbage-collected by background cleanup.
+model IdempotencyStore {
+  id               String    @id @default(cuid())
+  idempotencyKey   String    // Client-provided unique key for this operation
+  userId           String?   // User who made the request (null for guests)
+  responseStatus   Int       // HTTP status code of the response
+  responseBody     Json      // Response body (error or success)
+  createdAt        DateTime  @default(now())
+
+  @@unique([idempotencyKey, userId])
+  @@index([createdAt])
+}

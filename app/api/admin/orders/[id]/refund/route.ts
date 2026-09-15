@@ -5,18 +5,23 @@ import { processRefund } from "@/lib/refunds";
 import { sendRefundConfirmationEmail } from "@/lib/email";
 import { checkPermission, unauthorized } from "@/lib/permissions";
 import { getCurrentUser } from "@/lib/auth";
+import { checkIdempotency, storeIdempotencyResponse } from "@/lib/idempotency";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
 // Deliberately no status guard beyond "not already refunded" — a DELIVERED
 // order can still be refunded (any already-RELEASED payouts just won't be
 // clawed back automatically; that's the existing, correct design).
-export async function POST(_request: Request, { params }: RouteParams) {
+export async function POST(request: Request, { params }: RouteParams) {
   const user = await getCurrentUser();
   const { authorized } = checkPermission(user, "FINANCE_ADMIN");
   if (!authorized) {
     return unauthorized("FINANCE_ADMIN");
   }
+
+  // ✅ Check for idempotent retry
+  const cached = await checkIdempotency(request, user?.id);
+  if (cached) return cached;
 
   const { id } = await params;
 
@@ -27,7 +32,15 @@ export async function POST(_request: Request, { params }: RouteParams) {
   }
 
   if (order.status === "REFUNDED") {
-    return NextResponse.json({ error: "Order has already been refunded" }, { status: 409 });
+    const response = NextResponse.json({ error: "Order has already been refunded" }, { status: 409 });
+    // ✅ Store for future retries
+    await storeIdempotencyResponse(
+      request.headers.get("Idempotency-Key") || "no-key",
+      user?.id,
+      409,
+      { error: "Order has already been refunded" }
+    ).catch((e) => console.error("[idempotency:storage-failed]", e));
+    return response;
   }
 
   if (order.paymentMethod === "STRIPE") {
@@ -38,7 +51,17 @@ export async function POST(_request: Request, { params }: RouteParams) {
       const stripe = await getStripe();
       await stripe.refunds.create({ payment_intent: order.stripePaymentIntentId });
     } catch (error) {
-      return NextResponse.json({ error: `Stripe refund failed: ${(error as Error).message}` }, { status: 502 });
+      const errorResponse = NextResponse.json({
+        error: `Stripe refund failed: ${(error as Error).message}`
+      }, { status: 502 });
+      // ✅ Store error for future retries
+      await storeIdempotencyResponse(
+        request.headers.get("Idempotency-Key") || "no-key",
+        user?.id,
+        502,
+        { error: `Stripe refund failed: ${(error as Error).message}` }
+      ).catch((e) => console.error("[idempotency:storage-failed]", e));
+      return errorResponse;
     }
   }
 
@@ -52,5 +75,13 @@ export async function POST(_request: Request, { params }: RouteParams) {
     amountCents: order.amountCents,
   });
 
-  return NextResponse.json({ order: updated });
+  const response = NextResponse.json({ order: updated });
+  // ✅ Store for future retries
+  await storeIdempotencyResponse(
+    request.headers.get("Idempotency-Key") || "no-key",
+    user?.id,
+    200,
+    { order: updated }
+  ).catch((e) => console.error("[idempotency:storage-failed]", e));
+  return response;
 }
