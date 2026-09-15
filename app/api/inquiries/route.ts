@@ -76,7 +76,7 @@ export async function POST(request: Request) {
     `<p><strong>${body.name}</strong> (${body.email}) is interested in <strong>${artwork.title}</strong> — a one-of-one original, so this needs a personal follow-up, not automated fulfillment.</p>${
       body.message ? `<p>Their message: "${body.message}"</p>` : ""
     }<p>This piece is now held for ${holdMinutes} minutes and won't show as available to other visitors. Reply directly to their email to arrange payment and shipping — once agreed, record the sale from /admin/orders before the hold expires, or the piece goes back on sale automatically.</p>`,
-  );
+  ).catch((e) => console.error("[inquiries:alert-failed]", e));
 
   return NextResponse.json({ inquiry }, { status: 201 });
 }

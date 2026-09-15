@@ -137,7 +137,7 @@ export async function POST(request: Request) {
   sendOperationsAlert(
     `Cash sale recorded: ${artwork.title}`,
     `<p>${order.buyerEmail} bought <strong>${artwork.title}</strong> for $${(order.amountCents / 100).toFixed(2)} (cash).</p>`,
-  );
+  ).catch((e) => console.error("[cash-sale:alert-failed]", e));
 
   if (inPerson) {
     const artistPayout = await prisma.payout.findFirst({ where: { orderId: order.id, recipientType: "ARTIST" } });

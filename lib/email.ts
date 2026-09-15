@@ -158,8 +158,13 @@ export async function sendInquiryConfirmationEmail(params: { email: string; artw
 export async function sendOperationsAlert(subject: string, html: string) {
   const operationsEmail = await getOperationsEmail();
   if (!operationsEmail) {
-    console.log(`[email:skipped, no operations email configured] subject="${subject}"`);
+    console.error(`[ALERT:CRITICAL] Operations email not configured — alert not sent: "${subject}"`);
     return;
   }
-  await sendEmail(operationsEmail, subject, html);
+  try {
+    await sendEmail(operationsEmail, subject, html);
+  } catch (error) {
+    // sendEmail never throws, but if something unexpected happens, log it loudly
+    console.error(`[ALERT:CRITICAL] Operations alert failed to send: "${subject}" — ${(error as Error).message}`);
+  }
 }

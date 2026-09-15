@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     sendOperationsAlert(
       "Automatic M-Pesa payout failed",
       `<p>A Flutterwave transfer (payout ${payout.id}, $${(payout.amountCents / 100).toFixed(2)}) came back FAILED. It's still marked RELEASED — it needs to be paid out manually.</p>`,
-    );
+    ).catch((e) => console.error("[flutterwave:payout-failed-alert-failed]", e));
   }
 
   return NextResponse.json({ received: true });

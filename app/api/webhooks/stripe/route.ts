@@ -135,7 +135,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   sendOperationsAlert(
     `New order: ${artwork.title}`,
     `<p>${order.buyerEmail} bought <strong>${artwork.title}</strong> for $${(order.amountCents / 100).toFixed(2)}.</p><p>Fulfillment needed — mark it shipped in the admin once it's on its way.</p>`,
-  );
+  ).catch((e) => console.error("[stripe:webhook-alert-failed]", e));
 }
 
 async function handleRefund(charge: Stripe.Charge) {
@@ -193,7 +193,7 @@ async function handleDisputeCreated(dispute: Stripe.Dispute) {
     `<p>A dispute was opened on the charge for <strong>${order.artwork.title}</strong> ($${(order.amountCents / 100).toFixed(2)}, buyer ${order.buyerEmail}).</p>` +
       `<p>Stripe requires evidence to be submitted by a deadline — respond from the <a href="https://dashboard.stripe.com/disputes">Stripe dashboard</a> as soon as possible.</p>` +
       `<p>Any pending payout on this order has been held. If this dispute is later won, payouts for this order will need to be released manually from /admin/orders — this is not automatic.</p>`,
-  );
+  ).catch((e) => console.error("[stripe:dispute-alert-failed]", e));
 }
 
 async function handleDisputeClosed(dispute: Stripe.Dispute) {
@@ -224,7 +224,7 @@ async function handleDisputeClosed(dispute: Stripe.Dispute) {
   sendOperationsAlert(
     `Chargeback resolved in our favor: ${order.artwork.title}`,
     `<p>The dispute on <strong>${order.artwork.title}</strong> was closed as "${dispute.status}." If any payout on this order was held, check /admin/orders and release it manually — this was not automatic.</p>`,
-  );
+  ).catch((e) => console.error("[stripe:dispute-resolved-alert-failed]", e));
 }
 
 // The reliable long-term source of truth for a Connect account's status —
