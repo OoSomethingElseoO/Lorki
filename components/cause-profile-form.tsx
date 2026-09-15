@@ -4,6 +4,7 @@ import { forwardRef, useImperativeHandle, useRef, useState, type FormEvent } fro
 import { DocumentUploadField } from "@/components/document-upload-field";
 import { FormFieldError } from "@/components/ui/form-field-error";
 import { useFormErrors } from "@/hooks/useFormErrors";
+import { useFormValidation } from "@/hooks/useFormValidation";
 
 export type SaveFormHandle = { submit: () => Promise<boolean> };
 
@@ -31,16 +32,38 @@ export const CauseProfileForm = forwardRef<SaveFormHandle, CauseProfileFormProps
 ) {
   const formRef = useRef<HTMLFormElement>(null);
   const { error, clearErrors, setError, getFieldError } = useFormErrors();
+  const { validators } = useFormValidation();
   const [success, setSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [clientValidationErrors, setClientValidationErrors] = useState<Record<string, string>>({});
 
   async function doSubmit(): Promise<boolean> {
     if (!formRef.current) return false;
+
+    const form = new FormData(formRef.current);
+    const website = form.get("website") as string;
+    const contactEmail = form.get("contactEmail") as string;
+
+    // ✅ Client-side validation first (instant feedback)
+    const errors: Record<string, string> = {};
+
+    const websiteError = validators.url(website);
+    if (websiteError) errors.website = websiteError;
+
+    const emailError = validators.email(contactEmail);
+    if (emailError) errors.contactEmail = emailError;
+
+    if (Object.keys(errors).length > 0) {
+      setClientValidationErrors(errors);
+      return false;
+    }
+
+    setClientValidationErrors({});
     setSubmitting(true);
     clearErrors();
     setSuccess(false);
 
-    const form = new FormData(formRef.current);
+    // ✅ Server-side validation (security - can't be bypassed)
     const response = await fetch("/api/cause/profile", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -135,11 +158,30 @@ export const CauseProfileForm = forwardRef<SaveFormHandle, CauseProfileFormProps
           required
           defaultValue={initial.website}
           disabled={submitting}
-          className={getFieldError("website") ? "form-input--error" : ""}
-          aria-invalid={!!getFieldError("website")}
-          aria-describedby={getFieldError("website") ? "website-error" : undefined}
+          onChange={(event) => {
+            const error = validators.url(event.target.value);
+            if (error) {
+              setClientValidationErrors((prev) => ({ ...prev, website: error }));
+            } else {
+              setClientValidationErrors((prev) => {
+                const updated = { ...prev };
+                delete updated.website;
+                return updated;
+              });
+            }
+          }}
+          className={getFieldError("website") || clientValidationErrors.website ? "form-input--error" : ""}
+          aria-invalid={!!(getFieldError("website") || clientValidationErrors.website)}
+          aria-describedby={
+            getFieldError("website") || clientValidationErrors.website ? "website-error" : undefined
+          }
         />
-        {getFieldError("website") && <FormFieldError id="website-error" message={getFieldError("website")} />}
+        {(clientValidationErrors.website || getFieldError("website")) && (
+          <FormFieldError
+            id="website-error"
+            message={clientValidationErrors.website || getFieldError("website")}
+          />
+        )}
       </div>
 
       <div>
@@ -151,12 +193,31 @@ export const CauseProfileForm = forwardRef<SaveFormHandle, CauseProfileFormProps
           required
           defaultValue={initial.contactEmail}
           disabled={submitting}
-          className={getFieldError("contactEmail") ? "form-input--error" : ""}
-          aria-invalid={!!getFieldError("contactEmail")}
-          aria-describedby={getFieldError("contactEmail") ? "contactEmail-error" : undefined}
+          onChange={(event) => {
+            const error = validators.email(event.target.value);
+            if (error) {
+              setClientValidationErrors((prev) => ({ ...prev, contactEmail: error }));
+            } else {
+              setClientValidationErrors((prev) => {
+                const updated = { ...prev };
+                delete updated.contactEmail;
+                return updated;
+              });
+            }
+          }}
+          className={getFieldError("contactEmail") || clientValidationErrors.contactEmail ? "form-input--error" : ""}
+          aria-invalid={!!(getFieldError("contactEmail") || clientValidationErrors.contactEmail)}
+          aria-describedby={
+            getFieldError("contactEmail") || clientValidationErrors.contactEmail
+              ? "contactEmail-error"
+              : undefined
+          }
         />
-        {getFieldError("contactEmail") && (
-          <FormFieldError id="contactEmail-error" message={getFieldError("contactEmail")} />
+        {(clientValidationErrors.contactEmail || getFieldError("contactEmail")) && (
+          <FormFieldError
+            id="contactEmail-error"
+            message={clientValidationErrors.contactEmail || getFieldError("contactEmail")}
+          />
         )}
       </div>
 

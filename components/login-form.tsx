@@ -8,20 +8,40 @@ import { FormFieldError } from "@/components/ui/form-field-error";
 import { useRouter, useSearchParams } from "next/navigation";
 import { resolvePostLoginRedirect } from "@/lib/post-login-redirect";
 import { useFormErrors } from "@/hooks/useFormErrors";
+import { useFormValidation } from "@/hooks/useFormValidation";
 
 function LoginFormInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { error, clearErrors, setError, getFieldError } = useFormErrors();
+  const { validators } = useFormValidation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [clientValidationErrors, setClientValidationErrors] = useState<Record<string, string>>({});
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    // ✅ Client-side validation first (instant feedback)
+    const errors: Record<string, string> = {};
+
+    const emailError = validators.email(email);
+    if (emailError) errors.email = emailError;
+
+    const passwordError = validators.password(password);
+    if (passwordError) errors.password = passwordError;
+
+    if (Object.keys(errors).length > 0) {
+      setClientValidationErrors(errors);
+      return;
+    }
+
+    setClientValidationErrors({});
     setSubmitting(true);
     clearErrors();
 
+    // ✅ Server-side validation (security - can't be bypassed)
     const response = await fetch("/api/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -56,24 +76,60 @@ function LoginFormInner() {
         type="email"
         required
         value={email}
-        onChange={(event) => setEmail(event.target.value)}
-        className={getFieldError("email") ? "form-input--error" : ""}
-        aria-invalid={!!getFieldError("email")}
-        aria-describedby={getFieldError("email") ? "email-error" : undefined}
+        onChange={(event) => {
+          setEmail(event.target.value);
+          const error = validators.email(event.target.value);
+          if (error) {
+            setClientValidationErrors((prev) => ({ ...prev, email: error }));
+          } else {
+            setClientValidationErrors((prev) => {
+              const updated = { ...prev };
+              delete updated.email;
+              return updated;
+            });
+          }
+        }}
+        className={getFieldError("email") || clientValidationErrors.email ? "form-input--error" : ""}
+        aria-invalid={!!(getFieldError("email") || clientValidationErrors.email)}
+        aria-describedby={getFieldError("email") || clientValidationErrors.email ? "email-error" : undefined}
       />
-      {getFieldError("email") && <FormFieldError id="email-error" message={getFieldError("email")} />}
+      {(clientValidationErrors.email || getFieldError("email")) && (
+        <FormFieldError
+          id="email-error"
+          message={clientValidationErrors.email || getFieldError("email")}
+        />
+      )}
 
       <label htmlFor="password">Password</label>
       <PasswordInput
         id="password"
         required
         value={password}
-        onChange={(event) => setPassword(event.target.value)}
-        className={getFieldError("password") ? "form-input--error" : ""}
-        aria-invalid={!!getFieldError("password")}
-        aria-describedby={getFieldError("password") ? "password-error" : undefined}
+        onChange={(event) => {
+          setPassword(event.target.value);
+          const error = validators.password(event.target.value);
+          if (error) {
+            setClientValidationErrors((prev) => ({ ...prev, password: error }));
+          } else {
+            setClientValidationErrors((prev) => {
+              const updated = { ...prev };
+              delete updated.password;
+              return updated;
+            });
+          }
+        }}
+        className={getFieldError("password") || clientValidationErrors.password ? "form-input--error" : ""}
+        aria-invalid={!!(getFieldError("password") || clientValidationErrors.password)}
+        aria-describedby={
+          getFieldError("password") || clientValidationErrors.password ? "password-error" : undefined
+        }
       />
-      {getFieldError("password") && <FormFieldError id="password-error" message={getFieldError("password")} />}
+      {(clientValidationErrors.password || getFieldError("password")) && (
+        <FormFieldError
+          id="password-error"
+          message={clientValidationErrors.password || getFieldError("password")}
+        />
+      )}
 
       {error ? <p className="buy-form__error">{error}</p> : null}
       <Button type="submit" disabled={submitting}>

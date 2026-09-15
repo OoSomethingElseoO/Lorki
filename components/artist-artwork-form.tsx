@@ -6,6 +6,7 @@ import { ImageUploadField } from "@/components/admin/image-upload-field";
 import { Button } from "@/components/ui/button";
 import { FormFieldError } from "@/components/ui/form-field-error";
 import { useFormErrors } from "@/hooks/useFormErrors";
+import { useFormValidation } from "@/hooks/useFormValidation";
 
 type ArtistArtworkFormProps = {
   id: string;
@@ -23,21 +24,43 @@ type ArtistArtworkFormProps = {
 export function ArtistArtworkForm({ id, initial, onSaved }: ArtistArtworkFormProps) {
   const router = useRouter();
   const { error, clearErrors, setError, getFieldError } = useFormErrors();
+  const { validators } = useFormValidation();
   const [submitting, setSubmitting] = useState(false);
+  const [clientValidationErrors, setClientValidationErrors] = useState<Record<string, string>>({});
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    // Capture the form element now — React nulls event.currentTarget once
-    // the event finishes dispatching, so using it after the `await fetch`
-    // below throws "Cannot read properties of null (reading 'reset')" and
-    // silently aborts before onSaved()/router.refresh() ever run.
     const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    const priceDollars = Number(form.get("priceDollars"));
+    const title = form.get("title") as string;
+    const imageUrl = form.get("imageUrl") as string;
+
+    // ✅ Client-side validation first (instant feedback)
+    const errors: Record<string, string> = {};
+
+    if (title && title.length > 200) {
+      errors.title = "Title must be 1-200 characters";
+    }
+
+    const priceError = validators.price(priceDollars);
+    if (priceError) errors.priceDollars = priceError;
+
+    if (imageUrl) {
+      const imageError = validators.imageUrl(imageUrl);
+      if (imageError) errors.imageUrl = imageError;
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setClientValidationErrors(errors);
+      return;
+    }
+
+    setClientValidationErrors({});
     setSubmitting(true);
     clearErrors();
 
-    const form = new FormData(formElement);
-    const priceDollars = Number(form.get("priceDollars"));
-
+    // ✅ Server-side validation (security - can't be bypassed)
     const response = await fetch(`/api/artist/artworks/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -71,11 +94,31 @@ export function ArtistArtworkForm({ id, initial, onSaved }: ArtistArtworkFormPro
           placeholder="Title"
           required
           defaultValue={initial.title}
-          className={getFieldError("title") ? "form-input--error" : ""}
-          aria-invalid={!!getFieldError("title")}
-          aria-describedby={getFieldError("title") ? "title-error" : undefined}
+          onChange={(event) => {
+            const value = event.target.value;
+            if (value && value.length > 200) {
+              setClientValidationErrors((prev) => ({
+                ...prev,
+                title: "Title must be 1-200 characters",
+              }));
+            } else {
+              setClientValidationErrors((prev) => {
+                const updated = { ...prev };
+                delete updated.title;
+                return updated;
+              });
+            }
+          }}
+          className={getFieldError("title") || clientValidationErrors.title ? "form-input--error" : ""}
+          aria-invalid={!!(getFieldError("title") || clientValidationErrors.title)}
+          aria-describedby={getFieldError("title") || clientValidationErrors.title ? "title-error" : undefined}
         />
-        {getFieldError("title") && <FormFieldError id="title-error" message={getFieldError("title")} />}
+        {(clientValidationErrors.title || getFieldError("title")) && (
+          <FormFieldError
+            id="title-error"
+            message={clientValidationErrors.title || getFieldError("title")}
+          />
+        )}
       </div>
 
       <select name="kind" defaultValue={initial.kind}>
@@ -92,17 +135,38 @@ export function ArtistArtworkForm({ id, initial, onSaved }: ArtistArtworkFormPro
           placeholder="Price (USD)"
           required
           defaultValue={(initial.priceCents / 100).toFixed(2)}
-          className={getFieldError("priceDollars") ? "form-input--error" : ""}
-          aria-invalid={!!getFieldError("priceDollars")}
-          aria-describedby={getFieldError("priceDollars") ? "priceDollars-error" : undefined}
+          onChange={(event) => {
+            const error = validators.price(Number(event.target.value));
+            if (error) {
+              setClientValidationErrors((prev) => ({ ...prev, priceDollars: error }));
+            } else {
+              setClientValidationErrors((prev) => {
+                const updated = { ...prev };
+                delete updated.priceDollars;
+                return updated;
+              });
+            }
+          }}
+          className={getFieldError("priceDollars") || clientValidationErrors.priceDollars ? "form-input--error" : ""}
+          aria-invalid={!!(getFieldError("priceDollars") || clientValidationErrors.priceDollars)}
+          aria-describedby={
+            getFieldError("priceDollars") || clientValidationErrors.priceDollars
+              ? "priceDollars-error"
+              : undefined
+          }
         />
-        {getFieldError("priceDollars") && (
-          <FormFieldError id="priceDollars-error" message={getFieldError("priceDollars")} />
+        {(clientValidationErrors.priceDollars || getFieldError("priceDollars")) && (
+          <FormFieldError
+            id="priceDollars-error"
+            message={clientValidationErrors.priceDollars || getFieldError("priceDollars")}
+          />
         )}
       </div>
 
       <ImageUploadField name="imageUrl" label="Image" defaultValue={initial.imageUrl} />
-      {getFieldError("imageUrl") && <FormFieldError message={getFieldError("imageUrl")} />}
+      {(clientValidationErrors.imageUrl || getFieldError("imageUrl")) && (
+        <FormFieldError message={clientValidationErrors.imageUrl || getFieldError("imageUrl")} />
+      )}
 
       <div>
         <input
