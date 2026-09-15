@@ -23,9 +23,12 @@ export async function POST(_request: Request, { params }: RouteParams) {
   }
 
   if (order.paymentMethod === "STRIPE") {
+    if (!order.stripePaymentIntentId) {
+      return NextResponse.json({ error: "No Stripe payment intent on file — cannot refund" }, { status: 400 });
+    }
     try {
       const stripe = await getStripe();
-      await stripe.refunds.create({ payment_intent: order.stripePaymentIntentId! });
+      await stripe.refunds.create({ payment_intent: order.stripePaymentIntentId });
     } catch (error) {
       return NextResponse.json({ error: `Stripe refund failed: ${(error as Error).message}` }, { status: 502 });
     }

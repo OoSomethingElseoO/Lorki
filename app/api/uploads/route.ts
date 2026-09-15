@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { isResizableImageType, resizeImage } from "@/lib/resize-image";
 
 const ALLOWED_TYPES = new Set([
   "image/png",
@@ -51,7 +52,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "File is too large (8MB max)" }, { status: 400 });
   }
 
-  const buffer = Buffer.from(await file.arrayBuffer());
+  let buffer = Buffer.from(await file.arrayBuffer());
+
+  // Resize/re-encode raster photos before they ever reach Postgres — an
+  // artist's original camera export can be 6MB+ at 3000px+ per side, which
+  // is a 15-20+ second download per image on a real connection with no CDN
+  // in front of it (see /api/uploads/[id]). Not applied to GIF (would
+  // flatten animation) or SVG (already tiny, vector).
+  if (isResizableImageType(file.type)) {
+    try {
+      buffer = await resizeImage(buffer, file.type);
+    } catch {
+      return NextResponse.json({ error: "Could not process this image — the file may be corrupted" }, { status: 400 });
+    }
+  }
+
   const uploaded = await prisma.uploadedFile.create({
     data: { data: buffer, contentType: file.type },
   });

@@ -37,6 +37,12 @@ export function BuyButton({ artworkId, title, priceCents, customerEmail }: BuyBu
       return;
     }
 
+    if (!data.url) {
+      setSubmitting(false);
+      setError("Could not start checkout. Please try again.");
+      return;
+    }
+
     window.location.href = data.url;
   }
 

@@ -45,6 +45,13 @@ export async function POST(_request: Request, { params }: RouteParams) {
   const pendingConservancyPayoutId = order.payouts.find((p) => p.recipientType === "CONSERVANCY" && p.status === "PENDING")?.id;
   const conservancy = order.artwork.campaign.animal?.conservancy ?? order.artwork.campaign.conservancy;
 
+  if (pendingConservancyPayoutId && !conservancy) {
+    return NextResponse.json(
+      { error: "Cannot deliver — conservancy payout pending but conservancy not found on campaign" },
+      { status: 500 },
+    );
+  }
+
   const updated = await prisma.$transaction(async (tx) => {
     await tx.shipment.update({ where: { orderId: order.id }, data: { deliveredAt: new Date() } });
     const updatedOrder = await tx.order.update({ where: { id: order.id }, data: { status: "DELIVERED" } });
