@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { getStripe } from "@/lib/stripe";
 import { processRefund } from "@/lib/refunds";
 import { sendRefundConfirmationEmail } from "@/lib/email";
+import { checkPermission, unauthorized } from "@/lib/permissions";
+import { getCurrentUser } from "@/lib/auth";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -10,6 +12,12 @@ type RouteParams = { params: Promise<{ id: string }> };
 // order can still be refunded (any already-RELEASED payouts just won't be
 // clawed back automatically; that's the existing, correct design).
 export async function POST(_request: Request, { params }: RouteParams) {
+  const user = await getCurrentUser();
+  const { authorized } = checkPermission(user, "FINANCE_ADMIN");
+  if (!authorized) {
+    return unauthorized("FINANCE_ADMIN");
+  }
+
   const { id } = await params;
 
   const order = await prisma.order.findUnique({ where: { id }, include: { artwork: true } });

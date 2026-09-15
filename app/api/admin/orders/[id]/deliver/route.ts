@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { attemptAutomaticPayout } from "@/lib/payout-channels";
+import { checkPermission, unauthorized } from "@/lib/permissions";
+import { getCurrentUser } from "@/lib/auth";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -9,6 +11,12 @@ type RouteParams = { params: Promise<{ id: string }> };
 // artist/conservancy/ops, since a lost-in-transit or damaged delivery still
 // needs to be refundable with nothing to unwind on the recipient's side.
 export async function POST(_request: Request, { params }: RouteParams) {
+  const user = await getCurrentUser();
+  const { authorized } = checkPermission(user, "OPS_ADMIN");
+  if (!authorized) {
+    return unauthorized("OPS_ADMIN");
+  }
+
   const { id } = await params;
 
   const order = await prisma.order.findUnique({
@@ -32,6 +40,14 @@ export async function POST(_request: Request, { params }: RouteParams) {
 
   if (!order) {
     return NextResponse.json({ error: "Order not found" }, { status: 404 });
+  }
+
+  // ✅ IDEMPOTENCY: If already delivered, return success (idempotent)
+  if (order.status === "DELIVERED") {
+    return NextResponse.json({
+      message: "Order already delivered",
+      order
+    });
   }
 
   if (order.status !== "SHIPPED" || !order.shipment) {

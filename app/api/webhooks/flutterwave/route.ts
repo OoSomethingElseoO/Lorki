@@ -31,10 +31,17 @@ export async function POST(request: Request) {
 
   console.log(`[flutterwave:webhook] Received transfer status update: ${transferId} → ${status}`);
 
+  // ✅ IDEMPOTENCY: Check if we already processed this transfer
   const payout = await prisma.payout.findFirst({ where: { flutterwaveTransferId: transferId } });
   if (!payout) {
     console.error(`[flutterwave:webhook] Payout not found for transfer ${transferId}`);
     return NextResponse.json({ received: true });
+  }
+
+  // ✅ IDEMPOTENCY: If payout already has this status, webhook is being retried (idempotent)
+  if (payout.flutterwaveTransferStatus === status) {
+    console.log(`[flutterwave:webhook] ℹ Duplicate webhook for transfer ${transferId}, status already ${status}`);
+    return NextResponse.json({ received: true }); // Return success (idempotent)
   }
 
   await prisma.payout.update({

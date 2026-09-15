@@ -550,11 +550,18 @@ model AuditLog {
   @@index([changedBy])
 }
 
+enum AdminRole {
+  SUPER_ADMIN
+  FINANCE_ADMIN
+  OPS_ADMIN
+  VIEWER
+}
+
 // One identity, one login, for everyone — a single email+password gets you
 // in through the same page regardless of what you're here to do. What you
 // can actually access is layered on top of this one row, not a separate
 // account per role:
-//   - isAdmin true            -> can use /admin
+//   - isAdmin true            -> can use /admin (with role-based restrictions)
 //   - a linked Artist exists  -> can use /seller (that Artist IS their shop)
 //   - always                  -> can browse/buy, see /account order history
 // Someone can be more than one of these at once on the same login.
@@ -564,6 +571,7 @@ model User {
   passwordHash        String
   name                String?
   isAdmin             Boolean               @default(false)
+  adminRole           AdminRole?            // Only set if isAdmin=true
   artist              Artist?
   conservancy         Conservancy?
   orders              Order[]
