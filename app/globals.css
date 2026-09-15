@@ -215,6 +215,75 @@ a:focus-visible {
   outline-offset: 4px;
 }
 
+/* Enhanced button interaction states — adds depth/lift to complement color changes */
+button:not(:disabled):active {
+  transform: translateY(1px);
+}
+
+/* Public site primary buttons (bg-ink, dark fill) — add shadow lift on hover */
+button.bg-ink:not(:disabled) {
+  box-shadow: 0 2px 4px rgba(var(--shadow-panel-rgb), calc(0.08 * var(--shadow-alpha-scale)));
+  transition: box-shadow 0.2s ease, transform 0.1s ease, background-color 0.2s ease;
+}
+
+button.bg-ink:hover:not(:disabled) {
+  box-shadow: 0 6px 12px rgba(var(--shadow-panel-rgb), calc(0.16 * var(--shadow-alpha-scale)));
+}
+
+/* Admin form buttons — subtle elevation */
+button.bg-admin-text:not(:disabled) {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: box-shadow 0.2s ease, transform 0.1s ease, background-color 0.2s ease;
+}
+
+button.bg-admin-text:hover:not(:disabled) {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+}
+
+/* Icon buttons (search, account, theme) — minimal hover treatment */
+button[class*="icon-panel"]:not(:disabled) {
+  transition: background-color 0.2s ease, transform 0.15s ease;
+}
+
+button[class*="icon-panel"]:hover:not(:disabled) {
+  transform: scale(1.08);
+}
+
+/* Input fields — consistent styling and focus states */
+input,
+textarea,
+select {
+  border: 2px solid var(--line);
+  background: var(--surface);
+  padding: 0.6rem 0.75rem;
+  font: inherit;
+  color: var(--ink);
+  border-radius: 0;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+  border-color: var(--focus);
+  box-shadow: 0 0 0 3px rgba(var(--focus), 0.1);
+}
+
+/* Disabled inputs */
+input:disabled,
+textarea:disabled,
+select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Text areas need more space */
+textarea {
+  font-family: inherit;
+  line-height: 1.5;
+}
+
 .skip-link {
   position: fixed;
   left: 1rem;
@@ -847,6 +916,13 @@ a:focus-visible {
   padding: 0.65rem 0.9rem;
   font: inherit;
   color: var(--ink);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.search-form input:focus-visible {
+  outline: none;
+  border-color: var(--focus);
+  box-shadow: 0 0 0 3px rgba(var(--focus), 0.1);
 }
 
 .page-main > section h2 {
@@ -872,8 +948,8 @@ a:focus-visible {
 .artwork-card:hover,
 .news-card:hover,
 .gallery-card:hover {
-  transform: translateY(-0.3rem);
-  box-shadow: 0 1.25rem 2.4rem rgba(var(--shadow-rgb), calc(0.22 * var(--shadow-alpha-scale)));
+  transform: translateY(-0.4rem);
+  box-shadow: 0 1.5rem 3.2rem rgba(var(--shadow-rgb), calc(0.28 * var(--shadow-alpha-scale)));
 }
 
 .artist-card:hover .artist-card__image,
@@ -1031,6 +1107,13 @@ a:focus-visible {
   padding: 0.6rem 0.7rem;
   font: inherit;
   color: var(--ink);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.buy-form input:focus-visible {
+  outline: none;
+  border-color: var(--focus);
+  box-shadow: 0 0 0 3px rgba(var(--focus), 0.1);
 }
 
 .buy-form__error {
@@ -1055,6 +1138,14 @@ a:focus-visible {
   padding: 0.6rem 0.7rem;
   font: inherit;
   color: var(--ink);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.inquiry-form input:focus-visible,
+.inquiry-form textarea:focus-visible {
+  outline: none;
+  border-color: var(--focus);
+  box-shadow: 0 0 0 3px rgba(var(--focus), 0.1);
 }
 
 .inquiry-form textarea {
@@ -1397,6 +1488,13 @@ a:focus-visible {
 .account-form input {
   border: 2px solid var(--line);
   background: var(--surface);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.account-form input:focus-visible {
+  outline: none;
+  border-color: var(--focus);
+  box-shadow: 0 0 0 3px rgba(var(--focus), 0.1);
   padding: 0.6rem 0.7rem;
   font: inherit;
   color: var(--ink);
