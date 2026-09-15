@@ -20,7 +20,7 @@ const INQUIRY_RATE_WINDOW_MS = 5 * 60 * 1000;
 
 export async function POST(request: Request) {
   // ✅ Check for idempotent retry (prevent duplicate inquiry+reservation)
-  const cached = await checkIdempotency(request, null);
+  const cached = await checkIdempotency(request, undefined);
   if (cached) return cached;
 
   const ip = getRequestIp(request);
@@ -113,7 +113,7 @@ export async function POST(request: Request) {
   // ✅ Store idempotency response for future retries
   await storeIdempotencyResponse(
     request.headers.get("Idempotency-Key") || "no-key",
-    null,
+    undefined,
     201,
     { inquiry }
   ).catch((e) => console.error("[idempotency:storage-failed]", e));

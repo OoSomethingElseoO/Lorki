@@ -32,12 +32,13 @@ export const checkIdempotency = async (
     return null;
   }
 
+  const userIdValue = userId ?? null;
   const stored = await prisma.idempotencyStore.findUnique({
     where: {
       idempotencyKey_userId: {
-        idempotencyKey,
-        userId: userId || null,
-      },
+        idempotencyKey: idempotencyKey as string,
+        userId: userIdValue,
+      } as any,
     },
   });
 
@@ -63,22 +64,23 @@ export const storeIdempotencyResponse = async (
   status: number,
   body: unknown
 ): Promise<void> => {
+  const userIdValue = userId ?? null;
   await prisma.idempotencyStore.upsert({
     where: {
       idempotencyKey_userId: {
-        idempotencyKey,
-        userId: userId || null,
-      },
+        idempotencyKey: idempotencyKey as string,
+        userId: userIdValue,
+      } as any,
     },
     create: {
-      idempotencyKey,
-      userId: userId || null,
+      idempotencyKey: idempotencyKey as string,
+      userId: userIdValue,
       responseStatus: status,
-      responseBody: body,
+      responseBody: body as any,
     },
     update: {
       responseStatus: status,
-      responseBody: body,
+      responseBody: body as any,
     },
   });
 };
