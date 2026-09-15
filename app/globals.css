@@ -3044,3 +3044,42 @@ textarea {
   background: var(--panel);
   opacity: 0.85;
 }
+
+/* Form field error — displayed below input fields on validation failures */
+.form-field-error {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  padding: 0.5rem 0.75rem;
+  margin-top: 0.25rem;
+  border-radius: 0.375rem;
+  background-color: var(--color-error-bg);
+  border: 1px solid var(--color-error-border);
+  font-size: 0.875rem;
+  color: var(--color-error-text);
+}
+
+.form-field-error__icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--color-error-accent);
+}
+
+.form-field-error__text {
+  display: block;
+  line-height: 1.4;
+}
+
+/* Input field with error — add visual indicator */
+input.form-input--error,
+textarea.form-input--error {
+  border-color: var(--color-error-border);
+  background-color: var(--color-error-bg);
+  color: var(--color-error-text);
+}
+
+input.form-input--error:focus,
+textarea.form-input--error:focus {
+  border-color: var(--color-error-accent);
+  box-shadow: 0 0 0 3px var(--color-error-bg);
+}

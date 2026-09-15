@@ -4,8 +4,10 @@ import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { PasswordInput } from "@/components/ui/password-input";
+import { FormFieldError } from "@/components/ui/form-field-error";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import { useFormErrors } from "@/hooks/useFormErrors";
 
 type Role = "artist" | "cause" | null;
 
@@ -29,17 +31,17 @@ type SignupFormProps = {
 // is routing, not a shortcut around that.
 export function SignupForm({ initialRole = null }: SignupFormProps) {
   const router = useRouter();
+  const { error, fieldErrors, setError, clearErrors, getFieldError } = useFormErrors();
   const [role, setRole] = useState<Role>(initialRole);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitting(true);
-    setError(null);
+    clearErrors();
 
     const response = await fetch("/api/signup", {
       method: "POST",
@@ -51,7 +53,7 @@ export function SignupForm({ initialRole = null }: SignupFormProps) {
 
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));
-      setError(data.error ?? "Failed to create account");
+      setError(data);
       return;
     }
 
@@ -84,7 +86,17 @@ export function SignupForm({ initialRole = null }: SignupFormProps) {
       <input id="name" value={name} onChange={(event) => setName(event.target.value)} />
 
       <label htmlFor="email">Email</label>
-      <input id="email" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} />
+      <input
+        id="email"
+        type="email"
+        required
+        value={email}
+        onChange={(event) => setEmail(event.target.value)}
+        className={getFieldError("email") ? "form-input--error" : ""}
+        aria-invalid={!!getFieldError("email")}
+        aria-describedby={getFieldError("email") ? "email-error" : undefined}
+      />
+      {getFieldError("email") && <FormFieldError id="email-error" message={getFieldError("email")} />}
 
       <label htmlFor="password">Password</label>
       <PasswordInput
@@ -93,11 +105,14 @@ export function SignupForm({ initialRole = null }: SignupFormProps) {
         minLength={8}
         value={password}
         onChange={(event) => setPassword(event.target.value)}
-        aria-describedby="password-hint"
+        className={getFieldError("password") ? "form-input--error" : ""}
+        aria-invalid={!!getFieldError("password")}
+        aria-describedby={getFieldError("password") ? "password-error" : "password-hint"}
       />
       <p id="password-hint" className="account-form__field-hint">
         At least 8 characters
       </p>
+      {getFieldError("password") && <FormFieldError id="password-error" message={getFieldError("password")} />}
 
       {error ? <p className="buy-form__error">{error}</p> : null}
       <Button type="submit" disabled={submitting}>
