@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { foreignKeyConstraintResponse, isForeignKeyConstraintError, isNotFoundError } from "@/lib/prisma-errors";
-import { validateTextField, validateCountryCode, validateEmail } from "@/lib/validation";
+import { validateTextField, validateEmail } from "@/lib/validation";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -29,7 +29,11 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: nameError }, { status: 400 });
   }
 
-  const regionError = validateCountryCode(body.region);
+  const regionError = validateTextField(body.region, {
+    minLength: 1,
+    maxLength: 200,
+    name: "Region",
+  });
   if (regionError) {
     return NextResponse.json({ error: regionError }, { status: 400 });
   }

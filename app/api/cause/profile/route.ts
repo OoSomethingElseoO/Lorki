@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { validateTextField, validateCountryCode, validateEmail, validateUrl } from "@/lib/validation";
+import { validateTextField, validateEmail, validateUrl } from "@/lib/validation";
 
 type ProfileUpdateBody = {
   name: string;
@@ -39,7 +39,11 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: nameError }, { status: 400 });
   }
 
-  const regionError = validateCountryCode(body.region);
+  const regionError = validateTextField(body.region, {
+    minLength: 1,
+    maxLength: 200,
+    name: "Region",
+  });
   if (regionError) {
     return NextResponse.json({ error: regionError }, { status: 400 });
   }

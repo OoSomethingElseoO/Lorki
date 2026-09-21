@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/slugify";
 import { isUniqueConstraintError, uniqueConstraintResponse } from "@/lib/prisma-errors";
-import { validateTextField, validateCountryCode, validateImageUrl } from "@/lib/validation";
+import { validateTextField, validateImageUrl } from "@/lib/validation";
 
 export async function GET() {
   const animals = await prisma.animal.findMany({
@@ -50,7 +50,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: speciesError }, { status: 400 });
   }
 
-  const regionError = validateCountryCode(body.region);
+  const regionError = validateTextField(body.region, {
+    minLength: 1,
+    maxLength: 200,
+    name: "Region",
+  });
   if (regionError) {
     return NextResponse.json({ error: regionError }, { status: 400 });
   }
