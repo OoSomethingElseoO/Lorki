@@ -157,7 +157,7 @@ test.describe("Admin CRUD: users", () => {
         // admin account than the old "Signed in as" check on /account
         // ever was: proxy.ts's middleware would redirect a non-admin away
         // from /admin before this URL ever resolved.
-        await page.waitForURL("**/admin/**");
+        await page.waitForURL(/\/admin(?:\/|$)/);
         await expect(page.getByText("Lorkulup Admin")).toBeVisible();
       });
     } finally {

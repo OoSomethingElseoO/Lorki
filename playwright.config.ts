@@ -42,18 +42,25 @@ export default defineConfig({
   expect: { timeout: 10_000 },
 
   use: {
-    baseURL: "http://localhost:3000",
+    // QAFORGE occupies 3000 in the local workspace; keep Lotki's E2E target
+    // explicit so the suite cannot silently exercise the wrong application.
+    baseURL: process.env.LORKI_E2E_BASE_URL ?? "http://127.0.0.1:3001",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     extraHTTPHeaders: { "x-forwarded-for": TEST_RUN_IP },
   },
 
-  webServer: {
-    command: "npm run dev",
-    url: "http://localhost:3000",
-    reuseExistingServer: true,
-    timeout: 120_000,
-  },
+  // Set LORKI_E2E_NO_SERVER=1 when a local Lotki server is already running
+  // (useful when another workspace app owns a nearby port). In normal runs,
+  // Playwright starts/reuses Lotki itself on the dedicated 3001 port.
+  webServer: process.env.LORKI_E2E_NO_SERVER
+    ? undefined
+    : {
+        command: "npm run dev -- --hostname 127.0.0.1 --port 3001",
+        url: process.env.LORKI_E2E_BASE_URL ?? "http://127.0.0.1:3001",
+        reuseExistingServer: true,
+        timeout: 120_000,
+      },
 
   projects: [
     // Logs in once as the seeded admin and saves the session cookie to

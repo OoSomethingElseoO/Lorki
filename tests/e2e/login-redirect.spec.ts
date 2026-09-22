@@ -38,7 +38,7 @@ test.describe("Post-login redirect", () => {
     });
 
     await test.step("Then they land on /admin, not /account", async () => {
-      await page.waitForURL("**/admin/**");
+      await page.waitForURL(/\/admin(?:\/|$)/);
       await expect(page.getByText("Lorkulup Admin")).toBeVisible();
     });
   });
