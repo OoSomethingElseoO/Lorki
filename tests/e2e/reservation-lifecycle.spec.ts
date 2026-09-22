@@ -6,6 +6,7 @@
 // tears it down afterwards, so scenarios never depend on each other or on
 // what else happens to be in the dev DB.
 import { ADMIN_STORAGE_STATE } from "./fixtures/auth-storage";
+import { E2E_BASE_URL } from "./fixtures/db";
 import { expect, prisma, test } from "./fixtures/test-fixtures";
 
 test.describe("Original-artwork reservation lifecycle", () => {
@@ -86,7 +87,7 @@ test.describe("Original-artwork reservation lifecycle", () => {
       // reaches the route's own 409 logic. A real visitor's browser always
       // sends a matching Origin; setting it here just reproduces that.
       response = await request.post("/api/inquiries", {
-        headers: { origin: "http://localhost:3000" },
+        headers: { origin: E2E_BASE_URL },
         data: {
           artworkId: reservedArtwork.artwork.id,
           name: "E2E Visitor Two",

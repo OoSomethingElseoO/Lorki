@@ -11,6 +11,7 @@
 // createConservancyFixture({ verified: true })) when a scenario needs a
 // non-default starting inventory state.
 //
+import { E2E_BASE_URL } from "./fixtures/db";
 import { createLoggedInArtistFixture, expect, prisma, test } from "./fixtures/test-fixtures";
 
 test.describe("Artist profile", () => {
@@ -19,7 +20,8 @@ test.describe("Artist profile", () => {
     loggedInArtist,
   }) => {
     const newName = `E2E Updated Name ${loggedInArtist.tag}`;
-    const newCountry = "Ethiopia";
+    // The API stores ISO-3166 alpha-2 country codes, not display names.
+    const newCountry = "ET";
     const newBio = "Updated throwaway bio from the Playwright E2E suite.";
 
     await test.step("Given a logged-in artist on /artist/profile", async () => {
@@ -119,7 +121,7 @@ test.describe("Artist listings", () => {
         // reject these before they ever reach the route's own 409 logic.
         // A real browser-driven call from this app always sends a matching
         // Origin; setting it here just reproduces that.
-        const csrfHeaders = { origin: "http://localhost:3000" };
+        const csrfHeaders = { origin: E2E_BASE_URL };
 
         const patchResponse = await page.request.patch(`/api/artist/artworks/${artist.artwork.id}`, {
           headers: csrfHeaders,

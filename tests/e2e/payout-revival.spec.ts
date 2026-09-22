@@ -8,7 +8,7 @@
 // `failedPayout` fixture (tests/e2e/fixtures/test-fixtures.ts), exactly
 // the way any E2E suite seeds hard-to-reach fixture data.
 import { ADMIN_STORAGE_STATE } from "./fixtures/auth-storage";
-import { createFailedPayoutFixture } from "./fixtures/db";
+import { createFailedPayoutFixture, E2E_BASE_URL } from "./fixtures/db";
 import { expect, prisma, test } from "./fixtures/test-fixtures";
 
 test.use({ storageState: ADMIN_STORAGE_STATE });
@@ -93,7 +93,7 @@ test.describe("FAILED payout revival", () => {
         // this as the same-origin call it actually is (see the identical
         // note in artist-management.spec.ts).
         const response = await page.request.post(`/api/admin/payouts/${releasedPayout.payout.id}/revive`, {
-          headers: { origin: "http://localhost:3000" },
+          headers: { origin: E2E_BASE_URL },
         });
         status = response.status();
         body = await response.json();

@@ -36,6 +36,7 @@ const SESSION_PURPOSE = "session";
 // real .env in this repo (ADMIN_EMAIL/ADMIN_PASSWORD), not guessed.
 export const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "admin@example.com";
 export const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? "change-me";
+export const E2E_BASE_URL = process.env.LORKI_E2E_BASE_URL ?? "http://127.0.0.1:3001";
 
 function uniqueSuffix(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -250,7 +251,7 @@ export async function createUserFixture(options: UserFixtureOptions = {}) {
   const sessionCookie = {
     name: SESSION_COOKIE,
     value: sessionToken,
-    url: "http://localhost:3000",
+    url: E2E_BASE_URL,
   };
 
   async function cleanup() {
@@ -369,7 +370,7 @@ export async function createLoggedInArtistFixture(options: LoggedInArtistFixture
   });
 
   const sessionToken = await createSessionToken(SESSION_PURPOSE, user.id);
-  const sessionCookie = { name: SESSION_COOKIE, value: sessionToken, url: "http://localhost:3000" };
+  const sessionCookie = { name: SESSION_COOKIE, value: sessionToken, url: E2E_BASE_URL };
 
   async function cleanup() {
     await prisma.artwork.deleteMany({ where: { campaignId: campaign.id } });
@@ -416,7 +417,7 @@ export async function createCauseAccountFixture(options: CauseAccountFixtureOpti
   });
 
   const sessionToken = await createSessionToken(SESSION_PURPOSE, user.id);
-  const sessionCookie = { name: SESSION_COOKIE, value: sessionToken, url: "http://localhost:3000" };
+  const sessionCookie = { name: SESSION_COOKIE, value: sessionToken, url: E2E_BASE_URL };
 
   async function cleanup() {
     await prisma.conservancy.delete({ where: { id: conservancy.id } }).catch(() => {});

@@ -78,6 +78,11 @@ test.describe("Artist directory pagination", () => {
     // Named to sort last (getArtists orders by name asc — see
     // createArtistFixture's own comment), so it deterministically lands on
     // the LAST page regardless of exactly how many artists already exist.
+    const paginationFixtures = await Promise.all(
+      Array.from({ length: 11 }, (_, index) =>
+        createArtistFixture({ name: `Zzzzz E2E Pagination ${index}-${Date.now()}` }),
+      ),
+    );
     const extraArtist = await createArtistFixture();
 
     try {
@@ -103,6 +108,7 @@ test.describe("Artist directory pagination", () => {
       });
     } finally {
       await extraArtist.cleanup();
+      await Promise.all(paginationFixtures.map((fixture) => fixture.cleanup()));
     }
   });
 });
