@@ -14,9 +14,26 @@ export async function GET(request: Request) {
       inventoryState: "AVAILABLE",
       ...(kind === "ORIGINAL" || kind === "PRINT" ? { kind } : {}),
     },
-    include: {
+    // This is a public storefront endpoint. Select the presentation contract
+    // explicitly: spreading full Artist/Campaign records would expose payout
+    // accounts and connected-payment identifiers to unauthenticated visitors.
+    select: {
+      id: true,
+      title: true,
+      kind: true,
+      priceCents: true,
+      currency: true,
+      imageUrl: true,
+      altText: true,
+      story: true,
+      inventoryState: true,
       campaign: {
-        include: { animal: true, artist: true },
+        select: {
+          id: true,
+          slug: true,
+          animal: { select: { id: true, slug: true, name: true, species: true, region: true, story: true, imageUrl: true } },
+          artist: { select: { id: true, slug: true, name: true, country: true, bio: true, imageUrl: true } },
+        },
       },
     },
   });
