@@ -53,8 +53,10 @@ export async function POST(request: Request) {
     console.log(`[stripe:webhook] ✓ Successfully processed ${event.type}`);
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error(`[stripe:webhook] ✗ Failed to process ${event.type}:`, (error as Error).message);
-    console.error((error as Error).stack);
+    // Keep the format string constant so event/error text cannot be interpreted
+    // as printf directives by the logger.
+    console.error("[stripe:webhook] Failed to process %s: %s", event.type, (error as Error).message);
+    console.error("[stripe:webhook] Stack: %s", (error as Error).stack ?? "");
 
     sendOperationsAlert(
       `[CRITICAL] Stripe webhook failed: ${event.type}`,

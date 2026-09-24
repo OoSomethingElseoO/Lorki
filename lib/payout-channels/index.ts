@@ -61,7 +61,9 @@ export async function attemptAutomaticPayout(payoutId: string, recipient: Payout
       },
     });
   } catch (error) {
-    console.error(`[payout-channels] Automatic payout failed for payout ${payoutId} (recipient ${recipient.id})`, error);
+    // Keep dynamic payout/recipient values as arguments, never in the format
+    // string, to prevent attacker-controlled text from becoming log directives.
+    console.error("[payout-channels] Automatic payout failed for payout %s (recipient %s): %s", payoutId, recipient.id, (error as Error).message);
     await sendOperationsAlert(
       `Automatic payout failed`,
       `<p>An automatic payout attempt failed for <strong>${recipient.name}</strong> (channel: ${recipient.payoutChannel}). This payout is still marked RELEASED — it needs to be settled manually. Error: ${(error as Error).message}</p>`,
