@@ -598,7 +598,9 @@ model PasswordResetToken {
 model IdempotencyStore {
   id               String    @id @default(cuid())
   idempotencyKey   String    // Client-provided unique key for this operation
-  userId           String?   // User who made the request (null for guests)
+  // A non-null guest scope is intentional: PostgreSQL unique indexes treat
+  // NULL values as distinct, which would let the same guest key be reused.
+  userId           String    @default("__guest__") // User ID, or the guest scope
   responseStatus   Int       // HTTP status code of the response
   responseBody     Json      // Response body (error or success)
   createdAt        DateTime  @default(now())

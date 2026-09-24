@@ -6,6 +6,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { PRINT_SHIPPING_CENTS } from "@/lib/pricing";
 import { validateEmail } from "@/lib/validation";
 import { checkIdempotency, storeIdempotencyResponse } from "@/lib/idempotency";
+import { readJsonObject } from "@/lib/request-json";
 
 type CheckoutBody = {
   artworkId: string;
@@ -31,7 +32,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Too many checkout attempts. Please try again in a few minutes." }, { status: 429 });
   }
 
-  const body = (await request.json()) as Partial<CheckoutBody>;
+  const body = await readJsonObject(request) as Partial<CheckoutBody> | null;
+
+  if (!body) return NextResponse.json({ error: "Request body must be a JSON object" }, { status: 400 });
 
   if (!body.artworkId) {
     return NextResponse.json({ error: "artworkId is required" }, { status: 400 });
@@ -115,7 +118,7 @@ export async function POST(request: Request) {
     const response = NextResponse.json({ url: session.url });
     // ✅ Store idempotency response for future retries
     await storeIdempotencyResponse(
-      request.headers.get("Idempotency-Key") || "no-key",
+      request.headers.get("Idempotency-Key"),
       customer?.id,
       200,
       { url: session.url }
@@ -129,7 +132,7 @@ export async function POST(request: Request) {
     );
     // ✅ Store error response for idempotency (prevent retry storms)
     await storeIdempotencyResponse(
-      request.headers.get("Idempotency-Key") || "no-key",
+      request.headers.get("Idempotency-Key"),
       customer?.id,
       502,
       { error: "Checkout is temporarily unavailable. Please try again." }

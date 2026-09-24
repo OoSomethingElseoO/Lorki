@@ -37,7 +37,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     });
     // ✅ Store for future retries
     await storeIdempotencyResponse(
-      request.headers.get("Idempotency-Key") || "no-key",
+      request.headers.get("Idempotency-Key"),
       user?.id,
       200,
       { message: "Payout already marked paid", payout }
@@ -57,7 +57,7 @@ export async function POST(request: Request, { params }: RouteParams) {
   const response = NextResponse.json({ payout: updated });
   // ✅ Store for future retries
   await storeIdempotencyResponse(
-    request.headers.get("Idempotency-Key") || "no-key",
+    request.headers.get("Idempotency-Key"),
     user?.id,
     200,
     { payout: updated }

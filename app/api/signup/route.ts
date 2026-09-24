@@ -5,6 +5,7 @@ import { createUserSessionToken, SESSION_COOKIE } from "@/lib/auth";
 import { isUniqueConstraintError, uniqueConstraintResponse } from "@/lib/prisma-errors";
 import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
 import { validateEmail, validatePassword } from "@/lib/validation";
+import { readJsonObject } from "@/lib/request-json";
 
 // Creates a plain account — nothing more. Becoming an artist (linking an
 // Artist profile) or an admin are separate, later steps on top of this
@@ -15,7 +16,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Too many signup attempts. Please try again in a few minutes." }, { status: 429 });
   }
 
-  const body = (await request.json()) as Partial<{ name: string; email: string; password: string }>;
+  const body = await readJsonObject(request) as Partial<{ name: string; email: string; password: string }> | null;
+
+  if (!body) return NextResponse.json({ error: "Request body must be a JSON object" }, { status: 400 });
 
   if (!body.email || !body.password) {
     return NextResponse.json({ error: "Email and password are required" }, { status: 400 });

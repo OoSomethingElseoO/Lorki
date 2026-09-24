@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { sendPasswordResetEmail } from "@/lib/email";
 import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
 import { validateEmail } from "@/lib/validation";
+import { readJsonObject } from "@/lib/request-json";
 
 const RATE_LIMIT = 5;
 const RATE_WINDOW_MS = 15 * 60 * 1000;
@@ -19,7 +20,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Too many attempts. Please try again later." }, { status: 429 });
   }
 
-  const body = (await request.json()) as Partial<{ email: string }>;
+  const body = await readJsonObject(request) as Partial<{ email: string }> | null;
+
+  if (!body) return NextResponse.json({ error: "Request body must be a JSON object" }, { status: 400 });
 
   if (!body.email) {
     return NextResponse.json({ error: "Email is required" }, { status: 400 });

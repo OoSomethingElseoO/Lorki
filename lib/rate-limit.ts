@@ -8,10 +8,15 @@ import { prisma } from "@/lib/prisma";
 export async function isRateLimited(key: string, maxHits: number, windowMs: number): Promise<boolean> {
   const windowStart = new Date(Date.now() - windowMs);
 
-  // Use a transaction to group the cleanup, count, and insert into a single
-  // database round-trip, preventing the most extreme cases of concurrent
-  // requests both passing the limit check before either increments.
+  // Serialize work for this one key before counting. A transaction by itself
+  // is not sufficient at Postgres's default READ COMMITTED isolation level:
+  // concurrent transactions can each observe the same count and all insert a
+  // hit. An advisory *transaction* lock is released automatically at commit
+  // or rollback, applies across every Node worker, and keeps unrelated keys
+  // fully concurrent.
   return prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))`;
+
     // Pruned first so a key that's gone quiet doesn't accumulate rows
     // forever — cheap, since it's scoped to this one key.
     await tx.rateLimitHit.deleteMany({ where: { key, createdAt: { lt: windowStart } } });

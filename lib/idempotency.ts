@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 const IDEMPOTENCY_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+export const GUEST_IDEMPOTENCY_SCOPE = "__guest__";
+
+function getIdempotencyScope(userId?: string): string {
+  return userId ?? GUEST_IDEMPOTENCY_SCOPE;
+}
 
 // ============================================================================
 // IDEMPOTENCY KEY EXTRACTION
@@ -32,13 +37,13 @@ export const checkIdempotency = async (
     return null;
   }
 
-  const userIdValue = userId ?? null;
+  const userIdValue = getIdempotencyScope(userId);
   const stored = await prisma.idempotencyStore.findUnique({
     where: {
       idempotencyKey_userId: {
-        idempotencyKey: idempotencyKey as string,
+        idempotencyKey,
         userId: userIdValue,
-      } as any,
+      },
     },
   });
 
@@ -59,21 +64,25 @@ export const checkIdempotency = async (
 // ============================================================================
 
 export const storeIdempotencyResponse = async (
-  idempotencyKey: string,
+  idempotencyKey: string | null,
   userId: string | undefined,
   status: number,
   body: unknown
 ): Promise<void> => {
-  const userIdValue = userId ?? null;
+  // A request without an Idempotency-Key opted out. Never manufacture a
+  // shared fallback key: that creates needless rows and is not a retry key.
+  if (!idempotencyKey) return;
+
+  const userIdValue = getIdempotencyScope(userId);
   await prisma.idempotencyStore.upsert({
     where: {
       idempotencyKey_userId: {
-        idempotencyKey: idempotencyKey as string,
+        idempotencyKey,
         userId: userIdValue,
-      } as any,
+      },
     },
     create: {
-      idempotencyKey: idempotencyKey as string,
+      idempotencyKey,
       userId: userIdValue,
       responseStatus: status,
       responseBody: body as any,

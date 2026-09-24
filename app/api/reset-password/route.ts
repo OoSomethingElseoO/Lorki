@@ -3,13 +3,16 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/password";
 import { validatePassword } from "@/lib/validation";
+import { readJsonObject } from "@/lib/request-json";
 
 function hashToken(rawToken: string): string {
   return createHash("sha256").update(rawToken).digest("hex");
 }
 
 export async function POST(request: Request) {
-  const body = (await request.json()) as Partial<{ token: string; password: string }>;
+  const body = await readJsonObject(request) as Partial<{ token: string; password: string }> | null;
+
+  if (!body) return NextResponse.json({ error: "Request body must be a JSON object" }, { status: 400 });
 
   if (!body.token || !body.password) {
     return NextResponse.json({ error: "Token and password are required" }, { status: 400 });

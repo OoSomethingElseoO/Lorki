@@ -29,3 +29,11 @@ test("a request outside the window doesn't count against the limit", async () =>
   await new Promise((resolve) => setTimeout(resolve, 20));
   assert.equal(await isRateLimited(key, 1, 10), false, "old hit should have aged out of the window");
 });
+
+test("concurrent calls cannot exceed the limit", async () => {
+  const key = `test-concurrent-${Math.random()}`;
+  const results = await Promise.all(Array.from({ length: 20 }, () => isRateLimited(key, 5, 60_000)));
+
+  assert.equal(results.filter((limited) => !limited).length, 5, "only five concurrent calls may pass");
+  assert.equal(results.filter(Boolean).length, 15, "the remaining calls must be rate-limited");
+});

@@ -4,6 +4,7 @@ import { verifyPassword } from "@/lib/password";
 import { createUserSessionToken, SESSION_COOKIE } from "@/lib/auth";
 import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
 import { validateEmail } from "@/lib/validation";
+import { readJsonObject } from "@/lib/request-json";
 
 export async function POST(request: Request) {
   const ip = getRequestIp(request);
@@ -11,7 +12,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Too many login attempts. Please try again in a few minutes." }, { status: 429 });
   }
 
-  const body = (await request.json()) as Partial<{ email: string; password: string }>;
+  const body = await readJsonObject(request) as Partial<{ email: string; password: string }> | null;
+
+  if (!body) return NextResponse.json({ error: "Request body must be a JSON object" }, { status: 400 });
 
   if (!body.email || !body.password) {
     return NextResponse.json({ error: "Email and password are required" }, { status: 400 });

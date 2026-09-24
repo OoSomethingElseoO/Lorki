@@ -35,7 +35,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     const response = NextResponse.json({ error: "Order has already been refunded" }, { status: 409 });
     // ✅ Store for future retries
     await storeIdempotencyResponse(
-      request.headers.get("Idempotency-Key") || "no-key",
+      request.headers.get("Idempotency-Key"),
       user?.id,
       409,
       { error: "Order has already been refunded" }
@@ -56,7 +56,7 @@ export async function POST(request: Request, { params }: RouteParams) {
       }, { status: 502 });
       // ✅ Store error for future retries
       await storeIdempotencyResponse(
-        request.headers.get("Idempotency-Key") || "no-key",
+        request.headers.get("Idempotency-Key"),
         user?.id,
         502,
         { error: `Stripe refund failed: ${(error as Error).message}` }
@@ -78,7 +78,7 @@ export async function POST(request: Request, { params }: RouteParams) {
   const response = NextResponse.json({ order: updated });
   // ✅ Store for future retries
   await storeIdempotencyResponse(
-    request.headers.get("Idempotency-Key") || "no-key",
+    request.headers.get("Idempotency-Key"),
     user?.id,
     200,
     { order: updated }

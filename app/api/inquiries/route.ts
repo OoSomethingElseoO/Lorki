@@ -5,6 +5,7 @@ import { sendInquiryConfirmationEmail, sendOperationsAlert } from "@/lib/email";
 import { RESERVATION_TTL_MS } from "@/lib/reservations";
 import { validateEmail, validateTextField } from "@/lib/validation";
 import { checkIdempotency, storeIdempotencyResponse } from "@/lib/idempotency";
+import { readJsonObject } from "@/lib/request-json";
 
 type InquiryBody = {
   artworkId: string;
@@ -28,7 +29,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Too many inquiries. Please try again in a few minutes." }, { status: 429 });
   }
 
-  const body = (await request.json()) as Partial<InquiryBody>;
+  const body = await readJsonObject(request) as Partial<InquiryBody> | null;
+
+  if (!body) return NextResponse.json({ error: "Request body must be a JSON object" }, { status: 400 });
 
   if (!body.artworkId || !body.name || !body.email) {
     return NextResponse.json({ error: "artworkId, name, and email are required" }, { status: 400 });
@@ -112,7 +115,7 @@ export async function POST(request: Request) {
   const response = NextResponse.json({ inquiry }, { status: 201 });
   // ✅ Store idempotency response for future retries
   await storeIdempotencyResponse(
-    request.headers.get("Idempotency-Key") || "no-key",
+    request.headers.get("Idempotency-Key"),
     undefined,
     201,
     { inquiry }
