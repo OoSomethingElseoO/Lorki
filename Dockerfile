@@ -1,4 +1,4 @@
-FROM node:20-slim AS dependencies
+FROM node:22-slim AS dependencies
 WORKDIR /app
 COPY package.json package-lock.json ./
 # --ignore-scripts: this stage only copies package.json/package-lock.json,
@@ -11,7 +11,7 @@ COPY package.json package-lock.json ./
 # build step to run it themselves (e.g. Vercel).
 RUN npm ci --ignore-scripts
 
-FROM node:20-slim AS builder
+FROM node:22-slim AS builder
 WORKDIR /app
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
@@ -25,7 +25,7 @@ ENV NODE_ENV=production
 RUN npx prisma generate
 RUN npm run build
 
-FROM node:20-slim AS runner
+FROM node:22-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
