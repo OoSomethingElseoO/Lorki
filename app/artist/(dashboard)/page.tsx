@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/empty-state";
 import { statusBadgeClass } from "@/lib/status-badge";
+import { FallbackImage } from "@/components/ui/fallback-image";
 
 export const dynamic = "force-dynamic";
 
@@ -161,7 +162,7 @@ export default async function ArtistDashboardPage() {
                 <ul className="account-orders__list">
                   {recentArtworks.map((artwork) => (
                     <li className="account-orders__item" key={artwork.id}>
-                      <img src={artwork.imageUrl} alt={artwork.altText} />
+                      <FallbackImage src={artwork.imageUrl} alt={artwork.altText} />
                       <div>
                         <h3>{artwork.title}</h3>
                         <p className="price">{formatDollars(artwork.priceCents)}</p>
@@ -191,7 +192,7 @@ export default async function ArtistDashboardPage() {
                 <ul className="account-orders__list">
                   {orders.map((order) => (
                     <li className="account-orders__item" key={order.id}>
-                      <img src={order.artwork.imageUrl} alt={order.artwork.altText} />
+                      <FallbackImage src={order.artwork.imageUrl} alt={order.artwork.altText} />
                       <div>
                         <h3>{order.artwork.title}</h3>
                         <p className="price">

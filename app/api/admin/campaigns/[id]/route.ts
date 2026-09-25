@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { foreignKeyConstraintResponse, isForeignKeyConstraintError, isNotFoundError } from "@/lib/prisma-errors";
 import { validateSplit } from "@/lib/validation";
+import { getCurrentUser } from "@/lib/auth";
+import { checkPermission, unauthorized } from "@/lib/permissions";
+import { recordAudit } from "@/lib/audit";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -26,6 +29,9 @@ type UpdateBody = {
 // whichever cause reference the campaign already has. Slug is never
 // touched on edit, same immutable-identifier rule as Animal/Artist.
 export async function PATCH(request: Request, { params }: RouteParams) {
+  const user = await getCurrentUser();
+  const { authorized } = checkPermission(user, "OPS_ADMIN");
+  if (!authorized) return unauthorized("OPS_ADMIN");
   const { id } = await params;
   const body = (await request.json()) as UpdateBody;
 
@@ -95,6 +101,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       },
     });
 
+    await recordAudit({ action: "CAMPAIGN_UPDATED", affectedEntityType: "Campaign", affectedEntityId: updated.id, reason: "Operations administrator updated a campaign", changedBy: user!.email, metadata: { status: updated.status, artistId: updated.artistId, animalId: updated.animalId, conservancyId: updated.conservancyId } });
+
     return NextResponse.json({ campaign: updated });
   } catch (error) {
     if (isNotFoundError(error)) {
@@ -105,10 +113,14 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 }
 
 export async function DELETE(_request: Request, { params }: RouteParams) {
+  const user = await getCurrentUser();
+  const { authorized } = checkPermission(user, "OPS_ADMIN");
+  if (!authorized) return unauthorized("OPS_ADMIN");
   const { id } = await params;
 
   try {
-    await prisma.campaign.delete({ where: { id } });
+    const campaign = await prisma.campaign.delete({ where: { id } });
+    await recordAudit({ action: "CAMPAIGN_DELETED", affectedEntityType: "Campaign", affectedEntityId: id, reason: "Operations administrator deleted a campaign", changedBy: user!.email, metadata: { artistId: campaign.artistId, animalId: campaign.animalId, conservancyId: campaign.conservancyId } });
     return NextResponse.json({ ok: true });
   } catch (error) {
     if (isNotFoundError(error)) {

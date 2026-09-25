@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isPriceTooLow, MIN_PRICE_CENTS } from "@/lib/pricing";
+import { getCurrentUser } from "@/lib/auth";
+import { checkPermission, unauthorized } from "@/lib/permissions";
+import { recordAudit } from "@/lib/audit";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -14,6 +17,9 @@ type CreateBody = {
 };
 
 export async function POST(request: Request, { params }: RouteParams) {
+  const user = await getCurrentUser();
+  const { authorized } = checkPermission(user, "OPS_ADMIN");
+  if (!authorized) return unauthorized("OPS_ADMIN");
   const { id } = await params;
   const body = (await request.json()) as Partial<CreateBody>;
 
@@ -48,6 +54,8 @@ export async function POST(request: Request, { params }: RouteParams) {
       story: body.story || null,
     },
   });
+
+  await recordAudit({ action: "ARTWORK_CREATED", affectedEntityType: "Artwork", affectedEntityId: artwork.id, reason: "Operations administrator created campaign artwork", changedBy: user!.email, metadata: { campaignId: id, title: artwork.title, kind: artwork.kind, priceCents: artwork.priceCents } });
 
   return NextResponse.json({ artwork }, { status: 201 });
 }

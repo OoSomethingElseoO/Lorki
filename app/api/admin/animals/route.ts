@@ -3,8 +3,13 @@ import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/slugify";
 import { isUniqueConstraintError, uniqueConstraintResponse } from "@/lib/prisma-errors";
 import { validateTextField, validateImageUrl } from "@/lib/validation";
+import { getCurrentUser } from "@/lib/auth";
+import { checkPermission, unauthorized } from "@/lib/permissions";
+import { recordAudit } from "@/lib/audit";
 
 export async function GET() {
+  const { authorized } = checkPermission(await getCurrentUser(), "OPS_ADMIN");
+  if (!authorized) return unauthorized("OPS_ADMIN");
   const animals = await prisma.animal.findMany({
     include: { conservancy: true },
     orderBy: { createdAt: "desc" },
@@ -22,6 +27,9 @@ type CreateBody = {
 };
 
 export async function POST(request: Request) {
+  const user = await getCurrentUser();
+  const { authorized } = checkPermission(user, "OPS_ADMIN");
+  if (!authorized) return unauthorized("OPS_ADMIN");
   const body = (await request.json()) as Partial<CreateBody>;
 
   if (!body.name || !body.species || !body.region || !body.story || !body.imageUrl || !body.conservancyId) {
@@ -90,6 +98,8 @@ export async function POST(request: Request) {
         conservancyId: body.conservancyId,
       },
     });
+
+    await recordAudit({ action: "ANIMAL_CREATED", affectedEntityType: "Animal", affectedEntityId: animal.id, reason: "Operations administrator created an animal record", changedBy: user!.email, metadata: { name: animal.name, conservancyId: animal.conservancyId } });
 
     return NextResponse.json({ animal }, { status: 201 });
   } catch (error) {

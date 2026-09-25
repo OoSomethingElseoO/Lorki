@@ -2,8 +2,13 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/slugify";
 import { isUniqueConstraintError, uniqueConstraintResponse } from "@/lib/prisma-errors";
+import { getCurrentUser } from "@/lib/auth";
+import { checkPermission, unauthorized } from "@/lib/permissions";
+import { recordAudit } from "@/lib/audit";
 
 export async function GET() {
+  const { authorized } = checkPermission(await getCurrentUser(), "OPS_ADMIN");
+  if (!authorized) return unauthorized("OPS_ADMIN");
   const artists = await prisma.artist.findMany({
     include: { socialLinks: true, coOp: true },
     orderBy: { createdAt: "desc" },
@@ -21,6 +26,9 @@ type CreateBody = {
 };
 
 export async function POST(request: Request) {
+  const user = await getCurrentUser();
+  const { authorized } = checkPermission(user, "OPS_ADMIN");
+  if (!authorized) return unauthorized("OPS_ADMIN");
   const body = (await request.json()) as Partial<CreateBody>;
 
   if (!body.name || !body.country || !body.bio || !body.imageUrl) {
@@ -49,6 +57,8 @@ export async function POST(request: Request) {
       },
       include: { socialLinks: true },
     });
+
+    await recordAudit({ action: "ARTIST_CREATED", affectedEntityType: "Artist", affectedEntityId: artist.id, reason: "Operations administrator created an artist record", changedBy: user!.email, metadata: { name: artist.name, coOpId: artist.coOpId } });
 
     return NextResponse.json({ artist }, { status: 201 });
   } catch (error) {

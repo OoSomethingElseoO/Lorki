@@ -5,12 +5,15 @@ import { Footer } from "@/components/footer";
 import { buttonVariants } from "@/components/ui/button";
 import { getStripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
+import FluidOrb from "@/components/ui/fluid-orb";
 
 type SuccessPageProps = {
   searchParams: Promise<{ session_id?: string }>;
 };
 
-export default async function CheckoutSuccessPage({ searchParams }: SuccessPageProps) {
+export default async function CheckoutSuccessPage({
+  searchParams,
+}: SuccessPageProps) {
   const { session_id: sessionId } = await searchParams;
 
   let heading = "Thank you for your order";
@@ -23,22 +26,30 @@ export default async function CheckoutSuccessPage({ searchParams }: SuccessPageP
 
       if (session.payment_status === "paid") {
         const paymentIntentId =
-          typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
+          typeof session.payment_intent === "string"
+            ? session.payment_intent
+            : session.payment_intent?.id;
 
         // The Stripe webhook records the Order asynchronously and may not
         // have landed yet when the buyer is redirected back here — fall
         // back to Stripe's own session data rather than blocking on it.
         const order = paymentIntentId
-          ? await prisma.order.findUnique({ where: { stripePaymentIntentId: paymentIntentId }, include: { artwork: true } })
+          ? await prisma.order.findUnique({
+              where: { stripePaymentIntentId: paymentIntentId },
+              include: { artwork: true },
+            })
           : null;
 
         const amount = ((session.amount_total ?? 0) / 100).toFixed(2);
 
-        heading = order ? `Thank you for buying ${order.artwork.title}` : "Thank you for your order";
+        heading = order
+          ? `Thank you for buying ${order.artwork.title}`
+          : "Thank you for your order";
         detail = `We charged $${amount}. A confirmation email is on its way to ${session.customer_details?.email ?? "your inbox"}.`;
       } else {
         heading = "Payment processing";
-        detail = "We're still confirming your payment. You'll get a confirmation email once it clears.";
+        detail =
+          "We're still confirming your payment. You'll get a confirmation email once it clears.";
       }
     } catch {
       // Invalid or expired session id — fall back to the generic message
@@ -52,6 +63,9 @@ export default async function CheckoutSuccessPage({ searchParams }: SuccessPageP
       <main className="page-main" id="main-content">
         <PageTitle>Order confirmed</PageTitle>
         <div className="contact-card">
+          <div className="checkout-success-orb">
+            <FluidOrb size={128} color="#2b5a5c" />
+          </div>
           <p>{heading}</p>
           <p>{detail}</p>
           <Link href="/originals" className={buttonVariants()}>

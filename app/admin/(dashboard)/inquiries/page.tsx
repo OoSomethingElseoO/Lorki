@@ -3,6 +3,7 @@ import { InquiryStatusForm } from "@/components/admin/inquiry-status-form";
 import { AdminSearchForm } from "@/components/admin/search-form";
 import { EmptyState } from "@/components/admin/empty-state";
 import { InquiriesBulkForm } from "@/components/admin/inquiries-bulk-form";
+import { InquiryCheckoutButton } from "@/components/admin/inquiry-checkout-button";
 import { Pagination } from "@/components/pagination";
 import { getCampaignLabel } from "@/lib/campaigns";
 import { ADMIN_PAGE_SIZE, adminTotalPages, normalizeAdminPage } from "@/lib/admin-list";
@@ -58,6 +59,7 @@ export default async function AdminInquiriesPage({ searchParams }: PageProps) {
               <th>Buyer</th>
               <th>Message</th>
               <th>Status</th>
+              <th>Payment</th>
               <th>Received</th>
             </tr>
           </thead>
@@ -83,12 +85,15 @@ export default async function AdminInquiriesPage({ searchParams }: PageProps) {
                 <td>
                   <InquiryStatusForm inquiryId={inquiry.id} status={inquiry.status} />
                 </td>
+                <td>
+                  {inquiry.status === "APPROVED" ? <InquiryCheckoutButton inquiryId={inquiry.id} /> : "—"}
+                </td>
                 <td>{inquiry.createdAt.toLocaleDateString()}</td>
               </tr>
             ))}
             {inquiries.length === 0 ? (
               <tr>
-                <td colSpan={6}>
+                <td colSpan={7}>
                   <EmptyState
                     message={query ? `No inquiries match "${query}".` : "No inquiries yet."}
                     hint={query ? "Try a different search term." : "Inquiries show up here when a buyer asks about an original."}

@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 import path from "node:path";
 
+const isDevelopment = process.env.NODE_ENV !== "production";
+const scriptSource = ["'self'", "'unsafe-inline'", ...(isDevelopment ? ["'unsafe-eval'"] : [])].join(" ");
+
 const nextConfig: NextConfig = {
   output: "standalone",
   // A stray package-lock.json one directory up (in the parent
@@ -56,7 +59,7 @@ const nextConfig: NextConfig = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline'",
+              "script-src " + scriptSource,
               "style-src 'self' 'unsafe-inline'",
               "img-src * data: blob:",
               "font-src 'self' data:",

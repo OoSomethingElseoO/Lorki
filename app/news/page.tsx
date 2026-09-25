@@ -5,6 +5,7 @@ import { SiteHeader } from "@/components/site-header";
 import { Footer } from "@/components/footer";
 import { EmptyState } from "@/components/empty-state";
 import { getLiveNewsArticles } from "@/lib/storefront";
+import FluidOrb from "@/components/ui/fluid-orb";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,12 @@ export default async function NewsPage() {
           ))}
         </section>
         {articles.length === 0 ? (
-          <EmptyState icon={<Newspaper />} title="No news yet" description="Check back soon for studio updates." />
+          <EmptyState
+            icon={<Newspaper />}
+            title="No news yet"
+            description="Check back soon for studio updates."
+            visual={<FluidOrb size={96} color="#2b5a5c" />}
+          />
         ) : null}
       </main>
       <Footer />

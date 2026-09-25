@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isNotFoundError } from "@/lib/prisma-errors";
+import { getCurrentUser } from "@/lib/auth";
+import { checkPermission, unauthorized } from "@/lib/permissions";
+import { recordAudit } from "@/lib/audit";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -34,6 +37,9 @@ type VerifyBody = {
 // timestamped separately so there's a record of what was checked, not
 // just a single unlabeled "verified" flag.
 export async function POST(request: Request, { params }: RouteParams) {
+  const user = await getCurrentUser();
+  const { authorized } = checkPermission(user, "OPS_ADMIN");
+  if (!authorized) return unauthorized("OPS_ADMIN");
   const { id } = await params;
   const body = (await request.json()) as Partial<VerifyBody>;
 
@@ -64,6 +70,7 @@ export async function POST(request: Request, { params }: RouteParams) {
         verifiedAt: now,
       },
     });
+    await recordAudit({ action: "CONSERVANCY_VERIFIED", affectedEntityType: "Conservancy", affectedEntityId: id, reason: "Operations administrator completed registration, sanctions, and payout-name verification", changedBy: user!.email, metadata: { registrationVerificationMethod: body.registrationVerificationMethod.trim() } });
     return NextResponse.json({ conservancy });
   } catch (error) {
     if (isNotFoundError(error)) {

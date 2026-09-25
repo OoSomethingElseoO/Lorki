@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/empty-state";
 import { prisma } from "@/lib/prisma";
 import { getImpactTotals } from "@/lib/storefront";
 import { getCampaignLabel } from "@/lib/campaigns";
+import FluidOrb from "@/components/ui/fluid-orb";
 
 function formatDollars(cents: number) {
   return `$${(cents / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -20,7 +21,11 @@ export default async function ImpactPage() {
     getImpactTotals(),
     prisma.campaign.findMany({
       where: { status: "LIVE" },
-      include: { animal: { include: { conservancy: true } }, conservancy: true, artist: true },
+      include: {
+        animal: { include: { conservancy: true } },
+        conservancy: true,
+        artist: true,
+      },
     }),
   ]);
 
@@ -31,19 +36,24 @@ export default async function ImpactPage() {
         <PageTitle>Impact</PageTitle>
         <section className="centered-copy" aria-label="How sales are split">
           <p>
-            Every original and print sold funds three things at once: the artist who made it, the
-            conservancy protecting the animal it depicts, and the operations that keep this site running.
-            Numbers below reflect money that has actually been paid out, not just collected.
+            Every original and print sold funds three things at once: the artist
+            who made it, the conservancy protecting the animal it depicts, and
+            the operations that keep this site running. Numbers below reflect
+            money that has actually been paid out, not just collected.
           </p>
         </section>
 
         <section className="impact-totals" aria-label="Totals paid out">
           <div className="impact-totals__stat">
-            <span className="impact-totals__value">{formatDollars(totals.artistCents)}</span>
+            <span className="impact-totals__value">
+              {formatDollars(totals.artistCents)}
+            </span>
             <span className="impact-totals__label">Paid to artists</span>
           </div>
           <div className="impact-totals__stat">
-            <span className="impact-totals__value">{formatDollars(totals.conservancyCents)}</span>
+            <span className="impact-totals__value">
+              {formatDollars(totals.conservancyCents)}
+            </span>
             <span className="impact-totals__label">Paid to conservancies</span>
           </div>
           <div className="impact-totals__stat">
@@ -51,23 +61,28 @@ export default async function ImpactPage() {
             <span className="impact-totals__label">Pieces sold</span>
           </div>
         </section>
+        <div className="impact-orb">
+          <FluidOrb size={180} color="#2b5a5c" />
+        </div>
 
         <section className="campaign-list" aria-label="Active campaigns">
           {campaigns.map((campaign) => {
-            const conservancy = campaign.animal?.conservancy ?? campaign.conservancy;
+            const conservancy =
+              campaign.animal?.conservancy ?? campaign.conservancy;
             return (
-            <article className="campaign-card" key={campaign.id}>
-              <h2>{getCampaignLabel(campaign)}</h2>
-              <p>
-                <span className="detail-label">Conservancy partner:</span> {conservancy?.name ?? "Unknown cause"}
-                {conservancy ? ` (${conservancy.region})` : null}
-              </p>
-              <p className="campaign-card__split">
-                <span>{campaign.artistPercent}% artist</span>
-                <span>{campaign.conservancyPercent}% conservancy</span>
-                <span>{campaign.operationsPercent}% operations</span>
-              </p>
-            </article>
+              <article className="campaign-card" key={campaign.id}>
+                <h2>{getCampaignLabel(campaign)}</h2>
+                <p>
+                  <span className="detail-label">Conservancy partner:</span>{" "}
+                  {conservancy?.name ?? "Unknown cause"}
+                  {conservancy ? ` (${conservancy.region})` : null}
+                </p>
+                <p className="campaign-card__split">
+                  <span>{campaign.artistPercent}% artist</span>
+                  <span>{campaign.conservancyPercent}% conservancy</span>
+                  <span>{campaign.operationsPercent}% operations</span>
+                </p>
+              </article>
             );
           })}
           {campaigns.length === 0 ? (

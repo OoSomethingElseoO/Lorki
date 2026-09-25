@@ -6,6 +6,7 @@ import { Footer } from "@/components/footer";
 import { Pagination } from "@/components/pagination";
 import { EmptyState } from "@/components/empty-state";
 import { getArtists } from "@/lib/storefront";
+import FluidOrb from "@/components/ui/fluid-orb";
 
 type ArtistsPageProps = {
   searchParams: Promise<{ page?: string }>;
@@ -13,7 +14,11 @@ type ArtistsPageProps = {
 
 export default async function ArtistsPage({ searchParams }: ArtistsPageProps) {
   const { page } = await searchParams;
-  const { items, totalPages, page: currentPage } = await getArtists(Number(page));
+  const {
+    items,
+    totalPages,
+    page: currentPage,
+  } = await getArtists(Number(page));
 
   return (
     <>
@@ -26,9 +31,18 @@ export default async function ArtistsPage({ searchParams }: ArtistsPageProps) {
           ))}
         </section>
         {items.length === 0 ? (
-          <EmptyState icon={<Users />} title="No artists listed yet" description="Check back soon." />
+          <EmptyState
+            icon={<Users />}
+            title="No artists listed yet"
+            description="Check back soon."
+            visual={<FluidOrb size={96} color="#a65f00" />}
+          />
         ) : null}
-        <Pagination page={currentPage} totalPages={totalPages} basePath="/artists" />
+        <Pagination
+          page={currentPage}
+          totalPages={totalPages}
+          basePath="/artists"
+        />
       </main>
       <Footer />
     </>

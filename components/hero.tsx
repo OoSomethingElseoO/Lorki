@@ -1,19 +1,27 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import Link from "next/link";
 import { gsap } from "gsap";
-import { buttonVariants } from "@/components/ui/button";
-import { Magnetic } from "@/components/ui/magnetic";
-import { TextBlockAnimation } from "@/components/ui/text-block-animation";
+import { FallbackImage } from "@/components/ui/fallback-image";
+import { HeroHeadline } from "@/components/hero-headline";
 
 export type HeroImage = { src: string; alt: string; artistName?: string };
+
+/** Admin-managed final words. The sentence prefixes stay fixed so every
+ * combination remains grammatical while the artwork campaign can evolve. */
+export type HeroHeadlineWords = {
+  first: string[];
+  second: string[];
+  third: string[];
+};
 
 type HeroProps = {
   eyebrow: string;
   /** The big catchy headline — was previously the site name, redundant with
       the header wordmark directly above it. Now a real hook. */
   headline: string;
+  /** Optional dynamic nouns supplied by the admin settings backend. */
+  headlineWords?: HeroHeadlineWords;
   /** A short supporting line — the "how it works" in one sentence. */
   subline: string;
   /**
@@ -25,8 +33,14 @@ type HeroProps = {
   images: HeroImage[];
 };
 
-export function Hero({ eyebrow, headline, subline, images }: HeroProps) {
+export function Hero({ eyebrow, headline, headlineWords, subline, images }: HeroProps) {
   const fadeRef = useRef<HTMLDivElement>(null);
+  const words = headlineWords ?? {
+    first: ["art"],
+    second: ["masterpieces"],
+    third: ["wildlife"],
+  };
+  const accessibleHeadline = `Sell ${words.first[0] ?? "art"}. Own ${words.second[0] ?? "masterpieces"}. Protect ${words.third[0] ?? "wildlife"}.`;
 
   // The headline's own reveal is TextBlockAnimation (below) — this timeline
   // only handles the eyebrow/subline/CTAs fade-up, timed to start partway
@@ -37,7 +51,18 @@ export function Hero({ eyebrow, headline, subline, images }: HeroProps) {
     if (!fadeRef.current) return;
 
     const tl = gsap.timeline({ delay: 0.9 });
-    tl.from(".hero__fade", { y: 22, opacity: 0, duration: 0.7, ease: "power3.out", stagger: 0.08 });
+    // Keep the copy visible if GSAP cannot initialise (for example during a
+    // reduced-motion/browser startup race). The old `from` call applied
+    // opacity: 0 immediately, which could leave the eyebrow, tagline, and
+    // actions permanently invisible while the headline remained visible.
+    tl.from(".hero__fade", {
+      y: 22,
+      opacity: 0,
+      duration: 0.7,
+      ease: "power3.out",
+      stagger: 0.08,
+      immediateRender: false,
+    });
 
     return () => {
       tl.kill();
@@ -47,25 +72,8 @@ export function Hero({ eyebrow, headline, subline, images }: HeroProps) {
   return (
     <section className="hero" aria-labelledby="home-title">
       <div className="hero__copy" data-skew ref={fadeRef}>
-        <span className="hero__eyebrow hero__fade">{eyebrow}</span>
-        <TextBlockAnimation blockColor="var(--gold)" animateOnScroll={false} delay={0.2} duration={0.8}>
-          <h1 className="hero__title" id="home-title">
-            {headline}
-          </h1>
-        </TextBlockAnimation>
+        <HeroHeadline words={words} ariaLabel={accessibleHeadline} />
         <p className="hero__tagline hero__fade">{subline}</p>
-        <div className="hero__actions hero__fade">
-          <Magnetic>
-            <Link href="/originals" className={buttonVariants()}>
-              Browse originals
-            </Link>
-          </Magnetic>
-          <Magnetic>
-            <Link href="/impact" className="hero__actions-link">
-              See where the money goes
-            </Link>
-          </Magnetic>
-        </div>
       </div>
       <div className="hero__frame">
         <HeroArtwork images={images} />
@@ -134,7 +142,7 @@ function HeroArtwork({ images }: { images: HeroImage[] }) {
   return (
     <>
       {images.map((image, index) => (
-        <img
+        <FallbackImage
           key={`${image.src}-${index}`}
           ref={(node) => {
             imgRefs.current[index] = node;
@@ -144,6 +152,7 @@ function HeroArtwork({ images }: { images: HeroImage[] }) {
           alt={image.alt}
           style={{ opacity: index === 0 ? 1 : 0, zIndex: index === 0 ? 2 : 1 }}
           loading={index === 0 ? "eager" : "lazy"}
+          decoding="async"
         />
       ))}
       {hasAnyArtistName ? <span className="hero__artist-label" ref={labelRef} /> : null}

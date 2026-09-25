@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { getStripe } from "@/lib/stripe";
+import { recordAudit } from "@/lib/audit";
 
 // Kicks off Stripe's own hosted onboarding for a Standard connected
 // account — Stripe collects and verifies the artist's identity/bank details
@@ -34,6 +35,7 @@ export async function POST(request: Request) {
       where: { id: artist.id },
       data: { stripeConnectedAccountId: accountId, payoutChannel: "STRIPE_CONNECT" },
     });
+    await recordAudit({ action: "ARTIST_STRIPE_CONNECT_STARTED", affectedEntityType: "Artist", affectedEntityId: artist.id, reason: "Artist started Stripe Connect onboarding", changedBy: currentUser.email, metadata: { stripeConnectedAccountId: accountId } });
   }
 
   const origin = request.headers.get("origin") ?? new URL(request.url).origin;

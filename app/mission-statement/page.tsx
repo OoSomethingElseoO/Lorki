@@ -2,6 +2,7 @@ import { PageTitle } from "@/components/page-title";
 import { SiteHeader } from "@/components/site-header";
 import { Footer } from "@/components/footer";
 import { getBranding } from "@/lib/settings";
+import FluidOrb from "@/components/ui/fluid-orb";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,9 @@ export default async function MissionStatementPage() {
         <section className="centered-copy" aria-label="Mission statement">
           <p>{missionStatement}</p>
         </section>
+        <div className="mission-orb">
+          <FluidOrb size={200} color="#a65f00" />
+        </div>
       </main>
       <Footer />
     </>

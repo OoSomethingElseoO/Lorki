@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { foreignKeyConstraintResponse, isForeignKeyConstraintError, isNotFoundError } from "@/lib/prisma-errors";
 import { isPriceTooLow, MIN_PRICE_CENTS } from "@/lib/pricing";
+import { getCurrentUser } from "@/lib/auth";
+import { checkPermission, unauthorized } from "@/lib/permissions";
+import { recordAudit } from "@/lib/audit";
 
 type RouteParams = { params: Promise<{ id: string; artworkId: string }> };
 
@@ -15,6 +18,9 @@ type UpdateBody = {
 };
 
 export async function PATCH(request: Request, { params }: RouteParams) {
+  const user = await getCurrentUser();
+  const { authorized } = checkPermission(user, "OPS_ADMIN");
+  if (!authorized) return unauthorized("OPS_ADMIN");
   const { id, artworkId } = await params;
   const body = (await request.json()) as Partial<UpdateBody>;
 
@@ -37,6 +43,9 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   if (!artwork || artwork.campaignId !== id) {
     return NextResponse.json({ error: "Artwork not found on this campaign" }, { status: 404 });
   }
+  if (artwork.currentHighestOfferAmountCents !== null && body.priceCents < artwork.currentHighestOfferAmountCents) {
+    return NextResponse.json({ error: "Price cannot be below the current highest valid offer" }, { status: 409 });
+  }
 
   try {
     const updated = await prisma.artwork.update({
@@ -51,6 +60,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       },
     });
 
+    await recordAudit({ action: "ARTWORK_UPDATED", affectedEntityType: "Artwork", affectedEntityId: updated.id, reason: "Operations administrator updated campaign artwork", changedBy: user!.email, metadata: { campaignId: id, title: updated.title, kind: updated.kind, priceCents: updated.priceCents } });
+
     return NextResponse.json({ artwork: updated });
   } catch (error) {
     if (isNotFoundError(error)) {
@@ -61,6 +72,9 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 }
 
 export async function DELETE(_request: Request, { params }: RouteParams) {
+  const user = await getCurrentUser();
+  const { authorized } = checkPermission(user, "OPS_ADMIN");
+  if (!authorized) return unauthorized("OPS_ADMIN");
   const { id, artworkId } = await params;
 
   const artwork = await prisma.artwork.findUnique({ where: { id: artworkId } });
@@ -69,7 +83,8 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
   }
 
   try {
-    await prisma.artwork.delete({ where: { id: artworkId } });
+    const artwork = await prisma.artwork.delete({ where: { id: artworkId } });
+    await recordAudit({ action: "ARTWORK_DELETED", affectedEntityType: "Artwork", affectedEntityId: artworkId, reason: "Operations administrator deleted campaign artwork", changedBy: user!.email, metadata: { campaignId: id, title: artwork.title, kind: artwork.kind } });
     return NextResponse.json({ ok: true });
   } catch (error) {
     if (isNotFoundError(error)) {

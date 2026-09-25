@@ -3,7 +3,6 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
 import Link from "next/link";
 import { gsap } from "gsap";
-import { Flip } from "gsap/Flip";
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import type { StorefrontArtwork } from "@/lib/storefront";
 import { AccessibleModal } from "@/components/accessible-modal";
@@ -11,14 +10,16 @@ import { BuyButton } from "@/components/buy-button";
 import { InquiryForm } from "@/components/inquiry-form";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { FallbackImage } from "@/components/ui/fallback-image";
 
-gsap.registerPlugin(Flip);
 
 export type ArtworkLightboxProps = {
   artwork: StorefrontArtwork | null;
   // The clicked card's on-screen rect, for the grow-from transition.
   // Optional — if absent, just fade/scale in from center, no origin morph.
   originRect?: DOMRect | null;
+  /** Re-read the originating card position before closing. */
+  getOriginRect?: () => DOMRect | null;
   onClose: () => void;
   customerEmail?: string;
   // Both omitted (undefined) when there's nothing to browse to — e.g. a
@@ -52,6 +53,7 @@ function isRectStillUsable(rect: DOMRect): boolean {
 export function ArtworkLightbox({
   artwork,
   originRect,
+  getOriginRect,
   onClose,
   customerEmail,
   onNext,
@@ -61,6 +63,7 @@ export function ArtworkLightbox({
   // The rect to morph back into on close, captured at open time — `originRect`
   // itself may change identity (or the page may scroll) by the time close fires.
   const closeRectRef = useRef<DOMRect | null>(null);
+  const transitionCloneRef = useRef<HTMLImageElement | null>(null);
   const isOpen = artwork !== null;
 
   // Left/Right browse to the adjacent piece without closing. Scoped to a
@@ -113,48 +116,80 @@ export function ArtworkLightbox({
 
     closeRectRef.current = originRect;
 
-    // Snap the panel to the clicked card's exact screen box (before the
-    // browser paints), capture that as the Flip "from" state, then release
-    // it back to its natural full-size layout and let Flip tween smoothly
-    // between the two — the "grow from where you clicked" effect.
-    gsap.set(panel, {
+    const stage = panel.querySelector<HTMLElement>(".modal-artwork-stage");
+    const targetImage = stage?.querySelector<HTMLImageElement>("img");
+    if (!stage || !targetImage) return;
+
+    // Animate a visual copy of the clicked image into the standardized modal
+    // stage. The panel can appear immediately without squashing its content;
+    // only the artwork itself travels continuously from card to lightbox.
+    const targetRect = targetImage.getBoundingClientRect();
+    const clone = targetImage.cloneNode(true) as HTMLImageElement;
+    Object.assign(clone.style, {
       position: "fixed",
-      top: originRect.top,
-      left: originRect.left,
-      width: originRect.width,
-      height: originRect.height,
-      margin: 0,
+      top: `${originRect.top}px`,
+      left: `${originRect.left}px`,
+      width: `${originRect.width}px`,
+      height: `${originRect.height}px`,
+      objectFit: "cover",
+      zIndex: "1000",
+      pointerEvents: "none",
+      margin: "0",
     });
-    const state = Flip.getState(panel);
-    gsap.set(panel, { clearProps: "position,top,left,width,height,margin" });
-    Flip.from(state, {
-      targets: panel,
-      duration: 0.55,
+    document.body.appendChild(clone);
+    transitionCloneRef.current = clone;
+    targetImage.style.visibility = "hidden";
+    gsap.fromTo(
+      panel,
+      { autoAlpha: 0.15 },
+      { autoAlpha: 1, duration: 0.3, ease: "power2.out" },
+    );
+    gsap.to(clone, {
+      top: targetRect.top,
+      left: targetRect.left,
+      width: targetRect.width,
+      height: targetRect.height,
+      duration: 0.6,
       ease: "power3.inOut",
-      absolute: true,
+      onComplete: () => {
+        targetImage.style.visibility = "visible";
+        clone.remove();
+        transitionCloneRef.current = null;
+      },
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   function handleClose() {
     const panel = contentRef.current?.closest<HTMLElement>(".modal-panel");
-    const closeRect = closeRectRef.current;
+    const closeRect = getOriginRect?.() ?? closeRectRef.current;
 
     if (!panel || prefersReducedMotion() || !closeRect || !isRectStillUsable(closeRect)) {
       onClose();
       return;
     }
-
-    gsap.to(panel, {
-      position: "fixed",
-      top: closeRect.top,
-      left: closeRect.left,
-      width: closeRect.width,
-      height: closeRect.height,
-      margin: 0,
-      duration: 0.4,
-      ease: "power3.in",
-      onComplete: onClose,
+    const stage = panel.querySelector<HTMLElement>(".modal-artwork-stage");
+    const image = stage?.querySelector<HTMLImageElement>("img");
+    if (!stage || !image) {
+      onClose();
+      return;
+    }
+    const imageRect = image.getBoundingClientRect();
+    const clone = image.cloneNode(true) as HTMLImageElement;
+    Object.assign(clone.style, {
+      position: "fixed", top: `${imageRect.top}px`, left: `${imageRect.left}px`,
+      width: `${imageRect.width}px`, height: `${imageRect.height}px`,
+      objectFit: "contain", zIndex: "1000", pointerEvents: "none", margin: "0",
+    });
+    document.body.appendChild(clone);
+    image.style.visibility = "hidden";
+    transitionCloneRef.current = clone;
+    gsap.to(panel, { autoAlpha: 0.15, duration: 0.45, ease: "power2.in" });
+    gsap.to(clone, {
+      top: closeRect.top, left: closeRect.left,
+      width: closeRect.width, height: closeRect.height,
+      duration: 0.5, ease: "power3.in",
+      onComplete: () => { clone.remove(); transitionCloneRef.current = null; onClose(); },
     });
   }
 
@@ -168,9 +203,8 @@ export function ArtworkLightbox({
       {artwork ? (
         <div ref={contentRef}>
           <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
-            <div className="relative flex items-center justify-center border-2 border-line bg-panel/80 p-3">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+            <div className="modal-artwork-stage relative flex items-center justify-center border-2 border-line bg-panel/80 p-3">
+              <FallbackImage
                 src={artwork.imageUrl}
                 alt={artwork.altText}
                 loading="eager"

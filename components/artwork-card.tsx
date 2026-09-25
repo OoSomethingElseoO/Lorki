@@ -5,6 +5,7 @@ import type { StorefrontArtwork } from "@/lib/storefront";
 import { AccessibleModal } from "@/components/accessible-modal";
 import { BuyButton } from "@/components/buy-button";
 import { Button } from "@/components/ui/button";
+import { FallbackImage } from "@/components/ui/fallback-image";
 
 type ArtworkCardProps = {
   artwork: StorefrontArtwork;
@@ -36,7 +37,7 @@ export function ArtworkCard({ artwork, customerEmail, onSelect }: ArtworkCardPro
         aria-label={`Enlarge ${artwork.title}`}
         onClick={handleImageClick}
       >
-        <img src={artwork.imageUrl} alt={artwork.altText} className="artwork-card__image" />
+        <FallbackImage src={artwork.imageUrl} alt={artwork.altText} className="artwork-card__image" />
         <span className="artwork-card__image-hint" aria-hidden="true">
           Enlarge
         </span>

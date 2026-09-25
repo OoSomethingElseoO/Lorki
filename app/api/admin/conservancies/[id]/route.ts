@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { foreignKeyConstraintResponse, isForeignKeyConstraintError, isNotFoundError } from "@/lib/prisma-errors";
 import { validateTextField, validateEmail, validateUrl } from "@/lib/validation";
+import { getCurrentUser } from "@/lib/auth";
+import { checkPermission, unauthorized } from "@/lib/permissions";
+import { recordAudit } from "@/lib/audit";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -14,6 +17,9 @@ type UpdateBody = {
 };
 
 export async function PATCH(request: Request, { params }: RouteParams) {
+  const user = await getCurrentUser();
+  const { authorized } = checkPermission(user, "OPS_ADMIN");
+  if (!authorized) return unauthorized("OPS_ADMIN");
   const { id } = await params;
   const body = (await request.json()) as Partial<UpdateBody>;
 
@@ -74,6 +80,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       },
     });
 
+    await recordAudit({ action: "CONSERVANCY_UPDATED", affectedEntityType: "Conservancy", affectedEntityId: conservancy.id, reason: "Operations administrator updated a conservancy", changedBy: user!.email, metadata: { name: conservancy.name } });
+
     return NextResponse.json({ conservancy });
   } catch (error) {
     if (isNotFoundError(error)) {
@@ -84,10 +92,14 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 }
 
 export async function DELETE(_request: Request, { params }: RouteParams) {
+  const user = await getCurrentUser();
+  const { authorized } = checkPermission(user, "OPS_ADMIN");
+  if (!authorized) return unauthorized("OPS_ADMIN");
   const { id } = await params;
 
   try {
-    await prisma.conservancy.delete({ where: { id } });
+    const conservancy = await prisma.conservancy.delete({ where: { id } });
+    await recordAudit({ action: "CONSERVANCY_DELETED", affectedEntityType: "Conservancy", affectedEntityId: id, reason: "Operations administrator deleted a conservancy", changedBy: user!.email, metadata: { name: conservancy.name } });
     return NextResponse.json({ ok: true });
   } catch (error) {
     if (isNotFoundError(error)) {

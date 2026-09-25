@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { attemptAutomaticPayout } from "@/lib/payout-channels";
 import { isPayoutRevivable } from "@/lib/payouts";
+import { getCurrentUser } from "@/lib/auth";
+import { checkPermission, unauthorized } from "@/lib/permissions";
+import { recordAudit } from "@/lib/audit";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -19,6 +22,9 @@ type RouteParams = { params: Promise<{ id: string }> };
 // same "trust the admin's judgment on the real-world facts" reasoning as
 // the refund route.
 export async function POST(_request: Request, { params }: RouteParams) {
+  const user = await getCurrentUser();
+  const { authorized } = checkPermission(user, "FINANCE_ADMIN");
+  if (!authorized) return unauthorized("FINANCE_ADMIN");
   const { id } = await params;
 
   const payout = await prisma.payout.findUnique({
@@ -53,6 +59,7 @@ export async function POST(_request: Request, { params }: RouteParams) {
     where: { id },
     data: { status: "RELEASED", releasedAt: new Date() },
   });
+  await recordAudit({ action: "PAYOUT_REVIVED", affectedEntityType: "Payout", affectedEntityId: payout.id, reason: "Finance administrator re-released a failed payout after review", changedBy: user!.email, metadata: { orderId: payout.orderId, amountCents: payout.amountCents } });
 
   // Best-effort, same as the deliver route — a failed automatic-dispatch
   // attempt must never roll back the revival itself.

@@ -3,6 +3,9 @@ import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { SESSION_COOKIE, verifyUserSessionToken } from "@/lib/auth";
 import { isNotFoundError } from "@/lib/prisma-errors";
+import { getCurrentUser } from "@/lib/auth";
+import { checkPermission, unauthorized } from "@/lib/permissions";
+import { recordAudit } from "@/lib/audit";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -13,6 +16,9 @@ type RouteParams = { params: Promise<{ id: string }> };
 // operation; the account itself, and anything else attached to it, is
 // untouched.
 export async function DELETE(_request: Request, { params }: RouteParams) {
+  const currentUser = await getCurrentUser();
+  const { authorized } = checkPermission(currentUser, "SUPER_ADMIN");
+  if (!authorized) return unauthorized("SUPER_ADMIN");
   const { id } = await params;
 
   const target = await prisma.user.findUnique({ where: { id } });
@@ -37,6 +43,7 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
 
   try {
     await prisma.user.update({ where: { id }, data: { isAdmin: false } });
+    await recordAudit({ action: "ADMIN_ACCESS_REVOKED", affectedEntityType: "User", affectedEntityId: id, reason: "Super administrator revoked admin access", changedBy: currentUser!.email, metadata: { targetEmail: target.email } });
     return NextResponse.json({ ok: true });
   } catch (error) {
     if (isNotFoundError(error)) {

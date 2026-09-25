@@ -92,8 +92,13 @@ export async function getOperationsEmail(): Promise<string | undefined> {
 // Built-in fallbacks so the site still renders sensibly before an admin has
 // ever visited /admin/settings — not meant to be the permanent brand.
 const DEFAULT_BRANDING = {
-  siteName: "Aurelia Originals",
-  heroTagline: "Own art. Protect wildlife.",
+  siteName: "Lorki Originals",
+  heroTagline: "Sell art. Own masterpieces. Protect wildlife.",
+  heroHeadlineWords: {
+    first: ["art", "masterpieces", "originals"],
+    second: ["masterpieces", "originals", "art"],
+    third: ["wildlife", "lions", "elephants", "habitats"],
+  },
   heroImageUrl: "/artwork/featured-original.png",
   heroAlt: "Original artwork.",
   missionStatement:
@@ -104,6 +109,31 @@ const DEFAULT_BRANDING = {
 };
 
 export type Branding = typeof DEFAULT_BRANDING;
+
+export type HeroHeadlineWords = Branding["heroHeadlineWords"];
+
+/**
+ * Settings are user-editable JSON, so never pass an unvalidated value to the
+ * public storefront. This mirrors the API validation and also protects the
+ * site if a row was edited directly or an older database contains malformed
+ * JSON.
+ */
+export function normalizeHeroHeadlineWords(value: unknown): HeroHeadlineWords {
+  const fallback = DEFAULT_BRANDING.heroHeadlineWords;
+  if (!value || typeof value !== "object" || Array.isArray(value)) return fallback;
+  const candidate = value as Record<string, unknown>;
+  const normalize = (key: keyof HeroHeadlineWords) => {
+    const pool = candidate[key];
+    if (!Array.isArray(pool)) return fallback[key];
+    const words = pool
+      .filter((word): word is string => typeof word === "string")
+      .map((word) => word.trim().replace(/[.!?]+$/g, "").trim())
+      .filter(Boolean)
+      .slice(0, 24);
+    return words.length > 0 ? words : fallback[key];
+  };
+  return { first: normalize("first"), second: normalize("second"), third: normalize("third") };
+}
 
 // Called from the root layout's generateMetadata and from SiteHeader, both
 // of which render on essentially every page — including fully static ones,
@@ -119,6 +149,7 @@ export async function getBranding(): Promise<Branding> {
     return {
       siteName: settings.siteName?.trim() || DEFAULT_BRANDING.siteName,
       heroTagline: settings.heroTagline?.trim() || DEFAULT_BRANDING.heroTagline,
+      heroHeadlineWords: normalizeHeroHeadlineWords(settings.heroHeadlineWords),
       heroImageUrl: settings.heroImageUrl?.trim() || DEFAULT_BRANDING.heroImageUrl,
       heroAlt: settings.heroAlt?.trim() || DEFAULT_BRANDING.heroAlt,
       missionStatement: settings.missionStatement?.trim() || DEFAULT_BRANDING.missionStatement,

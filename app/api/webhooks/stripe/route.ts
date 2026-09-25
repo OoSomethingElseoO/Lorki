@@ -6,6 +6,7 @@ import { getStripeWebhookSecret } from "@/lib/settings";
 import { computeSplit, getCampaignConservancyId } from "@/lib/payouts";
 import { processRefund } from "@/lib/refunds";
 import { sendOperationsAlert, sendOrderConfirmationEmail } from "@/lib/email";
+import { PRINT_SHIPPING_CENTS } from "@/lib/pricing";
 
 export async function POST(request: Request) {
   const signature = request.headers.get("stripe-signature");
@@ -29,6 +30,20 @@ export async function POST(request: Request) {
 
   console.log(`[stripe:webhook] Received event: ${event.type} (${event.id})`);
 
+  let providerEvent;
+  try {
+    providerEvent = await prisma.paymentProviderEvent.create({
+      data: { provider: "STRIPE", externalId: event.id, eventType: event.type, payload: JSON.parse(JSON.stringify(event)) },
+    });
+  } catch (error) {
+    // Stripe retries use the same event ID. The immutable ledger makes a
+    // duplicate visible without running its financial side effects twice.
+    if ((error as { code?: string }).code === "P2002") {
+      return NextResponse.json({ received: true, duplicate: true });
+    }
+    throw error;
+  }
+
   try {
     if (event.type === "checkout.session.completed") {
       await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
@@ -50,9 +65,12 @@ export async function POST(request: Request) {
       await handleConnectAccountUpdated(event.data.object as Stripe.Account);
     }
 
+    await prisma.paymentProviderEvent.update({ where: { id: providerEvent.id }, data: { status: "PROCESSED", processedAt: new Date() } });
+
     console.log(`[stripe:webhook] ✓ Successfully processed ${event.type}`);
     return NextResponse.json({ received: true });
   } catch (error) {
+    await prisma.paymentProviderEvent.update({ where: { id: providerEvent.id }, data: { status: "FAILED", error: (error as Error).message } }).catch(() => undefined);
     // Keep the format string constant so event/error text cannot be interpreted
     // as printf directives by the logger.
     console.error("[stripe:webhook] Failed to process %s: %s", event.type, (error as Error).message);
@@ -73,6 +91,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   if (!paymentIntentId || !artworkId) {
     console.warn("[stripe:checkout] Missing paymentIntentId or artworkId", { paymentIntentId, artworkId });
+    if (paymentIntentId) await recordMissingLocalPayment(paymentIntentId, "checkout.session.completed", { artworkId: artworkId ?? null });
     return;
   }
 
@@ -84,6 +103,43 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     return;
   }
 
+  // Offer winners already have an AWAITING_PAYMENT order. Complete that order
+  // in place instead of creating a second order when Stripe confirms payment.
+  const existingOrderId = session.metadata?.orderId;
+  if (existingOrderId) {
+    const pending = await prisma.order.findUnique({
+      where: { id: existingOrderId },
+      include: { artwork: { include: { campaign: { include: { animal: true, conservancy: true } } } }, payouts: true, offer: true },
+    });
+    if (!pending || pending.status !== "AWAITING_PAYMENT") {
+      console.warn("[stripe:offer] Payment order is missing or no longer awaiting payment", { existingOrderId });
+      return;
+    }
+    const shipping = session.collected_information?.shipping_details ?? session.customer_details;
+    const address = shipping?.address;
+    await prisma.$transaction(async (tx) => {
+      const order = await tx.order.update({ where: { id: pending.id }, data: { status: "PAID", stripePaymentIntentId: paymentIntentId, shippingName: shipping?.name ?? "Unknown", shippingAddressLine1: address?.line1 ?? "", shippingAddressLine2: address?.line2 ?? null, shippingCity: address?.city ?? "", shippingRegion: address?.state ?? "", shippingPostalCode: address?.postal_code ?? "", shippingCountry: address?.country ?? "" } });
+      await tx.artwork.update({ where: { id: pending.artworkId }, data: { inventoryState: "SOLD", reservedAt: null } });
+      if (pending.offer) await tx.offer.update({ where: { id: pending.offer.id }, data: { status: "CONVERTED" } });
+      const split = computeSplit(order.amountCents, pending.artwork.campaign);
+      await tx.payout.createMany({ data: [
+        { orderId: order.id, recipientType: "ARTIST", recipientId: pending.artwork.campaign.artistId, amountCents: split.artistCents },
+        { orderId: order.id, recipientType: "CONSERVANCY", recipientId: getCampaignConservancyId(pending.artwork.campaign), amountCents: split.conservancyCents },
+        { orderId: order.id, recipientType: "OPERATIONS", recipientId: "operations", amountCents: split.operationsCents },
+      ] });
+    });
+    await recordPaymentReconciliation({
+      paymentIntentId,
+      orderId: pending.id,
+      expectedAmountCents: pending.amountCents + (pending.artwork.kind === "PRINT" ? PRINT_SHIPPING_CENTS : 0),
+      actualAmountCents: session.amount_total,
+      expectedCurrency: pending.currency,
+      actualCurrency: session.currency,
+      eventType: "checkout.session.completed",
+    });
+    return;
+  }
+
   const artwork = await prisma.artwork.findUnique({
     where: { id: artworkId },
     include: { campaign: { include: { animal: true, conservancy: true } } },
@@ -91,6 +147,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   if (!artwork) {
     console.error(`[stripe:checkout] Artwork not found: ${artworkId}`);
+    await recordMissingLocalPayment(paymentIntentId, "checkout.session.completed", { artworkId });
     return;
   }
 
@@ -144,6 +201,16 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   console.log(`[stripe:checkout] ✓ Order created: ${order.id} (${order.amountCents} cents) for ${artwork.title}`);
 
+  await recordPaymentReconciliation({
+    paymentIntentId,
+    orderId: order.id,
+    expectedAmountCents: order.amountCents + (artwork.kind === "PRINT" ? PRINT_SHIPPING_CENTS : 0),
+    actualAmountCents: session.amount_total,
+    expectedCurrency: order.currency,
+    actualCurrency: session.currency,
+    eventType: "checkout.session.completed",
+  });
+
   // Not awaited: the order/inventory/payout rows are already committed
   // above, so Stripe's webhook response shouldn't sit blocked on Resend —
   // under a burst of concurrent checkouts that's needless latency on every
@@ -160,6 +227,53 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     `New order: ${artwork.title}`,
     `<p>${order.buyerEmail} bought <strong>${artwork.title}</strong> for $${(order.amountCents / 100).toFixed(2)}.</p><p>Fulfillment needed — mark it shipped in the admin once it's on its way.</p>`,
   ).catch((e) => console.error("[stripe:webhook-alert-failed]", e));
+}
+
+async function recordMissingLocalPayment(externalId: string, eventType: string, metadata: Record<string, unknown>) {
+  await prisma.paymentReconciliation.create({
+    data: { provider: "STRIPE", externalId, eventType, status: "MISSING_LOCAL_ORDER", actualAmountCents: null, actualCurrency: null, metadata: JSON.parse(JSON.stringify(metadata)) },
+  }).catch((error) => console.error("[stripe:reconciliation] Failed to record missing local payment", error));
+  sendOperationsAlert(
+    "Stripe payment has no local order",
+    `<p>Payment intent <code>${externalId}</code> completed but could not be linked to a local order. Review reconciliation immediately.</p>`,
+  ).catch((error) => console.error("[stripe:reconciliation-alert-failed]", error));
+}
+
+async function recordPaymentReconciliation(input: {
+  paymentIntentId: string;
+  orderId: string;
+  expectedAmountCents: number;
+  actualAmountCents: number | null;
+  expectedCurrency: string;
+  actualCurrency: string | null;
+  eventType: string;
+}) {
+  const amountMatches = input.actualAmountCents !== null && input.expectedAmountCents === input.actualAmountCents;
+  const currencyMatches = input.actualCurrency !== null && input.expectedCurrency.toLowerCase() === input.actualCurrency.toLowerCase();
+  const status = amountMatches && currencyMatches
+    ? "MATCHED"
+    : !currencyMatches
+      ? "CURRENCY_MISMATCH"
+      : "AMOUNT_MISMATCH";
+  await prisma.paymentReconciliation.create({
+    data: {
+      provider: "STRIPE",
+      externalId: input.paymentIntentId,
+      orderId: input.orderId,
+      expectedAmountCents: input.expectedAmountCents,
+      actualAmountCents: input.actualAmountCents,
+      expectedCurrency: input.expectedCurrency,
+      actualCurrency: input.actualCurrency,
+      differenceCents: input.actualAmountCents === null ? null : input.actualAmountCents - input.expectedAmountCents,
+      status,
+      eventType: input.eventType,
+      metadata: { paymentIntentId: input.paymentIntentId },
+    },
+  }).catch((error) => {
+    // Payment processing must not be rolled back because the audit projection
+    // is temporarily unavailable; the error is logged for operational review.
+    console.error("[stripe:reconciliation] Failed to record payment comparison", error);
+  });
 }
 
 async function handleRefund(charge: Stripe.Charge) {

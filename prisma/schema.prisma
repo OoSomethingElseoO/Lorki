@@ -226,9 +226,16 @@ model Artwork {
   // reissue may not need one.
   story          String?
   inventoryState InventoryState @default(AVAILABLE)
+  saleMode       SaleMode      @default(FIXED_PRICE)
+  offerClosesAt  DateTime?
+  offerExtensionCount Int       @default(0)
+  currentHighestOfferAmountCents Int?
+  currentHighestOfferId String? @unique
+  currentHighestOffer Offer? @relation("ArtworkCurrentHighestOffer", fields: [currentHighestOfferId], references: [id])
   reservedAt     DateTime?
   orders         Order[]
   inquiries      Inquiry[]
+  offers         Offer[]      @relation("ArtworkOffers")
   createdAt      DateTime     @default(now())
 }
 
@@ -237,11 +244,14 @@ enum ArtworkKind {
   PRINT
 }
 
-// Originals are high-value and one-of-one, so they don't go through instant
-// self-checkout — a visitor expresses interest here, the team follows up
-// personally (payment method, shipping/insurance, timeline), and the
-// resulting sale gets recorded through the existing admin cash-sale flow
-// once terms are agreed. Prints stay on instant Stripe checkout.
+enum SaleMode {
+  FIXED_PRICE
+  OFFERS
+  AUCTION
+}
+
+// Originals are high-value and one-of-one, so they require review before
+// payment. Prints can use instant Stripe Checkout.
 model Inquiry {
   id        String        @id @default(cuid())
   artwork   Artwork       @relation(fields: [artworkId], references: [id])
@@ -253,9 +263,39 @@ model Inquiry {
   createdAt DateTime      @default(now())
 }
 
+enum OfferStatus {
+  SUBMITTED
+  WITHDRAWN
+  WINNING
+  DECLINED
+  EXPIRED
+  CONVERTED
+}
+
+model Offer {
+  id          String      @id @default(cuid())
+  artwork     Artwork     @relation("ArtworkOffers", fields: [artworkId], references: [id])
+  artworkId   String
+  bidder      User?       @relation(fields: [bidderId], references: [id])
+  bidderId    String?
+  bidderEmail String
+  amountCents Int
+  currency    String      @default("usd")
+  status      OfferStatus @default(SUBMITTED)
+  submittedAt DateTime    @default(now())
+  expiresAt   DateTime?
+  currentFor  Artwork?    @relation("ArtworkCurrentHighestOffer")
+  order       Order?
+
+  @@index([artworkId, status, amountCents])
+  @@index([bidderEmail, artworkId, status])
+}
+
 enum InquiryStatus {
   NEW
   CONTACTED
+  APPROVED
+  REJECTED
   CLOSED
 }
 
@@ -286,6 +326,12 @@ model Order {
   stripePaymentIntentId String?     @unique
   paymentMethod         PaymentMethod @default(STRIPE)
   status                OrderStatus @default(PENDING)
+  reviewedAt            DateTime?
+  reviewedBy            String?
+  reviewNote            String?
+  expiresAt             DateTime?
+  offerId               String?     @unique
+  offer                 Offer?      @relation(fields: [offerId], references: [id])
   // A Stripe chargeback in progress — orthogonal to `status` (fulfillment
   // progress) rather than a replacement for it, since a dispute can open on
   // an order that's already SHIPPED or DELIVERED and we must not lose that
@@ -293,6 +339,7 @@ model Order {
   // charge.dispute.closed; see handleDispute in the Stripe webhook.
   disputedAt            DateTime?
   payouts               Payout[]
+  reconciliations       PaymentReconciliation[]
   shipment              Shipment?
   createdAt             DateTime    @default(now())
 }
@@ -308,10 +355,15 @@ enum OrderStatus {
   // mean creating an Order when a Stripe Checkout session starts instead
   // of when it completes, which is real payment-pipeline work.
   PENDING
+  AWAITING_REVIEW
+  AWAITING_PAYMENT
   PAID       // payment confirmed (Stripe webhook, or an admin recording cash), payouts not yet released
   SHIPPED    // buyer doesn't have it yet — payout release still waits for DELIVERED
   DELIVERED  // triggers payout release
   REFUNDED
+  REJECTED
+  EXPIRED
+  CANCELLED
 }
 
 // CASH covers any sale collected outside Stripe — cash in hand, bank
@@ -354,6 +406,7 @@ model Payout {
   flutterwaveTransferId     String?
   flutterwaveTransferStatus String?
   paidOutAt     DateTime?
+  reconciliations PaymentReconciliation[]
   createdAt     DateTime      @default(now())
 }
 
@@ -450,6 +503,11 @@ model Settings {
   // change. Null means "use the built-in fallback" (see lib/settings.ts).
   siteName         String?
   heroTagline      String?
+  // Admin-managed word pools for the three hero headline lines. The frontend
+  // owns the fixed prefixes ("Sell", "Own", "Protect") and rotates only
+  // these final words. Stored as JSON so an admin can expand each pool
+  // without a schema migration.
+  heroHeadlineWords Json?
   heroImageUrl     String?
   heroAlt          String?
   missionStatement String?
@@ -550,6 +608,85 @@ model AuditLog {
   @@index([changedBy])
 }
 
+enum PaymentProvider {
+  STRIPE
+  FLUTTERWAVE
+  MANUAL
+}
+
+enum ProviderEventStatus {
+  RECEIVED
+  PROCESSED
+  FAILED
+}
+
+model PaymentProviderEvent {
+  id          String             @id @default(cuid())
+  provider    PaymentProvider
+  externalId  String
+  eventType   String
+  status      ProviderEventStatus @default(RECEIVED)
+  payload     Json?
+  error       String?
+  receivedAt  DateTime           @default(now())
+  processedAt DateTime?
+
+  @@unique([provider, externalId])
+  @@index([receivedAt])
+}
+
+enum ReconciliationStatus {
+  MATCHED
+  MISSING_PROVIDER_PAYMENT
+  MISSING_LOCAL_ORDER
+  AMOUNT_MISMATCH
+  CURRENCY_MISMATCH
+  DUPLICATE_EVENT
+  PAYOUT_MISMATCH
+  REFUND_UNMATCHED
+  MANUAL_REVIEW
+  RESOLVED
+}
+
+enum ReconciliationPriority {
+  LOW
+  NORMAL
+  HIGH
+  CRITICAL
+}
+
+model PaymentReconciliation {
+  id              String               @id @default(cuid())
+  provider        PaymentProvider
+  externalId      String?
+  order           Order?               @relation(fields: [orderId], references: [id])
+  orderId         String?
+  payout          Payout?              @relation(fields: [payoutId], references: [id])
+  payoutId        String?
+  expectedAmountCents Int?
+  actualAmountCents   Int?
+  expectedCurrency String?
+  actualCurrency   String?
+  status          ReconciliationStatus
+  priority        ReconciliationPriority @default(NORMAL)
+  assignedTo      String?
+  triagedAt       DateTime?
+  triagedBy       String?
+  triageNote      String?
+  differenceCents Int?
+  eventType       String?
+  observedAt      DateTime             @default(now())
+  resolvedAt      DateTime?
+  resolvedBy      String?
+  resolutionNote  String?
+  metadata        Json?
+
+  @@index([status, observedAt])
+  @@index([provider, externalId])
+  @@index([orderId])
+  @@index([payoutId])
+}
+
 enum AdminRole {
   SUPER_ADMIN
   FINANCE_ADMIN
@@ -575,6 +712,8 @@ model User {
   artist              Artist?
   conservancy         Conservancy?
   orders              Order[]
+  offers              Offer[]
+  shareEvents         ShareEvent[]
   passwordResetTokens PasswordResetToken[]
   createdAt           DateTime              @default(now())
 }
@@ -587,6 +726,54 @@ model PasswordResetToken {
   expiresAt  DateTime
   usedAt     DateTime?
   createdAt  DateTime  @default(now())
+}
+
+model ShareEvent {
+  id         String   @id @default(cuid())
+  targetType String
+  targetId   String
+  channel    String
+  user       User?    @relation(fields: [userId], references: [id])
+  userId     String?
+  createdAt  DateTime @default(now())
+
+  @@index([targetType, targetId, createdAt])
+  @@index([createdAt])
+}
+
+enum SecurityCaseSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum SecurityCaseStatus {
+  OPEN
+  INVESTIGATING
+  CONTAINED
+  RESOLVED
+  FALSE_POSITIVE
+}
+
+model SecurityCase {
+  id           String             @id @default(cuid())
+  fingerprint  String             @unique
+  type         String
+  severity     SecurityCaseSeverity
+  status       SecurityCaseStatus @default(OPEN)
+  summary      String
+  evidence     Json?
+  assignedTo   String?
+  triageNote   String?
+  resolvedAt   DateTime?
+  resolvedBy   String?
+  resolutionNote String?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@index([status, severity, createdAt])
+  @@index([assignedTo])
 }
 
 // Idempotency store for API requests — prevents duplicate processing on retries.

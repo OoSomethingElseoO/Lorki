@@ -3,6 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { computeSplit, getCampaignConservancyId } from "@/lib/payouts";
 import { sendOperationsAlert, sendOrderConfirmationEmail } from "@/lib/email";
 import { attemptAutomaticPayout } from "@/lib/payout-channels";
+import { getCurrentUser } from "@/lib/auth";
+import { checkPermission, unauthorized } from "@/lib/permissions";
+import { recordAudit } from "@/lib/audit";
 
 type CashSaleBody = {
   artworkId: string;
@@ -26,6 +29,9 @@ type CashSaleBody = {
 // there, an authenticated admin here. Shipping fields are optional since a
 // cash sale is often handed over in person with nothing to ship.
 export async function POST(request: Request) {
+  const user = await getCurrentUser();
+  const { authorized } = checkPermission(user, "FINANCE_ADMIN");
+  if (!authorized) return unauthorized("FINANCE_ADMIN");
   const body = (await request.json()) as Partial<CashSaleBody>;
 
   if (!body.artworkId || !body.buyerEmail) {
@@ -52,6 +58,9 @@ export async function POST(request: Request) {
   // should actually refuse a second sale.
   if (artwork.inventoryState === "SOLD") {
     return NextResponse.json({ error: "Artwork is not available" }, { status: 409 });
+  }
+  if (artwork.currentHighestOfferAmountCents !== null && artwork.priceCents < artwork.currentHighestOfferAmountCents) {
+    return NextResponse.json({ error: "Cannot record a cash sale below the current highest valid offer" }, { status: 409 });
   }
 
   const inPerson = body.inPerson === true;
@@ -125,6 +134,7 @@ export async function POST(request: Request) {
 
     return order;
   });
+  await recordAudit({ action: "CASH_ORDER_RECORDED", affectedEntityType: "Order", affectedEntityId: order.id, reason: "Finance administrator recorded an offline cash sale", changedBy: user!.email, metadata: { artworkId: artwork.id, amountCents: order.amountCents, inPerson } });
 
   // Not awaited — the order/payout transaction above is already committed,
   // same reasoning as the Stripe webhook (app/api/webhooks/stripe/route.ts).

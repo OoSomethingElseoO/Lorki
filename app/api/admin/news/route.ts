@@ -3,8 +3,13 @@ import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/slugify";
 import { isUniqueConstraintError, uniqueConstraintResponse } from "@/lib/prisma-errors";
 import { validateTextField, validateImageUrl } from "@/lib/validation";
+import { getCurrentUser } from "@/lib/auth";
+import { checkPermission, unauthorized } from "@/lib/permissions";
+import { recordAudit } from "@/lib/audit";
 
 export async function GET() {
+  const { authorized } = checkPermission(await getCurrentUser(), "OPS_ADMIN");
+  if (!authorized) return unauthorized("OPS_ADMIN");
   const articles = await prisma.newsArticle.findMany({ orderBy: { createdAt: "desc" } });
   return NextResponse.json({ articles });
 }
@@ -17,6 +22,9 @@ type CreateBody = {
 };
 
 export async function POST(request: Request) {
+  const user = await getCurrentUser();
+  const { authorized } = checkPermission(user, "OPS_ADMIN");
+  if (!authorized) return unauthorized("OPS_ADMIN");
   const body = (await request.json()) as Partial<CreateBody>;
 
   if (!body.title || !body.summary || !body.body || !body.imageUrl) {
@@ -67,6 +75,8 @@ export async function POST(request: Request) {
         status: "DRAFT",
       },
     });
+
+    await recordAudit({ action: "NEWS_ARTICLE_CREATED", affectedEntityType: "NewsArticle", affectedEntityId: article.id, reason: "Operations administrator created a news article", changedBy: user!.email, metadata: { title: article.title, status: article.status } });
 
     return NextResponse.json({ article }, { status: 201 });
   } catch (error) {

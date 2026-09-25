@@ -17,6 +17,8 @@ type ArtistArtworkFormProps = {
     imageUrl: string;
     altText: string;
     story: string | null;
+    saleMode: "FIXED_PRICE" | "OFFERS" | "AUCTION";
+    offerClosesAt: Date | string | null;
   };
   onSaved: () => void;
 };
@@ -82,6 +84,20 @@ export function ArtistArtworkForm({ id, initial, onSaved }: ArtistArtworkFormPro
       return;
     }
 
+    if (form.get("kind") === "ORIGINAL") {
+      const saleResponse = await fetch(`/api/artist/artworks/${id}/sale-settings`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ saleMode: form.get("saleMode"), offerClosesAt: form.get("offerClosesAt") || undefined }),
+      });
+      if (!saleResponse.ok) {
+        const data = await saleResponse.json().catch(() => ({}));
+        setError(data);
+        setSubmitting(false);
+        return;
+      }
+    }
+
     onSaved();
     router.refresh();
   }
@@ -125,6 +141,20 @@ export function ArtistArtworkForm({ id, initial, onSaved }: ArtistArtworkFormPro
         <option value="ORIGINAL">Original</option>
         <option value="PRINT">Print</option>
       </select>
+
+      <label htmlFor="saleMode">Sale mode</label>
+      <select id="saleMode" name="saleMode" defaultValue={initial.saleMode} disabled={initial.kind !== "ORIGINAL"}>
+        <option value="FIXED_PRICE">Fixed price</option>
+        <option value="OFFERS">Accept offers</option>
+        <option value="AUCTION">Timed auction</option>
+      </select>
+      <input
+        name="offerClosesAt"
+        type="datetime-local"
+        defaultValue={initial.offerClosesAt ? new Date(initial.offerClosesAt).toISOString().slice(0, 16) : ""}
+        disabled={initial.saleMode !== "AUCTION"}
+        aria-label="Auction closing time"
+      />
 
       <div>
         <input

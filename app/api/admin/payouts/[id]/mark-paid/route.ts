@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { checkPermission, unauthorized } from "@/lib/permissions";
 import { getCurrentUser } from "@/lib/auth";
 import { checkIdempotency, storeIdempotencyResponse } from "@/lib/idempotency";
+import { recordAudit } from "@/lib/audit";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -53,6 +54,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     where: { id },
     data: { paidOutAt: new Date() },
   });
+  await recordAudit({ action: "PAYOUT_MARKED_PAID_MANUAL", affectedEntityType: "Payout", affectedEntityId: id, reason: "Finance administrator recorded an external payout", changedBy: user!.email, metadata: { amountCents: updated.amountCents, orderId: updated.orderId } });
 
   const response = NextResponse.json({ payout: updated });
   // ✅ Store for future retries

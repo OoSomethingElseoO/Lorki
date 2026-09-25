@@ -1,0 +1,77 @@
+name: Operational sweeps
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+    - cron: "43 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  hourly-controls:
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '17 * * * *'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run reconciliation sweep
+        env:
+          BASE_URL: ${{ secrets.QAFORGE_BASE_URL }}
+          CRON_SECRET: ${{ secrets.RECONCILIATION_CRON_SECRET }}
+        run: |
+          test -n "$BASE_URL" && test -n "$CRON_SECRET"
+          curl --fail-with-body --silent --show-error --retry 3 --retry-all-errors \
+            -X POST "$BASE_URL/api/internal/reconciliation/sweep" \
+            -H "x-reconciliation-secret: $CRON_SECRET" \
+            -H "content-type: application/json" \
+            --data '{"days":30}'
+
+      - name: Run security threshold sweep
+        env:
+          BASE_URL: ${{ secrets.QAFORGE_BASE_URL }}
+          CRON_SECRET: ${{ secrets.SECURITY_ALERT_CRON_SECRET }}
+        run: |
+          test -n "$BASE_URL" && test -n "$CRON_SECRET"
+          curl --fail-with-body --silent --show-error --retry 3 --retry-all-errors \
+            -X POST "$BASE_URL/api/internal/security/alerts" \
+            -H "x-security-alert-secret: $CRON_SECRET"
+
+  daily-audit-archive:
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '43 2 * * *'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS credentials through OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AUDIT_ARCHIVE_ROLE_ARN }}
+          aws-region: ${{ secrets.AUDIT_ARCHIVE_AWS_REGION }}
+
+      - name: Export audit and provider events
+        env:
+          BASE_URL: ${{ secrets.QAFORGE_BASE_URL }}
+          EXPORT_SECRET: ${{ secrets.AUDIT_EXPORT_SECRET }}
+        run: |
+          test -n "$BASE_URL" && test -n "$EXPORT_SECRET"
+          SINCE="$(date -u -d '2 days ago' +%Y-%m-%dT%H:%M:%SZ)"
+          curl --fail-with-body --silent --show-error --retry 3 --retry-all-errors \
+            "$BASE_URL/api/internal/audit/export?since=$SINCE" \
+            -H "x-audit-export-secret: $EXPORT_SECRET" \
+            -o audit.ndjson
+
+      - name: Write immutable archive object
+        env:
+          BUCKET: ${{ secrets.AUDIT_ARCHIVE_BUCKET }}
+          REGION: ${{ secrets.AUDIT_ARCHIVE_AWS_REGION }}
+        run: |
+          test -n "$BUCKET"
+          KEY="qaforge/audit/$(date -u +%Y/%m/%d)/audit-$(date -u +%Y%m%dT%H%M%SZ).ndjson"
+          RETAIN_UNTIL="$(date -u -d '7 years' +%Y-%m-%dT%H:%M:%SZ)"
+          aws s3api put-object \
+            --bucket "$BUCKET" \
+            --key "$KEY" \
+            --body audit.ndjson \
+            --content-type application/x-ndjson \
+            --object-lock-mode COMPLIANCE \
+            --object-lock-retain-until-date "$RETAIN_UNTIL" \
+            --region "$REGION"

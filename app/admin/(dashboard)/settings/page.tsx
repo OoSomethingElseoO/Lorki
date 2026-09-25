@@ -1,4 +1,4 @@
-import { getSettings } from "@/lib/settings";
+import { getSettings, normalizeHeroHeadlineWords } from "@/lib/settings";
 import { SettingsForm } from "@/components/admin/settings-form";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +28,7 @@ export default async function AdminSettingsPage() {
           operationsEmail: settings.operationsEmail ?? "",
           siteName: settings.siteName ?? "",
           heroTagline: settings.heroTagline ?? "",
+          heroHeadlineWords: normalizeHeroHeadlineWords(settings.heroHeadlineWords),
           heroImageUrl: settings.heroImageUrl ?? "",
           heroAlt: settings.heroAlt ?? "",
           missionStatement: settings.missionStatement ?? "",

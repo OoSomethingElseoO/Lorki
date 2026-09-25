@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { attemptAutomaticPayout } from "@/lib/payout-channels";
 import { checkPermission, unauthorized } from "@/lib/permissions";
 import { getCurrentUser } from "@/lib/auth";
+import { recordAudit } from "@/lib/audit";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -77,6 +78,7 @@ export async function POST(_request: Request, { params }: RouteParams) {
     });
     return updatedOrder;
   });
+  await recordAudit({ action: "ORDER_MARKED_DELIVERED", affectedEntityType: "Order", affectedEntityId: order.id, reason: "Operations administrator confirmed delivery and released pending payouts", changedBy: user!.email, metadata: { payoutIds: order.payouts.map((p) => p.id) } });
 
   // Best-effort, after the transaction commits — a failed automatic
   // transfer attempt must never roll back the delivery/payout-release

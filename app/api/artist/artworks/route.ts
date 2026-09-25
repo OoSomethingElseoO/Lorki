@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { isPriceTooLow, isPriceTooHigh, MIN_PRICE_CENTS, MAX_PRICE_CENTS } from "@/lib/pricing";
 import { validateArtworkCreation } from "@/lib/validation";
+import { recordAudit } from "@/lib/audit";
 
 export async function GET() {
   const currentUser = await getCurrentUser();
@@ -97,6 +98,7 @@ export async function POST(request: Request) {
       story: body.story || null,
     },
   });
+  await recordAudit({ action: "ARTIST_ARTWORK_CREATED", affectedEntityType: "Artwork", affectedEntityId: artwork.id, reason: "Artist submitted artwork", changedBy: currentUser!.email, metadata: { campaignId: campaign.id, kind: artwork.kind, priceCents: artwork.priceCents } });
 
   return NextResponse.json({ artwork }, { status: 201 });
 }

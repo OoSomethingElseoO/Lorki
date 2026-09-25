@@ -7,6 +7,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FallbackImage } from "@/components/ui/fallback-image";
 
 export const dynamic = "force-dynamic";
 
@@ -61,7 +62,7 @@ export default async function AccountPage() {
             <ul className="account-orders__list">
               {orders.map((order) => (
                 <li className="account-orders__item" key={order.id}>
-                  <img src={order.artwork.imageUrl} alt={order.artwork.altText} />
+                  <FallbackImage src={order.artwork.imageUrl} alt={order.artwork.altText} />
                   <div>
                     <h3>{order.artwork.title}</h3>
                     <p className="price">${(order.amountCents / 100).toFixed(2)}</p>

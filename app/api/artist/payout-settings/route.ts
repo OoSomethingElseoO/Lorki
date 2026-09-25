@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { validatePayoutSettings } from "@/lib/validation";
+import { recordAudit } from "@/lib/audit";
 
 type PayoutSettingsBody = {
   payoutChannel: "MANUAL" | "FLUTTERWAVE" | "CRYPTO";
@@ -64,6 +65,7 @@ export async function PATCH(request: Request) {
       cryptoAddress: body.payoutChannel === "CRYPTO" ? body.cryptoAddress!.trim() : null,
     },
   });
+  await recordAudit({ action: "ARTIST_PAYOUT_SETTINGS_UPDATED", affectedEntityType: "Artist", affectedEntityId: currentArtist.id, reason: "Artist updated payout settings", changedBy: currentUser!.email, metadata: { payoutChannel: body.payoutChannel, payoutCountry: body.payoutCountry ?? null, payoutCurrency: body.payoutCurrency ?? null, accountDetailsChanged: true } });
 
   return NextResponse.json({ artist });
 }

@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getSettings } from "@/lib/settings";
+import { getSettings, normalizeHeroHeadlineWords } from "@/lib/settings";
+import { getCurrentUser } from "@/lib/auth";
+import { checkPermission, unauthorized } from "@/lib/permissions";
+import { recordAudit } from "@/lib/audit";
+
+const HEADLINE_POOL_KEYS = ["first", "second", "third"] as const;
+const MAX_HEADLINE_WORDS = 24;
+const MAX_HEADLINE_WORD_LENGTH = 48;
 
 const SECRET_FIELDS = [
   "stripeSecretKey",
@@ -25,6 +32,9 @@ const BRANDING_FIELDS = [
 ] as const;
 
 export async function GET() {
+  const { authorized } = checkPermission(await getCurrentUser(), "OPS_ADMIN");
+  if (!authorized) return unauthorized("OPS_ADMIN");
+
   const settings = await getSettings();
 
   return NextResponse.json({
@@ -45,6 +55,7 @@ export async function GET() {
       operationsEmail: settings.operationsEmail ?? "",
       siteName: settings.siteName ?? "",
       heroTagline: settings.heroTagline ?? "",
+      heroHeadlineWords: normalizeHeroHeadlineWords(settings.heroHeadlineWords),
       heroImageUrl: settings.heroImageUrl ?? "",
       heroAlt: settings.heroAlt ?? "",
       missionStatement: settings.missionStatement ?? "",
@@ -55,11 +66,51 @@ export async function GET() {
   });
 }
 
-type UpdateBody = Partial<Record<(typeof SECRET_FIELDS)[number] | (typeof BRANDING_FIELDS)[number] | "emailFrom" | "operationsEmail", string>>;
+type UpdateBody = Partial<Record<(typeof SECRET_FIELDS)[number] | (typeof BRANDING_FIELDS)[number] | "emailFrom" | "operationsEmail", string>> & {
+  heroHeadlineWords?: unknown;
+};
+
+function validateHeroHeadlineWords(value: unknown): Record<(typeof HEADLINE_POOL_KEYS)[number], string[]> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("heroHeadlineWords must be an object with first, second, and third arrays");
+  }
+  const input = value as Record<string, unknown>;
+  const output = {} as Record<(typeof HEADLINE_POOL_KEYS)[number], string[]>;
+  for (const key of HEADLINE_POOL_KEYS) {
+    const pool = input[key];
+    if (!Array.isArray(pool) || pool.length < 1 || pool.length > MAX_HEADLINE_WORDS) {
+      throw new Error(`${key} must contain 1-${MAX_HEADLINE_WORDS} words`);
+    }
+    const words = pool.map((word) => {
+      if (typeof word !== "string") throw new Error(`${key} contains a non-text word`);
+      // The storefront appends the sentence punctuation as part of the
+      // morphing value; keep admin pools noun-only to avoid duplicate marks.
+      const normalized = word.trim().replace(/[.!?]+$/g, "").trim();
+      if (!normalized || normalized.length > MAX_HEADLINE_WORD_LENGTH) {
+        throw new Error(`${key} words must be 1-${MAX_HEADLINE_WORD_LENGTH} characters`);
+      }
+      return normalized;
+    });
+    output[key] = [...new Set(words)];
+  }
+  return output;
+}
 
 export async function PATCH(request: Request) {
+  const user = await getCurrentUser();
+  const { authorized } = checkPermission(user, "OPS_ADMIN");
+  if (!authorized) return unauthorized("OPS_ADMIN");
+
   const body = (await request.json()) as UpdateBody;
-  const data: Record<string, string> = {};
+  const data: Record<string, unknown> = {};
+
+  if (body.heroHeadlineWords !== undefined) {
+    try {
+      data.heroHeadlineWords = validateHeroHeadlineWords(body.heroHeadlineWords);
+    } catch (error) {
+      return NextResponse.json({ error: error instanceof Error ? error.message : "Invalid headline word pools" }, { status: 400 });
+    }
+  }
 
   // Secrets (and smtpHost/Port/User, which aren't secret but share the same
   // "blank means leave alone" treatment): a blank submit is never an
@@ -86,6 +137,7 @@ export async function PATCH(request: Request) {
     update: data,
     create: { id: "singleton", ...data },
   });
+  await recordAudit({ action: "ADMIN_SETTINGS_UPDATED", affectedEntityType: "Settings", affectedEntityId: "singleton", reason: "Operations administrator updated application settings", changedBy: user!.email, metadata: { fields: Object.keys(data).filter((key) => !SECRET_FIELDS.includes(key as (typeof SECRET_FIELDS)[number])) } });
 
   return NextResponse.json({ ok: true });
 }

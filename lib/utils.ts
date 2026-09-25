@@ -18,6 +18,11 @@ export const IMAGE_FALLBACK_SRC = "/placeholders/image-fallback.svg";
 // from looping back in if it 404s too.
 export function applyImageFallback(img: HTMLImageElement) {
   if (img.src.endsWith(IMAGE_FALLBACK_SRC)) return;
+  // Preserve the failed source for QA crawlers and diagnostics before the
+  // visible placeholder replaces it. Otherwise a crawler only sees a valid
+  // fallback image and cannot distinguish a healthy asset from a masked 404.
+  img.dataset.qaforgeImageError = "true";
+  img.dataset.qaforgeOriginalSrc = img.currentSrc || img.src;
   img.src = IMAGE_FALLBACK_SRC;
   img.classList.add("img-fallback");
 }

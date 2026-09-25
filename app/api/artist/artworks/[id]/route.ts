@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { foreignKeyConstraintResponse, isForeignKeyConstraintError } from "@/lib/prisma-errors";
 import { isPriceTooLow, MIN_PRICE_CENTS } from "@/lib/pricing";
+import { recordAudit } from "@/lib/audit";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -55,6 +56,9 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   if (isPriceTooLow(body.priceCents)) {
     return NextResponse.json({ error: `priceCents must be at least ${MIN_PRICE_CENTS}` }, { status: 400 });
   }
+  if (owned.currentHighestOfferAmountCents !== null && body.priceCents < owned.currentHighestOfferAmountCents) {
+    return NextResponse.json({ error: "Price cannot be below the current highest valid offer" }, { status: 409 });
+  }
 
   const artwork = await prisma.artwork.update({
     where: { id },
@@ -67,6 +71,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       story: body.story || null,
     },
   });
+  await recordAudit({ action: "ARTIST_ARTWORK_UPDATED", affectedEntityType: "Artwork", affectedEntityId: id, reason: "Artist updated artwork", changedBy: currentUser!.email, metadata: { fields: ["title", "kind", "priceCents", "imageUrl", "altText", "story"] } });
 
   return NextResponse.json({ artwork });
 }
@@ -90,6 +95,7 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
 
   try {
     await prisma.artwork.delete({ where: { id } });
+    await recordAudit({ action: "ARTIST_ARTWORK_DELETED", affectedEntityType: "Artwork", affectedEntityId: id, reason: "Artist deleted unsold artwork", changedBy: currentUser!.email });
     return NextResponse.json({ ok: true });
   } catch (error) {
     if (isForeignKeyConstraintError(error)) {

@@ -3,8 +3,13 @@ import { prisma } from "@/lib/prisma";
 import { isUniqueConstraintError, uniqueConstraintResponse } from "@/lib/prisma-errors";
 import { slugify } from "@/lib/slugify";
 import { validateSplit } from "@/lib/validation";
+import { getCurrentUser } from "@/lib/auth";
+import { checkPermission, unauthorized } from "@/lib/permissions";
+import { recordAudit } from "@/lib/audit";
 
 export async function GET() {
+  const { authorized } = checkPermission(await getCurrentUser(), "OPS_ADMIN");
+  if (!authorized) return unauthorized("OPS_ADMIN");
   const campaigns = await prisma.campaign.findMany({
     include: {
       animal: { include: { conservancy: true } },
@@ -32,6 +37,9 @@ type CreateBody = {
 // comment on Campaign and lib/campaigns.ts/lib/payouts.ts, which resolve
 // this same either/or for display and payout purposes respectively.
 export async function POST(request: Request) {
+  const user = await getCurrentUser();
+  const { authorized } = checkPermission(user, "OPS_ADMIN");
+  if (!authorized) return unauthorized("OPS_ADMIN");
   const body = (await request.json()) as Partial<CreateBody>;
 
   if (
@@ -91,6 +99,8 @@ export async function POST(request: Request) {
         status: "DRAFT",
       },
     });
+
+    await recordAudit({ action: "CAMPAIGN_CREATED", affectedEntityType: "Campaign", affectedEntityId: campaign.id, reason: "Operations administrator created a campaign", changedBy: user!.email, metadata: { artistId: campaign.artistId, animalId: campaign.animalId, conservancyId: campaign.conservancyId } });
 
     return NextResponse.json({ campaign }, { status: 201 });
   } catch (error) {

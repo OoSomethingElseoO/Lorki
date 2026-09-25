@@ -8,12 +8,13 @@ type InquiryFormProps = {
   title: string;
   customerName?: string;
   customerEmail?: string;
+  formId?: string;
 };
 
 // Originals are one-of-one and high-value — no instant self-checkout. This
 // collects buyer contact info so the team can arrange the sale personally
 // (payment method, shipping/insurance, timeline) instead.
-export function InquiryForm({ artworkId, title, customerName, customerEmail }: InquiryFormProps) {
+export function InquiryForm({ artworkId, title, customerName, customerEmail, formId }: InquiryFormProps) {
   const [name, setName] = useState(customerName ?? "");
   const [email, setEmail] = useState(customerEmail ?? "");
   const [message, setMessage] = useState("");
@@ -50,7 +51,7 @@ export function InquiryForm({ artworkId, title, customerName, customerEmail }: I
   }
 
   return (
-    <form className="inquiry-form" onSubmit={handleSubmit} aria-label={`Inquire about ${title}`}>
+    <form id={formId} className="inquiry-form" onSubmit={handleSubmit} aria-label={`Inquire about ${title}`}>
       <p className="inquiry-form__hint">This is a one-of-one original — we arrange these sales personally.</p>
 
       <label className="sr-only" htmlFor={`inquiry-name-${artworkId}`}>

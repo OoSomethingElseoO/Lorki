@@ -6,6 +6,8 @@ import { Footer } from "@/components/footer";
 import { buttonVariants } from "@/components/ui/button";
 import { getArtistBySlug, getLiveArtworksForArtist } from "@/lib/storefront";
 import { getCurrentUser } from "@/lib/auth";
+import { FallbackImage } from "@/components/ui/fallback-image";
+import { ShareButton } from "@/components/share-button";
 
 type ArtistPageProps = {
   params: Promise<{
@@ -37,7 +39,7 @@ export default async function ArtistPage({ params }: ArtistPageProps) {
       <SiteHeader />
       <main className="page-main" id="main-content">
         <section className="artist-profile" aria-labelledby="artist-name">
-          <img
+          <FallbackImage
             src={artist.imageUrl}
             alt={`Portrait placeholder for artist ${artist.name}.`}
             className="artist-profile__image"
@@ -62,6 +64,13 @@ export default async function ArtistPage({ params }: ArtistPageProps) {
             <Link href="/artists" className={buttonVariants()} style={{ marginTop: "1rem" }}>
               Back to artists
             </Link>
+            <ShareButton
+              title={`${artist.name} — Lorki Originals`}
+              text={`View ${artist.name}'s artwork on Lorki Originals.`}
+              targetType="artist"
+              targetId={artist.id}
+              className="artist-profile__share"
+            />
           </div>
         </section>
         <ArtistGallery artworks={artistArtworks} customerEmail={customer?.email} />

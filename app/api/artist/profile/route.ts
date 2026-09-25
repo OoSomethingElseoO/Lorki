@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { validateTextField, validateCountryCode, validateImageUrl } from "@/lib/validation";
+import { recordAudit } from "@/lib/audit";
 
 type ProfileUpdateBody = {
   name: string;
@@ -64,6 +65,7 @@ export async function PATCH(request: Request) {
       imageUrl: body.imageUrl,
     },
   });
+  await recordAudit({ action: "ARTIST_PROFILE_UPDATED", affectedEntityType: "Artist", affectedEntityId: currentArtist.id, reason: "Artist updated their public profile", changedBy: currentUser!.email, metadata: { fields: ["name", "country", "bio", "imageUrl"] } });
 
   return NextResponse.json({ artist });
 }

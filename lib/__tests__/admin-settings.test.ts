@@ -11,6 +11,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { GET, PATCH } from "@/app/api/admin/settings/route";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 
 const unique = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
@@ -27,10 +28,13 @@ async function snapshotSettings() {
 }
 
 async function restoreSettings(original: Awaited<ReturnType<typeof snapshotSettings>>) {
-  const { id, updatedAt, ...rest } = original;
+  const { id, updatedAt, heroHeadlineWords, ...rest } = original;
   void id;
   void updatedAt;
-  await prisma.settings.update({ where: { id: "singleton" }, data: rest });
+  await prisma.settings.update({
+    where: { id: "singleton" },
+    data: { ...rest, heroHeadlineWords: heroHeadlineWords === null ? Prisma.JsonNull : heroHeadlineWords },
+  });
 }
 
 test("GET returns secret fields as booleans, never the actual secret values", async (t) => {
@@ -100,4 +104,44 @@ test("PATCH clears a branding field when submitted blank, unlike a secret field"
 
   const after = await prisma.settings.findUnique({ where: { id: "singleton" } });
   assert.equal(after!.siteName, "", "an explicit blank on a branding field is a real choice, not 'leave alone'");
+});
+
+test("PATCH stores validated hero headline word pools and GET exposes them", async (t) => {
+  const original = await snapshotSettings();
+  t.after(async () => {
+    await restoreSettings(original);
+  });
+
+  const pools = {
+    first: ["art", "masterpieces"],
+    second: ["originals", "collectibles"],
+    third: ["wildlife", "lions", "elephants"],
+  };
+  const response = await PATCH(patchRequest({ heroHeadlineWords: pools }));
+  assert.equal(response.status, 200);
+
+  const after = await prisma.settings.findUnique({ where: { id: "singleton" } });
+  assert.deepEqual(after!.heroHeadlineWords, pools);
+
+  const getResponse = await GET();
+  const body = await getResponse.json();
+  assert.deepEqual(body.settings.heroHeadlineWords, pools);
+});
+
+test("PATCH rejects malformed hero headline word pools", async (t) => {
+  const original = await snapshotSettings();
+  t.after(async () => {
+    await restoreSettings(original);
+  });
+
+  const response = await PATCH(
+    patchRequest({
+      heroHeadlineWords: {
+        first: [],
+        second: ["originals"],
+        third: ["wildlife"],
+      },
+    })
+  );
+  assert.equal(response.status, 400);
 });

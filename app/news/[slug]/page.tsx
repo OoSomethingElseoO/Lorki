@@ -4,6 +4,7 @@ import { SiteHeader } from "@/components/site-header";
 import { Footer } from "@/components/footer";
 import { buttonVariants } from "@/components/ui/button";
 import { getLiveNewsArticleBySlug } from "@/lib/storefront";
+import { FallbackImage } from "@/components/ui/fallback-image";
 
 type NewsArticlePageProps = {
   params: Promise<{ slug: string }>;
@@ -22,7 +23,7 @@ export default async function NewsArticlePage({ params }: NewsArticlePageProps) 
       <SiteHeader />
       <main className="page-main" id="main-content">
         <article className="news-article">
-          <img src={article.imageUrl} alt="" className="news-article__image" />
+          <FallbackImage src={article.imageUrl} alt="" className="news-article__image" />
           <div className="news-article__body">
             <h1>{article.title}</h1>
             <p className="news-article__summary">{article.summary}</p>

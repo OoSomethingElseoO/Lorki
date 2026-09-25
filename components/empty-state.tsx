@@ -5,11 +5,19 @@ type EmptyStateProps = {
   title: string;
   description: string;
   action?: ReactNode;
+  visual?: ReactNode;
 };
 
-export function EmptyState({ icon, title, description, action }: EmptyStateProps) {
+export function EmptyState({
+  icon,
+  title,
+  description,
+  action,
+  visual,
+}: EmptyStateProps) {
   return (
     <div className="empty-state">
+      {visual ? <div className="empty-state__visual">{visual}</div> : null}
       <div className="empty-state__icon" aria-hidden="true">
         {icon}
       </div>

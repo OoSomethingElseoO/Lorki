@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isNotFoundError, isUniqueConstraintError, uniqueConstraintResponse } from "@/lib/prisma-errors";
 import { validateTextField, validateImageUrl } from "@/lib/validation";
+import { getCurrentUser } from "@/lib/auth";
+import { checkPermission, unauthorized } from "@/lib/permissions";
+import { recordAudit } from "@/lib/audit";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -16,6 +19,9 @@ type UpdateBody = {
 };
 
 export async function PATCH(request: Request, { params }: RouteParams) {
+  const user = await getCurrentUser();
+  const { authorized } = checkPermission(user, "OPS_ADMIN");
+  if (!authorized) return unauthorized("OPS_ADMIN");
   const { id } = await params;
   const body = (await request.json()) as Partial<UpdateBody>;
 
@@ -77,6 +83,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     // Slug is set once at creation and stays fixed on edit — it's used in
     // the public article URL, so renaming a title must not break links.
     const article = await prisma.newsArticle.update({ where: { id }, data });
+    await recordAudit({ action: "NEWS_ARTICLE_UPDATED", affectedEntityType: "NewsArticle", affectedEntityId: article.id, reason: "Operations administrator updated a news article", changedBy: user!.email, metadata: { title: article.title, status: article.status, fields: Object.keys(data) } });
     return NextResponse.json({ article });
   } catch (error) {
     if (isNotFoundError(error)) {
@@ -90,10 +97,14 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 }
 
 export async function DELETE(_request: Request, { params }: RouteParams) {
+  const user = await getCurrentUser();
+  const { authorized } = checkPermission(user, "OPS_ADMIN");
+  if (!authorized) return unauthorized("OPS_ADMIN");
   const { id } = await params;
 
   try {
-    await prisma.newsArticle.delete({ where: { id } });
+    const article = await prisma.newsArticle.delete({ where: { id } });
+    await recordAudit({ action: "NEWS_ARTICLE_DELETED", affectedEntityType: "NewsArticle", affectedEntityId: id, reason: "Operations administrator deleted a news article", changedBy: user!.email, metadata: { title: article.title } });
     return NextResponse.json({ ok: true });
   } catch (error) {
     if (isNotFoundError(error)) {

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { slugify } from "@/lib/slugify";
 import { isUniqueConstraintError, uniqueConstraintResponse } from "@/lib/prisma-errors";
+import { recordAudit } from "@/lib/audit";
 
 type OnboardBody = {
   name: string;
@@ -54,6 +55,7 @@ export async function POST(request: Request) {
         userId: user.id,
       },
     });
+    await recordAudit({ action: "ARTIST_ONBOARDED", affectedEntityType: "Artist", affectedEntityId: artist.id, reason: "User created an artist profile", changedBy: user.email, metadata: { country: artist.country } });
 
     return NextResponse.json({ artist }, { status: 201 });
   } catch (error) {

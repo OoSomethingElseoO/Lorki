@@ -1,7 +1,7 @@
 "use client";
 
-import type { ImgHTMLAttributes, JSX } from "react";
-import { useCallback } from "react";
+import type { ImgHTMLAttributes, JSX, Ref } from "react";
+import { forwardRef, useCallback } from "react";
 import { applyImageFallback, IMAGE_FALLBACK_SRC } from "@/lib/utils";
 
 // A same-origin 404 (a deleted upload, mostly) can fail fast enough — the
@@ -16,14 +16,23 @@ import { applyImageFallback, IMAGE_FALLBACK_SRC } from "@/lib/utils";
 // caught at compile time, same reasoning as every other <img> in this repo.
 type FallbackImageProps = ImgHTMLAttributes<HTMLImageElement> & { alt: string };
 
-export function FallbackImage(props: FallbackImageProps): JSX.Element {
+function assignRef<T>(ref: Ref<T> | undefined, value: T | null) {
+  if (typeof ref === "function") {
+    ref(value);
+  } else if (ref) {
+    (ref as { current: T | null }).current = value;
+  }
+}
+
+export const FallbackImage = forwardRef<HTMLImageElement, FallbackImageProps>(function FallbackImage(props, forwardedRef): JSX.Element {
   const { onError, onLoad, ...rest } = props;
 
   const checkAlreadyFailed = useCallback((img: HTMLImageElement | null) => {
+    assignRef(forwardedRef, img);
     if (img && img.src && img.complete && img.naturalWidth === 0) {
       applyImageFallback(img);
     }
-  }, []);
+  }, [forwardedRef]);
 
   return (
     // eslint-disable-next-line @next/next/no-img-element
@@ -48,4 +57,4 @@ export function FallbackImage(props: FallbackImageProps): JSX.Element {
       {...rest}
     />
   );
-}
+});

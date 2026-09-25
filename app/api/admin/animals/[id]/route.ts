@@ -8,6 +8,9 @@ import {
   uniqueConstraintResponse,
 } from "@/lib/prisma-errors";
 import { validateTextField, validateImageUrl } from "@/lib/validation";
+import { recordAudit } from "@/lib/audit";
+import { getCurrentUser } from "@/lib/auth";
+import { checkPermission, unauthorized } from "@/lib/permissions";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -21,6 +24,9 @@ type UpdateBody = {
 };
 
 export async function PATCH(request: Request, { params }: RouteParams) {
+  const user = await getCurrentUser();
+  const { authorized } = checkPermission(user, "OPS_ADMIN");
+  if (!authorized) return unauthorized("OPS_ADMIN");
   const { id } = await params;
   const body = (await request.json()) as Partial<UpdateBody>;
 
@@ -94,6 +100,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       },
     });
 
+    await recordAudit({ action: "ANIMAL_UPDATED", affectedEntityType: "Animal", affectedEntityId: animal.id, reason: "Operations administrator updated an animal record", changedBy: user!.email, metadata: { name: animal.name, conservancyId: animal.conservancyId } });
+
     return NextResponse.json({ animal });
   } catch (error) {
     if (isNotFoundError(error)) {
@@ -107,10 +115,14 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 }
 
 export async function DELETE(_request: Request, { params }: RouteParams) {
+  const user = await getCurrentUser();
+  const { authorized } = checkPermission(user, "OPS_ADMIN");
+  if (!authorized) return unauthorized("OPS_ADMIN");
   const { id } = await params;
 
   try {
-    await prisma.animal.delete({ where: { id } });
+    const animal = await prisma.animal.delete({ where: { id } });
+    await recordAudit({ action: "ANIMAL_DELETED", affectedEntityType: "Animal", affectedEntityId: id, reason: "Operations administrator deleted an animal record", changedBy: user!.email, metadata: { name: animal.name, conservancyId: animal.conservancyId } });
     return NextResponse.json({ ok: true });
   } catch (error) {
     if (isNotFoundError(error)) {

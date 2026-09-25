@@ -5,10 +5,12 @@ import { createUserSessionToken, SESSION_COOKIE } from "@/lib/auth";
 import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
 import { validateEmail } from "@/lib/validation";
 import { readJsonObject } from "@/lib/request-json";
+import { recordAudit } from "@/lib/audit";
 
 export async function POST(request: Request) {
   const ip = getRequestIp(request);
   if (await isRateLimited(`login:${ip}`, 5, 5 * 60 * 1000)) {
+    recordAudit({ action: "LOGIN_RATE_LIMITED", affectedEntityType: "Auth", affectedEntityId: "anonymous", reason: "Login rate limit exceeded", changedBy: "anonymous", metadata: { ip } }).catch(() => undefined);
     return NextResponse.json({ error: "Too many login attempts. Please try again in a few minutes." }, { status: 429 });
   }
 
@@ -32,10 +34,12 @@ export async function POST(request: Request) {
   });
 
   if (!user || !(await verifyPassword(body.password, user.passwordHash))) {
+    recordAudit({ action: "LOGIN_FAILED", affectedEntityType: "Auth", affectedEntityId: user?.id ?? "unknown", reason: "Invalid email or password", changedBy: body.email.toLowerCase().trim(), metadata: { ip } }).catch(() => undefined);
     return NextResponse.json({ error: "Incorrect email or password" }, { status: 401 });
   }
 
   const token = await createUserSessionToken(user.id);
+  recordAudit({ action: "LOGIN_SUCCEEDED", affectedEntityType: "User", affectedEntityId: user.id, reason: "User authenticated successfully", changedBy: user.email, metadata: { ip, isAdmin: user.isAdmin } }).catch(() => undefined);
   // Booleans only, not the actual Artist/Conservancy rows — just enough
   // for the client to pick a sensible post-login landing page (see
   // LoginForm) without a second round trip. Never used for authorization

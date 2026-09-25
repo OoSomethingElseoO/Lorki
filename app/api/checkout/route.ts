@@ -13,11 +13,8 @@ type CheckoutBody = {
   buyerEmail?: string;
 };
 
-// Caps how often one IP can create a Stripe Checkout session, full stop —
-// this route only ever sells PRINTs (originals are rejected below and go
-// through /api/inquiries instead, which has its own reservation and its
-// own separate rate limit), so there's no one-of-one inventory at stake
-// here; this just bounds how fast one visitor can spin up sessions.
+// Caps how often one IP can create a Stripe Checkout session. Originals are
+// deliberately reviewed first and use the inquiry/order workflow instead.
 const CHECKOUT_RATE_LIMIT = 5;
 const CHECKOUT_RATE_WINDOW_MS = 5 * 60 * 1000;
 
@@ -45,14 +42,13 @@ export async function POST(request: Request) {
   // the webhook. Guests must supply an email explicitly.
   const buyerEmail = customer?.email ?? body.buyerEmail;
 
-  if (!buyerEmail) {
-    return NextResponse.json({ error: "buyerEmail is required" }, { status: 400 });
-  }
-
-  // ✅ Email validation
-  const emailError = validateEmail(buyerEmail);
-  if (emailError) {
-    return NextResponse.json({ error: emailError }, { status: 400 });
+  // Guests enter their email on Stripe Checkout. Logged-in customers use the
+  // verified email attached to their account.
+  if (buyerEmail) {
+    const emailError = validateEmail(buyerEmail);
+    if (emailError) {
+      return NextResponse.json({ error: emailError }, { status: 400 });
+    }
   }
 
   let stripe;
@@ -72,14 +68,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Artwork is not available" }, { status: 409 });
   }
 
-  // Originals are one-of-one and high-value — they're arranged personally
-  // (see /api/inquiries), never sold through instant self-checkout. Blocking
-  // it here too (not just in the UI) matters: without this, anyone who knew
-  // an artworkId could hit this endpoint directly and buy a one-of-one
-  // instantly, bypassing the entire point of the inquiry flow.
   if (artwork.kind === "ORIGINAL") {
     return NextResponse.json(
-      { error: "Originals are arranged personally rather than sold through instant checkout — please submit an inquiry instead." },
+      { error: "Originals require approval before payment. Please submit an inquiry." },
       { status: 409 },
     );
   }
@@ -89,7 +80,7 @@ export async function POST(request: Request) {
   try {
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
-      customer_email: buyerEmail,
+      ...(buyerEmail ? { customer_email: buyerEmail } : { customer_creation: "always" as const }),
       line_items: [
         {
           quantity: 1,

@@ -14,6 +14,7 @@ export type StorefrontArtwork = {
   artistBio: string;
   artistCountry: string;
   priceCents: number;
+  inventoryState: "AVAILABLE" | "RESERVED" | "SOLD";
   imageUrl: string;
   altText: string;
 };
@@ -33,6 +34,7 @@ function mapArtwork(artwork: {
   kind: "ORIGINAL" | "PRINT";
   story: string | null;
   priceCents: number;
+  inventoryState: "AVAILABLE" | "RESERVED" | "SOLD";
   imageUrl: string;
   altText: string;
   campaign: { artist: { name: string; slug: string; bio: string; country: string } };
@@ -47,6 +49,7 @@ function mapArtwork(artwork: {
     artistBio: artwork.campaign.artist.bio,
     artistCountry: artwork.campaign.artist.country,
     priceCents: artwork.priceCents,
+    inventoryState: artwork.inventoryState,
     imageUrl: artwork.imageUrl,
     altText: artwork.altText,
   };
@@ -102,6 +105,24 @@ export async function getLiveArtworksByKind(
     totalPages: Math.max(1, Math.ceil(totalCount / PAGE_SIZE)),
     totalCount,
   };
+}
+
+export async function getLiveArtworkById(id: string) {
+  await releaseExpiredReservations();
+  const artwork = await prisma.artwork.findFirst({
+    where: { id, inventoryState: "AVAILABLE", campaign: { status: "LIVE" } },
+    include: { campaign: { include: { artist: true } } },
+  });
+  return artwork ? mapArtwork(artwork) : null;
+}
+
+/** Public canonical artwork pages may remain shareable after a sale/reservation. */
+export async function getPublicArtworkById(id: string) {
+  const artwork = await prisma.artwork.findFirst({
+    where: { id, campaign: { status: "LIVE" } },
+    include: { campaign: { include: { artist: true } } },
+  });
+  return artwork ? mapArtwork(artwork) : null;
 }
 
 const CAROUSEL_SIZE = 24;

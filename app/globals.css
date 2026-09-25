@@ -222,18 +222,26 @@ button:not(:disabled):active {
 
 /* Public site primary buttons (bg-ink, dark fill) — add shadow lift on hover */
 button.bg-ink:not(:disabled) {
-  box-shadow: 0 2px 4px rgba(var(--shadow-panel-rgb), calc(0.08 * var(--shadow-alpha-scale)));
-  transition: box-shadow 0.2s ease, transform 0.1s ease, background-color 0.2s ease;
+  box-shadow: 0 2px 4px
+    rgba(var(--shadow-panel-rgb), calc(0.08 * var(--shadow-alpha-scale)));
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.1s ease,
+    background-color 0.2s ease;
 }
 
 button.bg-ink:hover:not(:disabled) {
-  box-shadow: 0 6px 12px rgba(var(--shadow-panel-rgb), calc(0.16 * var(--shadow-alpha-scale)));
+  box-shadow: 0 6px 12px
+    rgba(var(--shadow-panel-rgb), calc(0.16 * var(--shadow-alpha-scale)));
 }
 
 /* Admin form buttons — subtle elevation */
 button.bg-admin-text:not(:disabled) {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  transition: box-shadow 0.2s ease, transform 0.1s ease, background-color 0.2s ease;
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.1s ease,
+    background-color 0.2s ease;
 }
 
 button.bg-admin-text:hover:not(:disabled) {
@@ -242,7 +250,9 @@ button.bg-admin-text:hover:not(:disabled) {
 
 /* Icon buttons (search, account, theme) — minimal hover treatment */
 button[class*="icon-panel"]:not(:disabled) {
-  transition: background-color 0.2s ease, transform 0.15s ease;
+  transition:
+    background-color 0.2s ease,
+    transform 0.15s ease;
 }
 
 button[class*="icon-panel"]:hover:not(:disabled) {
@@ -259,7 +269,9 @@ select {
   font: inherit;
   color: var(--ink);
   border-radius: 0;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 input:focus-visible,
@@ -375,7 +387,8 @@ textarea {
      against it. var(--panel) already carries a correct value in both themes,
      same surface every other panel/modal on the site uses. */
   background: var(--panel);
-  box-shadow: 0 1rem 2.5rem rgba(var(--shadow-panel-rgb), calc(0.18 * var(--shadow-alpha-scale)));
+  box-shadow: 0 1rem 2.5rem
+    rgba(var(--shadow-panel-rgb), calc(0.18 * var(--shadow-alpha-scale)));
   list-style: none;
 }
 
@@ -401,8 +414,16 @@ textarea {
   min-height: 100vh;
   overflow: hidden;
   background:
-    radial-gradient(ellipse 60% 50% at 78% 45%, rgba(43, 90, 92, 0.14), transparent 70%),
-    radial-gradient(ellipse 55% 60% at 15% 30%, rgba(166, 95, 0, 0.1), transparent 65%),
+    radial-gradient(
+      ellipse 60% 50% at 78% 45%,
+      rgba(43, 90, 92, 0.14),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 55% 60% at 15% 30%,
+      rgba(166, 95, 0, 0.1),
+      transparent 65%
+    ),
     var(--sand);
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -413,8 +434,11 @@ textarea {
 .hero__copy {
   position: relative;
   z-index: 2;
+  display: flex;
+  flex-direction: column;
   align-self: center;
-  max-width: 32rem;
+  width: 100%;
+  max-width: none;
   padding: 9rem clamp(1.5rem, 6vw, 4rem) 4rem clamp(1.5rem, 6vw, 5rem);
 }
 
@@ -430,7 +454,12 @@ textarea {
 }
 
 .hero__title {
-  margin: 0 0 1.1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto 1.1rem;
   color: var(--gold);
   font-family: var(--font-display), Georgia, serif;
   font-weight: 600;
@@ -438,6 +467,91 @@ textarea {
   line-height: 1.02;
   letter-spacing: -0.01em;
   text-wrap: balance;
+  text-align: left;
+}
+
+/* The first sentence is the invitation; the second is the promise. Giving
+   them separate type treatment makes the hierarchy legible before the hero
+   image even enters the eye: confident display face above, quieter editorial
+   serif below. */
+.hero__title-primary,
+.hero__title-secondary,
+.hero__title-tertiary {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.hero__title-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-start;
+  width: max-content;
+  max-width: 100%;
+  margin-top: 0.34em;
+  letter-spacing: 0.018em;
+}
+
+.hero__title-line:first-child {
+  margin-top: 0;
+}
+
+.hero__title-prefix {
+  padding-right: 0.28em;
+  text-align: left;
+  flex: 0 0 auto;
+}
+
+.hero__morph-word {
+  flex: 0 0 auto;
+}
+
+.hero__title-period {
+  padding-left: 0.08em;
+  text-align: left;
+  flex: 0 0 auto;
+}
+
+.hero__title-primary,
+.hero__title-tertiary {
+  color: var(--ink);
+  font-family: var(--font-body), Georgia, serif;
+  font-size: 0.64em;
+  font-weight: 500;
+  line-height: 1.08;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  margin-top: 0.52em;
+}
+
+/* “Own” is the invitation's visual center: it gets the display face, gold
+   emphasis, and larger scale previously assigned to “Sell”. */
+.hero__title-secondary {
+  color: var(--gold);
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 1.14em;
+  font-weight: 700;
+  line-height: 0.95;
+  letter-spacing: -0.035em;
+}
+
+/* LetterMorph owns the changing noun; inherit each line's editorial type
+   treatment instead of introducing a second font or weight inside the line. */
+.hero__morph-word {
+  font: inherit;
+  letter-spacing: inherit;
+  word-spacing: inherit;
+  color: inherit;
+}
+
+.hero__title-tertiary {
+  color: var(--ink);
+  font-family: var(--font-body), Georgia, serif;
+  font-size: 0.64em;
+  font-weight: 500;
+  line-height: 1.08;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
 }
 
 /* TextBlockAnimation's SplitText wrapper (components/ui/text-block-animation.tsx)
@@ -450,7 +564,8 @@ textarea {
 }
 
 .hero__tagline {
-  margin: 0 0 2rem;
+  margin: auto 0 0;
+  padding-top: clamp(2.5rem, 8vh, 6rem);
   font-size: 1.2rem;
   line-height: 1.55;
   color: var(--ink);
@@ -518,9 +633,13 @@ textarea {
 
   .hero__copy {
     order: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     max-width: 32rem;
     margin: 0 auto;
-    padding: 0 1.5rem;
+    padding: clamp(1rem, 4vh, 2.5rem) 1.5rem clamp(2.5rem, 8vh, 5rem);
+    min-height: min(34rem, 60vh);
     text-align: center;
   }
 
@@ -561,7 +680,9 @@ textarea {
 .js .reveal {
   opacity: 0;
   transform: translateY(1.5rem);
-  transition: opacity 0.6s ease, transform 0.6s ease;
+  transition:
+    opacity 0.6s ease,
+    transform 0.6s ease;
 }
 
 .js .reveal--visible {
@@ -604,7 +725,6 @@ textarea {
   margin-inline: auto;
 }
 
-
 .home-section__intro {
   max-width: 44rem;
   margin: 0 auto 2.5rem;
@@ -622,6 +742,850 @@ textarea {
 .home-section__intro p {
   margin: 0;
   font-size: 1.1rem;
+}
+
+.home-section__featured-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  column-gap: 0.55em;
+  row-gap: 0.28rem;
+}
+
+.home-section__featured-title {
+  flex-basis: 100%;
+  color: var(--gold);
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 1.35em;
+  line-height: 1.05;
+}
+
+.home-section__featured-artist {
+  color: var(--ink);
+  font-size: 0.92em;
+}
+
+.home-section__featured-price {
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 700;
+}
+
+.home-section__featured-stock {
+  flex-basis: 100%;
+  color: var(--muted);
+  font-size: 0.78em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Interactive rotunda cards: scale is independent of the inline 3D
+   transform that positions each card, so hover never breaks the ring. */
+.rotunda-card {
+  border-color: var(--line);
+  transition:
+    border-color 220ms ease,
+    box-shadow 220ms ease,
+    filter 220ms ease;
+}
+
+.rotunda-card:hover,
+.rotunda-card:focus-visible {
+  border-color: var(--gold);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--gold) 35%, transparent),
+    0 1.25rem 2.5rem color-mix(in srgb, var(--ink) 24%, transparent);
+  filter: saturate(1.08) brightness(1.03);
+}
+
+.layout-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  gap: 1rem;
+  position: relative;
+}
+
+.layout-grid__card {
+  position: relative;
+  min-height: 18rem;
+  overflow: hidden;
+  border: 2px solid var(--line);
+  background: var(--panel);
+  cursor: pointer;
+  text-align: left;
+}
+
+.layout-grid__image,
+.layout-grid__selected-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.layout-grid__card .layout-grid__image {
+  transition: transform 420ms cubic-bezier(0.2, 0.75, 0.25, 1), filter 260ms ease;
+}
+
+.layout-grid__hover-meta {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  align-items: baseline;
+  padding: 1.1rem 1rem 0.9rem;
+  background: linear-gradient(to top, color-mix(in srgb, var(--ink) 88%, transparent), transparent);
+  color: var(--panel);
+  opacity: 0;
+  transform: translateY(0.5rem);
+  transition: opacity 220ms ease, transform 220ms ease;
+}
+
+.layout-grid__hover-meta strong {
+  flex-basis: 100%;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 1.05rem;
+}
+
+.layout-grid__hover-meta span {
+  font-size: 0.78rem;
+}
+
+.layout-grid__artist-link,
+.layout-grid__purchase-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+}
+
+.layout-grid__top-meta {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.65rem;
+  left: 0.65rem;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.layout-grid__price,
+.layout-grid__buy-icon {
+  border: 1px solid color-mix(in srgb, var(--ink) 35%, transparent);
+  border-radius: 0.55rem;
+  background: color-mix(in srgb, var(--panel) 88%, transparent);
+  color: var(--gold);
+  padding: 0.35rem 0.55rem;
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 700;
+  backdrop-filter: blur(8px);
+}
+
+.layout-grid__buy-icon {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  padding: 0;
+}
+
+.layout-grid__artist-link {
+  color: inherit;
+  text-decoration: none;
+  transition: color 160ms ease, transform 160ms ease;
+}
+
+.layout-grid__artist-link:hover,
+.layout-grid__artist-link:focus-visible {
+  color: var(--gold);
+  transform: translateX(0.12rem);
+}
+
+.layout-grid__purchase-indicator {
+  margin-left: auto;
+  color: var(--gold);
+  font-weight: 700;
+}
+
+.layout-grid__card:hover .layout-grid__image,
+.layout-grid__card:focus-visible .layout-grid__image {
+  filter: saturate(1.08) brightness(0.92);
+  transform: scale(1.045);
+}
+
+.layout-grid__card:hover .layout-grid__hover-meta,
+.layout-grid__card:focus-visible .layout-grid__hover-meta {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.layout-grid__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow-y: auto;
+  padding: 1rem;
+  background: color-mix(in srgb, var(--ink) 72%, transparent);
+}
+
+.layout-grid__selected {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(16rem, 0.9fr);
+  width: min(62rem, 100%);
+  max-height: calc(100vh - 2rem);
+  margin: auto;
+  overflow: auto;
+  border: 2px solid var(--line);
+  background: var(--panel);
+  box-shadow: 0 2rem 5rem color-mix(in srgb, var(--ink) 35%, transparent);
+}
+
+.layout-grid__selected-image {
+  min-height: 24rem;
+  max-height: calc(100vh - 2rem);
+}
+
+.layout-grid__content {
+  padding: clamp(1.25rem, 3vw, 2.5rem);
+}
+
+.layout-grid__close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  border: 2px solid var(--line);
+  background: color-mix(in srgb, var(--panel) 82%, transparent);
+  padding: 0.45rem 0.7rem;
+  color: var(--ink);
+  backdrop-filter: blur(10px);
+}
+
+.artwork-shared-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow-y: auto;
+  padding: 1rem;
+  background: color-mix(in srgb, var(--ink) 72%, transparent);
+}
+
+.artwork-shared-surface {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(16rem, 0.9fr);
+  width: min(62rem, 100%);
+  max-height: calc(100vh - 2rem);
+  margin: auto;
+  overflow: auto;
+  border: 2px solid var(--line);
+  background: var(--panel);
+  box-shadow: 0 2rem 5rem color-mix(in srgb, var(--ink) 35%, transparent);
+}
+
+.artwork-shared-image {
+  position: relative;
+  min-height: 25rem;
+  overflow: hidden;
+  background: var(--sand);
+}
+
+.artwork-shared-image-price {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 1;
+  padding: 0.55rem 0.8rem;
+  border: 2px solid var(--line);
+  background: color-mix(in srgb, var(--panel) 88%, transparent);
+  color: var(--ink);
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+  backdrop-filter: blur(10px);
+}
+
+.artwork-shared-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 25rem;
+  object-fit: contain;
+}
+
+.artwork-shared-details {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: clamp(1.25rem, 3vw, 2.5rem);
+  min-height: 25rem;
+}
+
+.artwork-shared-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.artwork-shared-copy p {
+  margin: 0;
+}
+
+.artwork-shared-checkout {
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+
+.artwork-shared-topbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.artwork-shared-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.share-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 2.35rem;
+  padding: 0.5rem 0.8rem;
+  border: 1px solid color-mix(in srgb, var(--ink) 22%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--panel) 88%, transparent);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+
+.share-button:hover,
+.share-button:focus-visible {
+  background: var(--sand);
+  border-color: var(--ink);
+  transform: translateY(-1px);
+}
+
+.artist-profile__share {
+  margin-top: 1rem;
+}
+
+.artwork-page__content {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(18rem, 0.85fr);
+  gap: clamp(1.5rem, 5vw, 4rem);
+  align-items: start;
+  margin-top: 2rem;
+}
+
+.artwork-page__image {
+  width: 100%;
+  max-height: 72vh;
+  object-fit: contain;
+  border-radius: 1rem;
+  background: var(--sand);
+}
+
+.artwork-page__details {
+  position: sticky;
+  top: 6rem;
+}
+
+.artwork-page__price {
+  margin: 1rem 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.artwork-page__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.7rem;
+  margin-top: 1.5rem;
+}
+
+@media (max-width: 760px) {
+  .artwork-page__content {
+    grid-template-columns: 1fr;
+  }
+
+  .artwork-page__details {
+    position: static;
+  }
+}
+
+.artwork-shared-topbar p {
+  margin: 0;
+}
+
+.artwork-shared-cta {
+  flex: 0 0 auto;
+  border: 2px solid var(--ink);
+  background: var(--ink);
+  color: var(--panel);
+  padding: 0.55rem 0.8rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.artwork-shared-cta:hover,
+.artwork-shared-cta:focus-visible {
+  background: var(--gold);
+  color: var(--ink);
+}
+
+.artwork-shared-details h2 {
+  margin: 0;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  line-height: 1;
+}
+
+.artwork-shared-price {
+  margin-top: auto;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 1.7rem;
+  font-weight: 700;
+}
+
+.artwork-shared-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  border: 2px solid var(--line);
+  background: color-mix(in srgb, var(--panel) 82%, transparent);
+  padding: 0.45rem 0.7rem;
+  color: var(--ink);
+  backdrop-filter: blur(10px);
+}
+
+@media (max-width: 700px) {
+  .layout-grid__selected {
+    grid-template-columns: 1fr;
+  }
+
+  .layout-grid__selected-image {
+    max-height: 52vh;
+  }
+
+  .artwork-shared-surface {
+    grid-template-columns: 1fr;
+  }
+
+  .artwork-shared-image,
+  .artwork-shared-image img {
+    min-height: 0;
+    max-height: 52vh;
+  }
+}
+
+.rotunda-card img {
+  transform: scale(1);
+  transition: transform 320ms cubic-bezier(0.2, 0.75, 0.25, 1);
+}
+
+.rotunda-card:hover img,
+.rotunda-card:focus-visible img {
+  transform: scale(1.045);
+}
+
+.rotunda-card__meta {
+  position: absolute;
+  right: 0.6rem;
+  bottom: 0.6rem;
+  left: 0.6rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.5rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid color-mix(in srgb, var(--line) 58%, transparent);
+  border-radius: 0.55rem;
+  background: color-mix(in srgb, var(--panel) 76%, transparent);
+  color: var(--ink);
+  opacity: 0;
+  transform: translateY(0.35rem);
+  backdrop-filter: blur(12px);
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+/* Flat rotunda cards keep the commercial information visible; it must not
+   depend on hover, since touch users have no persistent hover state. */
+.rotunda-card--grid .rotunda-card__meta {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.rotunda-card__purchase {
+  position: absolute;
+  top: 0.45rem;
+  right: 0.45rem;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--panel);
+  padding: 0.35rem 0.55rem;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.rotunda-card__purchase:hover,
+.rotunda-card__purchase:focus-visible {
+  background: var(--gold);
+  color: var(--ink);
+}
+
+.rotunda-card__meta strong {
+  flex-basis: 100%;
+  font-family: var(--font-display), Georgia, serif;
+}
+
+.rotunda-card__meta span {
+  font-size: 0.78rem;
+}
+
+.rotunda-card:hover .rotunda-card__meta,
+.rotunda-card:focus-visible .rotunda-card__meta,
+.rotunda-card__meta:focus-within {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.rotunda-rotation-control {
+  isolation: isolate;
+  overflow: hidden;
+  transform: translateY(0);
+  box-shadow: 0 0.45rem 1.1rem color-mix(in srgb, var(--ink) 24%, transparent);
+}
+
+.rotunda-nav {
+  --nav-shimmer-duration: 1100ms;
+  position: absolute;
+  top: 50%;
+  z-index: 200;
+  isolation: isolate;
+  overflow: hidden;
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  border: 2px solid var(--line);
+  background: color-mix(in srgb, var(--panel) 82%, transparent);
+  color: var(--ink);
+  box-shadow: none;
+  backdrop-filter: blur(10px);
+  transform: translateY(-50%);
+  transition: color 320ms ease 1100ms, border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.rotunda-nav::before {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  content: "";
+  /* Use the hero's warm orange-sand accent, not the headline gold. */
+  background: var(--sand-deep);
+  opacity: 0;
+  transition: opacity 360ms ease 1100ms;
+}
+
+.rotunda-nav::after {
+  position: absolute;
+  inset: -35% auto -35% -70%;
+  z-index: 1;
+  width: 34%;
+  content: "";
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    color-mix(in srgb, var(--panel) 16%, transparent) 30%,
+    color-mix(in srgb, var(--panel) 72%, transparent) 50%,
+    color-mix(in srgb, var(--panel) 16%, transparent) 70%,
+    transparent 100%
+  );
+  opacity: 0;
+  transform: skewX(-18deg);
+  transition: opacity 320ms ease;
+  pointer-events: none;
+}
+
+.rotunda-nav > svg {
+  position: relative;
+  z-index: 2;
+}
+
+.rotunda-nav--running,
+.rotunda-nav--paused,
+.rotunda-nav--finishing {
+  border-color: var(--gold);
+  background: transparent;
+  color: var(--ink);
+  box-shadow: none;
+  transform: translateY(-50%) scale(1.08);
+}
+
+.rotunda-nav--running::before,
+.rotunda-nav--paused::before,
+.rotunda-nav--finishing::before {
+  opacity: 1 !important;
+  transition: none;
+}
+
+.rotunda-nav--running::after {
+  opacity: 0.62;
+  animation: nav-shimmer var(--nav-shimmer-duration) ease-out forwards;
+  animation-play-state: running;
+}
+
+.rotunda-nav--paused::after {
+  opacity: 0.62;
+  animation: nav-shimmer var(--nav-shimmer-duration) ease-out forwards;
+  animation-play-state: paused;
+}
+
+.rotunda-nav--finishing::after {
+  opacity: 0.62;
+  animation: nav-shimmer var(--nav-shimmer-duration) ease-out forwards;
+  animation-play-state: running;
+}
+
+.rotunda-nav--fading {
+  border-color: var(--line);
+  background: color-mix(in srgb, var(--panel) 82%, transparent);
+  color: var(--ink);
+  box-shadow: none;
+  transform: translateY(-50%);
+}
+
+.rotunda-nav--fading::before {
+  opacity: 0 !important;
+  transition: opacity 360ms ease;
+}
+
+.rotunda-nav--fading::after {
+  opacity: 0;
+  animation: none;
+}
+
+.rotunda-nav--running,
+.rotunda-nav--paused,
+.rotunda-nav--fading {
+  /* JS owns the visual sequence; hover only starts that sequence. */
+  pointer-events: auto;
+}
+
+/* The hero's orange-sand background is the button fill during the active
+   phase; the headline gold is reserved for the text/icon accent. */
+.rotunda-nav--running::before,
+.rotunda-nav--paused::before,
+.rotunda-nav--finishing::before {
+  background:
+    radial-gradient(ellipse 60% 50% at 78% 45%, rgba(43, 90, 92, 0.14), transparent 70%),
+    radial-gradient(ellipse 55% 60% at 15% 30%, rgba(166, 95, 0, 0.1), transparent 65%),
+    var(--sand);
+}
+
+.rotunda-nav--running,
+.rotunda-nav--paused,
+.rotunda-nav--finishing {
+  background: transparent;
+}
+
+@keyframes nav-shimmer {
+  /* The band travels from outside the upper-left to outside the
+     lower-right. Skew controls only the band's shape, not its path. */
+  from { transform: translate(-20%, -42%) skewX(-18deg); }
+  to { transform: translate(360%, 42%) skewX(-18deg); }
+}
+
+.rotunda-nav--previous { left: 0.75rem; }
+.rotunda-nav--next { right: 0.75rem; }
+
+/* Keep navigation in the side gutters instead of over the artwork tiles. */
+.rotunda-gallery__stage {
+  position: relative;
+  padding-inline: clamp(2.9rem, 5vw, 4.5rem);
+}
+
+.rotunda-gallery__stage .rotunda-nav--previous { left: 0; }
+.rotunda-gallery__stage .rotunda-nav--next { right: 0; }
+
+.rotunda-rotation-control::after {
+  position: absolute;
+  inset: -40% auto -40% -85%;
+  width: 45%;
+  content: "";
+  background: linear-gradient(105deg, transparent, color-mix(in srgb, var(--panel) 75%, white), transparent);
+  opacity: 0.7;
+  transform: skewX(-18deg);
+  animation: control-gleam 3.8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.rotunda-rotation-control:hover {
+  transform: translateY(-2px) rotate(8deg);
+}
+
+@keyframes control-gleam {
+  0%, 25% { transform: translateX(0) skewX(-18deg); }
+  65%, 100% { transform: translateX(360%) skewX(-18deg); }
+}
+
+.rotunda-gallery {
+  width: 100%;
+  min-height: clamp(30rem, 46vw, 44rem);
+}
+
+.rotunda-gallery__frame {
+  min-height: clamp(30rem, 46vw, 44rem);
+}
+
+.rotunda-gallery__ring {
+  height: 100% !important;
+}
+
+.infinite-scroll-sentinel {
+  width: 100%;
+  height: 1px;
+}
+
+@media (max-width: 560px) {
+  .rotunda-gallery__stage {
+    padding-inline: 2.6rem;
+  }
+
+  .rotunda-rotation-control {
+    top: -4.6rem;
+  }
+}
+
+/* Paused mode is a flat gallery: show the metadata as part of each natural-
+   ratio tile instead of relying on hover. */
+.rotunda-card--grid .rotunda-card__meta {
+  top: 0.6rem;
+  right: 0.6rem;
+  bottom: auto;
+  left: 0.6rem;
+  display: block;
+  opacity: 1 !important;
+  transform: none;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.rotunda-card--grid .rotunda-card__price {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 3;
+  border: 1px solid color-mix(in srgb, var(--ink) 35%, transparent);
+  border-radius: 0.55rem;
+  background: color-mix(in srgb, var(--panel) 88%, transparent);
+  padding: 0.35rem 0.55rem;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--gold);
+  text-shadow: 0 1px 2px color-mix(in srgb, var(--ink) 70%, transparent);
+}
+
+.rotunda-card--grid .rotunda-card__hover-meta {
+  position: absolute;
+  right: auto;
+  bottom: 0.6rem;
+  left: 0.6rem;
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  width: fit-content;
+  max-width: calc(100% - 1.2rem);
+  gap: 0.15rem 0.5rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid color-mix(in srgb, var(--line) 58%, transparent);
+  border-radius: 0.55rem;
+  background: color-mix(in srgb, var(--panel) 82%, transparent);
+  color: var(--ink);
+  opacity: 0;
+  transform: translateY(1.25rem);
+  backdrop-filter: blur(12px);
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.rotunda-card--grid:hover .rotunda-card__hover-meta,
+.rotunda-card--grid:focus-within .rotunda-card__hover-meta {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.rotunda-card--grid .rotunda-card__hover-meta strong {
+  flex-basis: 100%;
+  font-family: var(--font-display), Georgia, serif;
+}
+
+.rotunda-card--grid .rotunda-card__hover-meta span {
+  font-size: 0.78rem;
+}
+
+.rotunda-card--grid .rotunda-card__artist-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: inherit;
+  font-size: 0.78rem;
+  text-decoration: none;
+  transition: color 160ms ease, transform 160ms ease;
+}
+
+.rotunda-card--grid .rotunda-card__artist-link:hover,
+.rotunda-card--grid .rotunda-card__artist-link:focus-visible {
+  color: var(--gold);
+  transform: translateX(0.12rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rotunda-rotation-control::after {
+    animation: none;
+  }
+
+  .rotunda-card {
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+  }
+
+  .rotunda-card:hover,
+  .rotunda-card:focus-visible {
+    filter: none;
+  }
+
+  .rotunda-nav--running::after,
+  .rotunda-nav--paused::after,
+  .rotunda-nav--finishing::after,
+  .rotunda-nav--fading::after {
+    animation: none;
+    opacity: 0;
+  }
 }
 
 .home-section .impact-totals {
@@ -689,6 +1653,12 @@ textarea {
   text-align: center;
 }
 
+.empty-state__visual {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+}
+
 .empty-state__icon {
   display: flex;
   align-items: center;
@@ -724,6 +1694,42 @@ textarea {
   justify-content: center;
   gap: 1.25rem;
   margin: 0 0 3rem;
+}
+
+/* Originals use a flat masonry surface: artwork keeps its own aspect ratio
+   instead of being forced into equal-height cards. */
+.card-grid--masonry {
+  display: block;
+  column-count: 1;
+  column-gap: 1.25rem;
+}
+
+.card-grid--masonry .layout-grid__card {
+  display: inline-block;
+  width: 100%;
+  min-height: 0;
+  height: auto;
+  margin: 0 0 1.25rem;
+  vertical-align: top;
+  break-inside: avoid;
+}
+
+.card-grid--masonry .layout-grid__image {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+@media (min-width: 620px) {
+  .card-grid--masonry { column-count: 2; }
+}
+
+@media (min-width: 980px) {
+  .card-grid--masonry { column-count: 3; }
+}
+
+@media (min-width: 1280px) {
+  .card-grid--masonry { column-count: 4; }
 }
 
 /* Prints homepage shelf — a flat horizontal rack you glide along, not
@@ -799,13 +1805,15 @@ textarea {
   background: var(--panel);
   padding: 0.5rem 0.5rem 0.65rem;
   cursor: pointer;
-  box-shadow: 0 0.6rem 1.1rem rgba(var(--shadow-rgb), calc(0.16 * var(--shadow-alpha-scale)));
+  box-shadow: 0 0.6rem 1.1rem
+    rgba(var(--shadow-rgb), calc(0.16 * var(--shadow-alpha-scale)));
   transition: box-shadow 0.2s ease;
 }
 
 .print-tile__frame:hover,
 .print-tile__frame:focus-visible {
-  box-shadow: 0 1rem 1.6rem rgba(var(--shadow-rgb), calc(0.26 * var(--shadow-alpha-scale)));
+  box-shadow: 0 1rem 1.6rem
+    rgba(var(--shadow-rgb), calc(0.26 * var(--shadow-alpha-scale)));
   outline: none;
 }
 
@@ -829,7 +1837,8 @@ textarea {
   font-family: var(--font-display), Georgia, serif;
   font-size: 0.85rem;
   font-weight: 700;
-  box-shadow: 0 0.3rem 0.6rem rgba(var(--shadow-rgb), calc(0.25 * var(--shadow-alpha-scale)));
+  box-shadow: 0 0.3rem 0.6rem
+    rgba(var(--shadow-rgb), calc(0.25 * var(--shadow-alpha-scale)));
 }
 
 .print-tile__body {
@@ -916,7 +1925,9 @@ textarea {
   padding: 0.65rem 0.9rem;
   font: inherit;
   color: var(--ink);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .search-form input:focus-visible {
@@ -939,9 +1950,12 @@ textarea {
 .gallery-card {
   border: 2px solid var(--line);
   background: var(--panel);
-  box-shadow: 0 0.85rem 1.8rem rgba(var(--shadow-rgb), calc(0.14 * var(--shadow-alpha-scale)));
+  box-shadow: 0 0.85rem 1.8rem
+    rgba(var(--shadow-rgb), calc(0.14 * var(--shadow-alpha-scale)));
   overflow: hidden;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .artist-card:hover,
@@ -949,7 +1963,8 @@ textarea {
 .news-card:hover,
 .gallery-card:hover {
   transform: translateY(-0.4rem);
-  box-shadow: 0 1.5rem 3.2rem rgba(var(--shadow-rgb), calc(0.28 * var(--shadow-alpha-scale)));
+  box-shadow: 0 1.5rem 3.2rem
+    rgba(var(--shadow-rgb), calc(0.28 * var(--shadow-alpha-scale)));
 }
 
 .artist-card:hover .artist-card__image,
@@ -1107,7 +2122,9 @@ textarea {
   padding: 0.6rem 0.7rem;
   font: inherit;
   color: var(--ink);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .buy-form input:focus-visible {
@@ -1138,7 +2155,9 @@ textarea {
   padding: 0.6rem 0.7rem;
   font: inherit;
   color: var(--ink);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .inquiry-form input:focus-visible,
@@ -1198,6 +2217,70 @@ textarea {
   grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
   gap: 1.25rem;
   margin: 0 0 3rem;
+}
+
+.impact-orb,
+.mission-orb {
+  display: flex;
+  justify-content: center;
+  margin: 0 auto 2.5rem;
+}
+
+.mission-orb {
+  margin-top: 2rem;
+}
+
+.checkout-success-orb {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.checkout-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.8fr);
+  gap: clamp(1.5rem, 4vw, 4rem);
+  max-width: 68rem;
+  margin: 0 auto 3rem;
+  align-items: start;
+}
+
+.checkout-page__image {
+  width: 100%;
+  max-height: 68vh;
+  object-fit: contain;
+  background: var(--sand);
+}
+
+.checkout-page__details {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: clamp(1rem, 3vw, 2rem);
+  border: 2px solid var(--line);
+  background: var(--panel);
+}
+
+.checkout-page__details h1,
+.checkout-page__details p {
+  margin: 0;
+}
+
+.checkout-page__price {
+  color: var(--gold);
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.checkout-page__details .buy-form {
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 700px) {
+  .checkout-page {
+    grid-template-columns: 1fr;
+  }
 }
 
 .impact-totals__stat {
@@ -1285,7 +2368,6 @@ textarea {
   margin: 0.7rem 0;
   font-size: 1.1rem;
 }
-
 
 .artist-gallery-section h2 {
   margin: 0 0 1rem;
@@ -1437,7 +2519,11 @@ textarea {
   flex-direction: column;
   justify-content: flex-end;
   padding: 1.75rem;
-  background: linear-gradient(to top, color-mix(in srgb, var(--ink) 72%, transparent), transparent 60%);
+  background: linear-gradient(
+    to top,
+    color-mix(in srgb, var(--ink) 72%, transparent),
+    transparent 60%
+  );
   color: var(--panel);
 }
 
@@ -1488,7 +2574,9 @@ textarea {
 .account-form input {
   border: 2px solid var(--line);
   background: var(--surface);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .account-form input:focus-visible {
@@ -1499,7 +2587,6 @@ textarea {
   font: inherit;
   color: var(--ink);
 }
-
 
 .account-form__hint {
   margin: 0.75rem 0 0;
@@ -1647,6 +2734,19 @@ textarea {
   border: 3px solid var(--line);
   background: var(--panel);
   padding: 1rem;
+}
+
+.modal-artwork-stage {
+  aspect-ratio: 4 / 5;
+  min-height: min(30rem, 62vh);
+  overflow: hidden;
+}
+
+.modal-artwork-stage img {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  object-fit: contain;
 }
 
 .modal-panel__header {
@@ -2203,7 +3303,9 @@ textarea {
   font: inherit;
   background: var(--admin-surface);
   color: inherit;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .admin-form input:focus,
@@ -2280,7 +3382,9 @@ textarea {
   border-radius: 6px;
   font-weight: 500;
   cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
 }
 
 .admin-form__radio-group label:has(input:checked) {
@@ -2393,7 +3497,8 @@ textarea {
 .ui-card--brand {
   background: var(--panel);
   border: 2px solid var(--line);
-  box-shadow: 0 0.85rem 1.8rem rgba(var(--shadow-rgb), calc(0.14 * var(--shadow-alpha-scale)));
+  box-shadow: 0 0.85rem 1.8rem
+    rgba(var(--shadow-rgb), calc(0.14 * var(--shadow-alpha-scale)));
 }
 
 .ui-card--padding-none {
@@ -2465,7 +3570,10 @@ textarea {
   padding: 0.65rem 1rem;
   cursor: pointer;
   opacity: 0.65;
-  transition: opacity 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    border-color 0.15s ease,
+    background 0.15s ease;
 }
 
 .ui-tabs-trigger:hover:not(:disabled) {
@@ -2662,7 +3770,6 @@ textarea {
   border-radius: 6px;
   font: inherit;
 }
-
 
 .admin-search__clear {
   font-size: 0.85rem;

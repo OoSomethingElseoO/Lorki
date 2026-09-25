@@ -1,11 +1,18 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth";
+import { checkPermission, unauthorized } from "@/lib/permissions";
+import { recordAudit } from "@/lib/audit";
 
 type BulkBody = { inquiryIds?: string[]; status?: "NEW" | "CONTACTED" | "CLOSED" };
 
 const VALID_STATUSES = ["NEW", "CONTACTED", "CLOSED"];
 
 export async function PATCH(request: Request) {
+  const user = await getCurrentUser();
+  const { authorized } = checkPermission(user, "OPS_ADMIN");
+  if (!authorized) return unauthorized("OPS_ADMIN");
+
   const body = (await request.json()) as Partial<BulkBody>;
 
   if (!Array.isArray(body.inquiryIds) || body.inquiryIds.length === 0) {
@@ -44,5 +51,6 @@ export async function PATCH(request: Request) {
     });
   }
 
+  await recordAudit({ action: "INQUIRIES_STATUS_CHANGED_BULK", affectedEntityType: "Inquiry", affectedEntityId: "bulk", reason: `Bulk inquiry status change to ${body.status}`, changedBy: user!.email, metadata: { requestedIds: body.inquiryIds, updatedCount: result.count, status: body.status } });
   return NextResponse.json({ count: result.count });
 }

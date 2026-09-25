@@ -42,6 +42,10 @@ export function PrintRack<T extends PrintRackItem>({ items, renderItem, label = 
   const [reducedMotion, setReducedMotion] = React.useState(false);
   const [atStart, setAtStart] = React.useState(true);
   const [atEnd, setAtEnd] = React.useState(true);
+  // Keep the server render and the first client render identical. The
+  // scroll position can only be measured after the track mounts, so the
+  // navigation buttons stay in their deterministic initial state until then.
+  const [hasMeasured, setHasMeasured] = React.useState(false);
 
   React.useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -88,6 +92,7 @@ export function PrintRack<T extends PrintRackItem>({ items, renderItem, label = 
         const max = track.scrollWidth - track.clientWidth;
         setAtStart(track.scrollLeft <= 2);
         setAtEnd(track.scrollLeft >= max - 2);
+        setHasMeasured(true);
 
         if (thumbRef.current && max > 0) {
           const visibleFraction = gsap.utils.clamp(0.12, 1, track.clientWidth / track.scrollWidth);
@@ -166,7 +171,7 @@ export function PrintRack<T extends PrintRackItem>({ items, renderItem, label = 
             type="button"
             className="prints-rack__nav"
             onClick={() => scrollByStep(-1)}
-            disabled={atStart}
+            disabled={hasMeasured && atStart}
             aria-label="Scroll prints left"
           >
             <ChevronLeft className="size-4" aria-hidden="true" />
@@ -178,7 +183,7 @@ export function PrintRack<T extends PrintRackItem>({ items, renderItem, label = 
             type="button"
             className="prints-rack__nav"
             onClick={() => scrollByStep(1)}
-            disabled={atEnd}
+            disabled={hasMeasured && atEnd}
             aria-label="Scroll prints right"
           >
             <ChevronRight className="size-4" aria-hidden="true" />

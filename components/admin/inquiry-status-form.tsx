@@ -7,7 +7,7 @@ import { useToast } from "@/components/admin/toast-provider";
 
 type InquiryStatusFormProps = {
   inquiryId: string;
-  status: "NEW" | "CONTACTED" | "CLOSED";
+  status: "NEW" | "CONTACTED" | "APPROVED" | "REJECTED" | "CLOSED";
 };
 
 export function InquiryStatusForm({ inquiryId, status }: InquiryStatusFormProps) {
@@ -48,6 +48,8 @@ export function InquiryStatusForm({ inquiryId, status }: InquiryStatusFormProps)
       <select value={current} onChange={handleChange} disabled={saving} aria-label="Inquiry status" className={statusSelectClass(current)}>
         <option value="NEW">New</option>
         <option value="CONTACTED">Contacted</option>
+        <option value="APPROVED">Approved</option>
+        <option value="REJECTED">Rejected</option>
         <option value="CLOSED">Closed</option>
       </select>
       {error ? <p className="admin-form__error">{error}</p> : null}

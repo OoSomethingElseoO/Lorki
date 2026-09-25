@@ -8,6 +8,9 @@ import {
   uniqueConstraintResponse,
 } from "@/lib/prisma-errors";
 import { validateTextField, validateCountryCode, validateImageUrl, validateUrl } from "@/lib/validation";
+import { recordAudit } from "@/lib/audit";
+import { getCurrentUser } from "@/lib/auth";
+import { checkPermission, unauthorized } from "@/lib/permissions";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -21,6 +24,9 @@ type UpdateBody = {
 };
 
 export async function PATCH(request: Request, { params }: RouteParams) {
+  const user = await getCurrentUser();
+  const { authorized } = checkPermission(user, "OPS_ADMIN");
+  if (!authorized) return unauthorized("OPS_ADMIN");
   const { id } = await params;
   const body = (await request.json()) as Partial<UpdateBody>;
 
@@ -92,6 +98,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       });
     });
 
+    await recordAudit({ action: "ARTIST_UPDATED", affectedEntityType: "Artist", affectedEntityId: artist.id, reason: "Operations administrator updated an artist record", changedBy: user!.email, metadata: { name: artist.name, coOpId: artist.coOpId } });
+
     return NextResponse.json({ artist });
   } catch (error) {
     if (isNotFoundError(error)) {
@@ -105,12 +113,16 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 }
 
 export async function DELETE(_request: Request, { params }: RouteParams) {
+  const user = await getCurrentUser();
+  const { authorized } = checkPermission(user, "OPS_ADMIN");
+  if (!authorized) return unauthorized("OPS_ADMIN");
   const { id } = await params;
 
   try {
     // Social links cascade-delete with the artist (no campaigns reference them).
     await prisma.socialLink.deleteMany({ where: { artistId: id } });
-    await prisma.artist.delete({ where: { id } });
+    const artist = await prisma.artist.delete({ where: { id } });
+    await recordAudit({ action: "ARTIST_DELETED", affectedEntityType: "Artist", affectedEntityId: id, reason: "Operations administrator deleted an artist record", changedBy: user!.email, metadata: { name: artist.name, coOpId: artist.coOpId } });
     return NextResponse.json({ ok: true });
   } catch (error) {
     if (isNotFoundError(error)) {

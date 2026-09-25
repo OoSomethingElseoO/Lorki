@@ -6,6 +6,7 @@ import { sendRefundConfirmationEmail } from "@/lib/email";
 import { checkPermission, unauthorized } from "@/lib/permissions";
 import { getCurrentUser } from "@/lib/auth";
 import { checkIdempotency, storeIdempotencyResponse } from "@/lib/idempotency";
+import { recordAudit } from "@/lib/audit";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -66,6 +67,7 @@ export async function POST(request: Request, { params }: RouteParams) {
   }
 
   const updated = await processRefund(order.id);
+  await recordAudit({ action: "ORDER_REFUNDED", affectedEntityType: "Order", affectedEntityId: order.id, reason: "Finance administrator issued a refund", changedBy: user!.email, metadata: { amountCents: order.amountCents, paymentMethod: order.paymentMethod } });
 
   // Not awaited — processRefund above already committed, same reasoning as
   // the Stripe webhook (app/api/webhooks/stripe/route.ts).

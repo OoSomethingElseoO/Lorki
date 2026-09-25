@@ -22,5 +22,8 @@ blob-report/
 
 public/uploads/*
 !public/uploads/.gitkeep
+# Curated Lorkulup conservation assets are part of the demo seed and must
+# survive a clone/rebuild; user uploads remain ignored.
+!public/uploads/lorkulup-*.jpeg
 
 .claude/worktrees/

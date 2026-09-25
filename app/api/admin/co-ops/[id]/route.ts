@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { foreignKeyConstraintResponse, isForeignKeyConstraintError, isNotFoundError } from "@/lib/prisma-errors";
 import { validateTextField, validateEmail } from "@/lib/validation";
+import { getCurrentUser } from "@/lib/auth";
+import { checkPermission, unauthorized } from "@/lib/permissions";
+import { recordAudit } from "@/lib/audit";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -12,6 +15,9 @@ type UpdateBody = {
 };
 
 export async function PATCH(request: Request, { params }: RouteParams) {
+  const user = await getCurrentUser();
+  const { authorized } = checkPermission(user, "OPS_ADMIN");
+  if (!authorized) return unauthorized("OPS_ADMIN");
   const { id } = await params;
   const body = (await request.json()) as Partial<UpdateBody>;
 
@@ -53,6 +59,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       },
     });
 
+    await recordAudit({ action: "CO_OP_UPDATED", affectedEntityType: "CoOp", affectedEntityId: coOp.id, reason: "Operations administrator updated a co-op", changedBy: user!.email, metadata: { name: coOp.name } });
+
     return NextResponse.json({ coOp });
   } catch (error) {
     if (isNotFoundError(error)) {
@@ -63,10 +71,14 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 }
 
 export async function DELETE(_request: Request, { params }: RouteParams) {
+  const user = await getCurrentUser();
+  const { authorized } = checkPermission(user, "OPS_ADMIN");
+  if (!authorized) return unauthorized("OPS_ADMIN");
   const { id } = await params;
 
   try {
-    await prisma.coOp.delete({ where: { id } });
+    const coOp = await prisma.coOp.delete({ where: { id } });
+    await recordAudit({ action: "CO_OP_DELETED", affectedEntityType: "CoOp", affectedEntityId: id, reason: "Operations administrator deleted a co-op", changedBy: user!.email, metadata: { name: coOp.name } });
     return NextResponse.json({ ok: true });
   } catch (error) {
     if (isNotFoundError(error)) {

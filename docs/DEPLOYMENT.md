@@ -16,6 +16,36 @@ Set these at runtime, on whatever host runs the container (not baked into the im
 | `STRIPE_SECRET_KEY` | No | Can be left unset and entered later via `/admin/settings` (DB value overrides env). |
 | `STRIPE_WEBHOOK_SECRET` | No | Same — set via `/admin/settings` once a webhook endpoint is registered in the Stripe dashboard. |
 | `RESEND_API_KEY`, `EMAIL_FROM`, `OPERATIONS_EMAIL` | No | Same — settable via `/admin/settings`. |
+| `RECONCILIATION_CRON_SECRET` | No | Required to call the internal rolling reconciliation sweep. Store it in the scheduler, never in client code. |
+| `SECURITY_ALERT_CRON_SECRET` | No | Required to run threshold-based security alerts from an external scheduler. |
+| `AUDIT_EXPORT_SECRET` | No | Required to export audit/provider events to an external Object-Lock/WORM archive job. |
+
+### GitHub Actions scheduler
+
+For the complete frontend-versus-provider boundary and setup checklist, see
+[OPERATIONS_SETUP.md](./OPERATIONS_SETUP.md).
+
+The repository includes `.github/workflows/operational-sweeps.yml`. It runs the
+reconciliation and security-threshold endpoints hourly, then exports the prior
+two days of audit/provider events to an S3 Object Lock bucket each night. The
+two-day overlap makes a delayed event less likely to be missed; the export
+endpoint itself remains idempotent at the archive-object level by timestamped
+keys.
+
+Configure these repository secrets before enabling the workflow:
+
+- `QAFORGE_BASE_URL`
+- `RECONCILIATION_CRON_SECRET`
+- `SECURITY_ALERT_CRON_SECRET`
+- `AUDIT_EXPORT_SECRET`
+- `AUDIT_ARCHIVE_ROLE_ARN` (an AWS IAM role trusted by GitHub's OIDC provider)
+- `AUDIT_ARCHIVE_AWS_REGION`
+- `AUDIT_ARCHIVE_BUCKET` (an S3 bucket created with Object Lock enabled)
+
+The workflow intentionally uses GitHub OIDC rather than a long-lived AWS access
+key. Object Lock must be enabled when the bucket is created; the application
+cannot turn that protection on after the fact. Review the seven-year retention
+period with Kenyan counsel before production use.
 
 ## One real caveat, not glossed over
 
@@ -32,6 +62,37 @@ npx prisma migrate deploy
 ```
 
 against the target `DATABASE_URL`. Do this from a machine/CI step with network access to the production database — the running container doesn't do it for you. Run `npx prisma db seed` once afterward (with `ADMIN_EMAIL`/`ADMIN_PASSWORD` set) to create the first admin login.
+
+## Reconciliation sweep
+
+The finance dashboard reads a rolling 30-day window. A scheduler can also call the protected sweep to create explicit `MISSING_PROVIDER_PAYMENT` cases for `PAID` local orders that have a payment intent but no comparison row:
+
+```bash
+curl -X POST https://your-host.example/api/internal/reconciliation/sweep \
+  -H "x-reconciliation-secret: $RECONCILIATION_CRON_SECRET" \
+  -H 'content-type: application/json' \
+  -d '{"days":30}'
+```
+
+This sweep does not contact Stripe or Flutterwave settlement APIs. It makes missing local comparisons visible; provider settlement imports remain a separate integration step.
+
+Finance can import a provider settlement export through the admin endpoint using normalized rows (`externalId`, `amountCents`, `currency`, optional `eventType` and `observedAt`):
+
+```bash
+curl -X POST https://your-host.example/api/admin/reconciliation/import \
+  -H 'content-type: application/json' \
+  -d '{"provider":"STRIPE","rows":[{"externalId":"pi_…","amountCents":12500,"currency":"usd"}]}'
+```
+
+The endpoint requires a `FINANCE_ADMIN` session, is idempotent for the same provider/external ID/event type, and records the import batch in the audit log.
+
+The external archive job can pull `/api/internal/audit/export?since=...` with `AUDIT_EXPORT_SECRET` and write the NDJSON response to an Object-Lock bucket. The app does not treat its own database as the immutable archive.
+
+Run `/api/internal/security/alerts` hourly with `SECURITY_ALERT_CRON_SECRET` to evaluate refund, payout, admin-access, critical-case, and missing-record thresholds. Alerts are deduplicated for one hour through the append-only audit ledger.
+
+## Log retention
+
+Financial audit records and provider-event payloads should be retained for at least **7 years** as an operational default, but this is not the final legal policy: confirm the period against Kenyan tax/records obligations, the Data Protection Act’s storage-limitation requirements, payment-provider rules, and any other jurisdiction where the business operates. Keep the append-only records in the primary database for the active period, then archive encrypted exports to restricted storage rather than deleting them in place. Authentication/access logs can use a shorter 12-month active window unless an incident or local regulation requires longer retention. The application currently does not run an automatic purge; retention/archival should be an explicit infrastructure job after legal review.
 
 ## Build and run locally
 

@@ -1,9 +1,11 @@
 "use client";
 
 import * as React from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { Pause, Play } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUpRight, CircleUserRound, Orbit, ScanLine, ShoppingBag } from "lucide-react";
+import Link from "next/link";
 
 import { FallbackImage } from "@/components/ui/fallback-image";
 import { cn } from "@/lib/utils";
@@ -21,11 +23,14 @@ export type RotundaSlide = {
   alt: string;
   title?: string;
   subtitle?: string;
+  artistHref?: string;
+  price?: string;
 };
 
 export type RotundaCarouselProps = {
   slides: RotundaSlide[];
   onSelect?: (index: number, originRect: DOMRect) => void;
+  onActiveChange?: (index: number) => void;
   /** Ambient rotation speed, degrees per second. */
   speed?: number;
   /** Names the carousel for assistive tech. */
@@ -33,10 +38,112 @@ export type RotundaCarouselProps = {
   className?: string;
 };
 
+function FlatArtworkSlot({
+  slide,
+  slot,
+  allowChange,
+  transitionDirection,
+}: {
+  slide: RotundaSlide;
+  slot: number;
+  allowChange: boolean;
+  transitionDirection: -1 | 1 | null;
+}) {
+  const [visible, setVisible] = React.useState(slide);
+  const [hovered, setHovered] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!allowChange || hovered || slide.id === visible.id) return;
+
+    // Do not replace every card in the batch at once. Keep the old artwork
+    // visible while the next one is loading, then let this slot crossfade on
+    // its own schedule. The slot wrapper never changes size or identity.
+    const delay = transitionDirection
+      ? (transitionDirection === 1 ? slot : GRID_BATCH_SIZE - 1 - slot) * 110
+      : 260 + Math.floor(Math.random() * 900) + (slot % 3) * 80;
+    const timer = window.setTimeout(() => {
+      const preload = new window.Image();
+      const commit = () => setVisible(slide);
+      preload.onload = commit;
+      preload.onerror = commit;
+      preload.src = slide.src;
+    }, delay);
+    return () => window.clearTimeout(timer);
+  }, [allowChange, hovered, slide, slot, transitionDirection, visible.id]);
+
+  return (
+    <div
+      className="relative w-full overflow-hidden"
+      style={{ aspectRatio: String(FLAT_SLOT_RATIOS[slot % FLAT_SLOT_RATIOS.length]) }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onFocus={() => setHovered(true)}
+      onBlur={() => setHovered(false)}
+    >
+      {/* Each slot owns its varied shape; artwork replacements cannot resize it. */}
+      <AnimatePresence initial={false} mode="sync">
+        <motion.div
+          key={visible.id}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.9, ease: "easeInOut" }}
+          className="absolute inset-0"
+        >
+          <FallbackImage
+            src={visible.src}
+            alt={visible.alt}
+            draggable={false}
+            loading="lazy"
+            decoding="async"
+            className="block h-full w-full select-none object-cover"
+          />
+          <div className="rotunda-card__price">{visible.price ?? ""}</div>
+          <button type="button" className="rotunda-card__purchase" aria-label="Buy artwork" title="Buy artwork">
+            <ShoppingBag className="size-4" aria-hidden="true" />
+          </button>
+          {(visible.title || visible.subtitle) ? (
+            <div className="rotunda-card__hover-meta">
+              {visible.title ? <strong>{visible.title}</strong> : null}
+              {visible.subtitle ? (
+                visible.artistHref ? (
+                  <Link className="rotunda-card__artist-link" href={visible.artistHref} onClick={(event) => event.stopPropagation()}>
+                    <CircleUserRound className="size-3.5" aria-hidden="true" />
+                    <span>{visible.subtitle}</span>
+                    <ArrowUpRight className="size-3.5" aria-hidden="true" />
+                  </Link>
+                ) : <span>{visible.subtitle}</span>
+              ) : null}
+            </div>
+          ) : null}
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  );
+}
+
 // Everything else (radius, perspective) is derived from these, so the whole
 // rig scales together instead of one dimension outrunning the other.
-const CARD_W = "clamp(150px, 16vw, 440px)";
-const CARD_H = "clamp(190px, 20vw, 550px)";
+// Larger artwork cards keep the rotunda visually substantial at desktop
+// widths while retaining usable tiles on phones.
+const CARD_W = "clamp(220px, 22vw, 560px)";
+const CARD_H = "clamp(300px, 32vw, 700px)";
+const GRID_BATCH_SIZE = 12;
+const NAV_SHIMMER_DURATION = 1100;
+const FLAT_SLOT_RATIOS = [0.78, 1.08, 0.9, 1.22, 0.84, 1.14, 0.96, 1.18, 0.82, 1.06, 0.92, 1.16];
+
+function pickFlatSlots(slotCount: number, previous: Set<number>) {
+  const candidates = Array.from({ length: slotCount }, (_, index) => index)
+    .filter((index) => !previous.has(index));
+  const pool = candidates.length >= Math.min(2, slotCount)
+    ? candidates
+    : Array.from({ length: slotCount }, (_, index) => index);
+  for (let index = pool.length - 1; index > 0; index -= 1) {
+    const swap = Math.floor(Math.random() * (index + 1));
+    [pool[index], pool[swap]] = [pool[swap], pool[index]];
+  }
+  return new Set(pool.slice(0, Math.min(2, slotCount)));
+}
 
 /** Fold a rotation into -180..180 — the shorter way round the ring. */
 function foldAngle(deg: number) {
@@ -49,6 +156,7 @@ function foldAngle(deg: number) {
 export function RotundaCarousel({
   slides,
   onSelect,
+  onActiveChange,
   speed = 5,
   label = "Rotating gallery",
   className,
@@ -86,8 +194,21 @@ export function RotundaCarousel({
 
   const [isGrid, setIsGrid] = React.useState(false);
   const [manualPaused, setManualPaused] = React.useState(false);
+  const [gridPage, setGridPage] = React.useState(0);
+  const [flatChangeSlots, setFlatChangeSlots] = React.useState<Set<number>>(() => new Set([0, 1]));
+  const previousFlatSlotsRef = React.useRef(new Set<number>([0, 1]));
+  const [flatTransitionDirection, setFlatTransitionDirection] = React.useState<-1 | 1 | null>(null);
   const [reducedMotion, setReducedMotion] = React.useState(false);
-  const [activeIndex, setActiveIndex] = React.useState(0);
+  const [navVisual, setNavVisual] = React.useState<{
+    which: "previous" | "next";
+    phase: "running" | "paused" | "finishing" | "fading";
+  } | null>(null);
+  const shimmerTimerRef = React.useRef<number | null>(null);
+  const shimmerPauseTimerRef = React.useRef<number | null>(null);
+  const shimmerStartedAtRef = React.useRef(0);
+  const navPausedAmbientRef = React.useRef(false);
+  const navSlowProxyRef = React.useRef({ scale: 1 });
+  const navSlowTweenRef = React.useRef<gsap.core.Tween | null>(null);
 
   // Pause is deliberate, button-only — the visitor chooses, not a hover
   // side-effect that fights them for control.
@@ -105,6 +226,9 @@ export function RotundaCarousel({
     if (isGridRef.current) return;
     const radius = radiusRef.current;
     if (!radius || !count) return;
+    if (frameRef.current && ambientTweenRef.current) {
+      frameRef.current.dataset.ambientScale = String(ambientTweenRef.current.timeScale());
+    }
     const step = 360 / count;
     const rot = rotation.current.deg;
 
@@ -131,9 +255,9 @@ export function RotundaCarousel({
 
     if (nearest !== activeIndexRef.current) {
       activeIndexRef.current = nearest;
-      setActiveIndex(nearest);
+      onActiveChange?.(nearest);
     }
-  }, [count]);
+  }, [count, onActiveChange]);
 
   const playAmbient = React.useCallback(() => {
     if (reducedMotion) return;
@@ -354,12 +478,106 @@ export function RotundaCarousel({
     setManualPaused(next);
   };
 
+  const startNavShimmer = (which: "previous" | "next") => {
+    if (shimmerTimerRef.current) window.clearTimeout(shimmerTimerRef.current);
+    if (shimmerPauseTimerRef.current) window.clearTimeout(shimmerPauseTimerRef.current);
+    shimmerStartedAtRef.current = performance.now();
+    setNavVisual({ which, phase: "running" });
+    if (!isGridRef.current && !manualPausedRef.current && ambientTweenRef.current) {
+      navPausedAmbientRef.current = true;
+      navSlowTweenRef.current?.kill();
+      navSlowProxyRef.current.scale = ambientTweenRef.current.timeScale();
+      navSlowTweenRef.current = gsap.to(navSlowProxyRef.current, {
+        scale: 0,
+        duration: (NAV_SHIMMER_DURATION * 0.5) / 1000,
+        // A linear speed ramp makes the deceleration visibly continuous;
+        // power2.out drops most of the speed in the first few frames and
+        // reads as an immediate stop.
+        ease: "none",
+        overwrite: true,
+        onUpdate: () => ambientTweenRef.current?.timeScale(navSlowProxyRef.current.scale),
+      });
+    }
+    shimmerPauseTimerRef.current = window.setTimeout(() => {
+      setNavVisual((current) => current?.which === which && current.phase === "running"
+        ? { which, phase: "paused" }
+        : current);
+      shimmerPauseTimerRef.current = null;
+    }, NAV_SHIMMER_DURATION * 0.5);
+  };
+
+  const finishNavShimmer = (which: "previous" | "next") => {
+    if (shimmerTimerRef.current) window.clearTimeout(shimmerTimerRef.current);
+    if (shimmerPauseTimerRef.current) window.clearTimeout(shimmerPauseTimerRef.current);
+    const elapsed = performance.now() - shimmerStartedAtRef.current;
+    const current = navVisual?.which === which ? navVisual.phase : "running";
+    const remaining = current === "paused"
+      ? NAV_SHIMMER_DURATION * 0.5
+      : Math.max(0, NAV_SHIMMER_DURATION - elapsed);
+    setNavVisual({ which, phase: "finishing" });
+    if (navPausedAmbientRef.current && ambientTweenRef.current) {
+      navSlowTweenRef.current?.kill();
+      navSlowProxyRef.current.scale = ambientTweenRef.current.timeScale();
+      navSlowTweenRef.current = gsap.to(navSlowProxyRef.current, {
+        scale: 1,
+        duration: Math.max(remaining, 1) / 1000,
+        ease: "none",
+        overwrite: true,
+        onUpdate: () => ambientTweenRef.current?.timeScale(navSlowProxyRef.current.scale),
+      });
+    }
+    shimmerTimerRef.current = window.setTimeout(() => {
+      setNavVisual({ which, phase: "fading" });
+      if (navPausedAmbientRef.current) {
+        navPausedAmbientRef.current = false;
+        navSlowTweenRef.current?.kill();
+        if (!ambientTweenRef.current) playAmbient();
+      }
+      shimmerTimerRef.current = window.setTimeout(() => setNavVisual(null), 360);
+    }, remaining);
+  };
+
+  const rotateByCard = (direction: 1 | -1) => {
+    if (!count) return;
+    if (isGridRef.current) {
+      const pages = Math.max(1, Math.ceil(count / GRID_BATCH_SIZE));
+      const slotCount = Math.min(GRID_BATCH_SIZE, count);
+      const allSlots = new Set(Array.from({ length: slotCount }, (_, index) => index));
+      previousFlatSlotsRef.current = allSlots;
+      setFlatChangeSlots(allSlots);
+      setFlatTransitionDirection(direction);
+      setGridPage((page) => (page + direction + pages) % pages);
+      return;
+    }
+    ambientTweenRef.current?.kill();
+    inertiaTweenRef.current?.kill();
+    gsap.to(rotation.current, {
+      deg: rotation.current.deg + direction * (360 / count),
+      duration: 0.8,
+      ease: "power2.inOut",
+      overwrite: true,
+      onUpdate: paint,
+      onComplete: playAmbient,
+    });
+  };
+
+  React.useEffect(() => {
+    if (!isGrid || count <= GRID_BATCH_SIZE) return;
+    const timer = window.setInterval(() => {
+      const pages = Math.max(1, Math.ceil(count / GRID_BATCH_SIZE));
+      const slotCount = Math.min(GRID_BATCH_SIZE, count);
+      const selectedSlots = pickFlatSlots(slotCount, previousFlatSlotsRef.current);
+      previousFlatSlotsRef.current = selectedSlots;
+      setFlatChangeSlots(selectedSlots);
+      setFlatTransitionDirection(null);
+      setGridPage((page) => (page + 1) % pages);
+    }, 4500);
+    return () => window.clearInterval(timer);
+  }, [count, isGrid]);
+
   const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (isGridRef.current || reducedMotion || !count) return;
     event.currentTarget.setPointerCapture(event.pointerId);
-    ambientTweenRef.current?.kill();
-    ambientTweenRef.current = null;
-    inertiaTweenRef.current?.kill();
     movedRef.current = false;
     dragRef.current = {
       id: event.pointerId,
@@ -375,7 +593,12 @@ export function RotundaCarousel({
     if (!drag || drag.id !== event.pointerId) return;
 
     const dx = event.clientX - drag.x;
-    if (Math.abs(dx) > 4) movedRef.current = true;
+    if (Math.abs(dx) > 4 && !movedRef.current) {
+      movedRef.current = true;
+      ambientTweenRef.current?.kill();
+      ambientTweenRef.current = null;
+      inertiaTweenRef.current?.kill();
+    }
 
     const radius = radiusRef.current || 200;
     const deltaDeg = (dx / radius) * (180 / Math.PI);
@@ -406,13 +629,17 @@ export function RotundaCarousel({
     // killed the ambient tween above, so nothing moves between down and up.
     if (!movedRef.current && !isGridRef.current) {
       const target = document.elementFromPoint(event.clientX, event.clientY);
-      const cardEl = target instanceof Element ? target.closest<HTMLElement>("[data-slide-index]") : null;
+      const eventTarget = event.target instanceof Element ? event.target : null;
+      const cardEl = (target instanceof Element ? target.closest<HTMLElement>("[data-slide-index]") : null)
+        ?? eventTarget?.closest<HTMLElement>("[data-slide-index]");
       if (cardEl) {
         const index = Number(cardEl.dataset.slideIndex);
         if (Number.isInteger(index)) {
           onSelect?.(index, cardEl.getBoundingClientRect());
         }
       }
+      playAmbient();
+      return;
     }
 
     // Let a flick carry and settle, then hand back to the ambient spin.
@@ -435,22 +662,24 @@ export function RotundaCarousel({
       ambientTweenRef.current?.kill();
       inertiaTweenRef.current?.kill();
       boostTweenRef.current?.kill();
+      navSlowTweenRef.current?.kill();
+      if (shimmerTimerRef.current) window.clearTimeout(shimmerTimerRef.current);
+      if (shimmerPauseTimerRef.current) window.clearTimeout(shimmerPauseTimerRef.current);
     },
     [],
   );
 
   if (count === 0) return null;
 
-  const active = slides[activeIndex];
 
   return (
     <div
-      className={cn("w-full", className)}
+      className={cn("rotunda-gallery w-full", className)}
       style={{ ["--rc-card-w" as string]: CARD_W, ["--rc-card-h" as string]: CARD_H }}
       role="region"
       aria-label={label}
     >
-      <div className="relative">
+      <div className="rotunda-gallery__stage">
         <div
           ref={frameRef}
           tabIndex={-1}
@@ -458,6 +687,12 @@ export function RotundaCarousel({
           onPointerMove={onPointerMove}
           onPointerUp={endDrag}
           onPointerCancel={endDrag}
+          onKeyDown={(event) => {
+            if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
+              event.preventDefault();
+              rotateByCard(event.key === "ArrowRight" ? 1 : -1);
+            }
+          }}
           className={cn(
             "outline-none",
             // Ring-mode cards are pushed out via translateZ/rotateY well
@@ -487,8 +722,7 @@ export function RotundaCarousel({
         >
           <div
             className={cn(
-              isGrid &&
-                "grid grid-cols-[repeat(auto-fill,minmax(var(--rc-card-w),1fr))] gap-6",
+              isGrid && "columns-2 gap-2 sm:columns-3 lg:columns-4",
             )}
             style={
               isGrid
@@ -496,17 +730,22 @@ export function RotundaCarousel({
                 : { position: "relative", height: "var(--rc-card-h)", transformStyle: "preserve-3d" }
             }
           >
-            {slides.map((slide, index) => (
+            {(isGrid
+              ? Array.from({ length: Math.min(GRID_BATCH_SIZE, count) }, (_, slot) => slides[(gridPage * GRID_BATCH_SIZE + slot) % count])
+              : slides
+            ).map((slide, index) => {
+              const actualIndex = isGrid ? gridPage * GRID_BATCH_SIZE + index : index;
+              return (
               <div
-                key={slide.id}
+                key={isGrid ? `flat-slot-${index}` : slide.id}
                 ref={(node) => {
                   cardRefs.current[index] = node;
                 }}
                 role="group"
                 aria-roledescription="slide"
-                aria-label={slide.title ? `${slide.title}, ${index + 1} of ${count}` : `${index + 1} of ${count}`}
+                aria-label={slide.title ? `${slide.title}, ${actualIndex + 1} of ${count}` : `${actualIndex + 1} of ${count}`}
                 tabIndex={0}
-                data-slide-index={index}
+                data-slide-index={actualIndex}
                 onClick={(event) => {
                   // Ring mode's selection is handled in endDrag (see its
                   // comment) — a continuously-animating card can't rely on
@@ -514,17 +753,17 @@ export function RotundaCarousel({
                   // is static, so the plain click works fine there.
                   if (!isGrid) return;
                   if (movedRef.current) return;
-                  onSelect?.(index, event.currentTarget.getBoundingClientRect());
+                  onSelect?.(actualIndex, event.currentTarget.getBoundingClientRect());
                 }}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
-                    onSelect?.(index, event.currentTarget.getBoundingClientRect());
+                    onSelect?.(actualIndex, event.currentTarget.getBoundingClientRect());
                   }
                 }}
                 className={cn(
-                  "will-change-transform cursor-pointer overflow-hidden rounded-none border-2 border-line bg-panel shadow-xl outline-none ring-focus focus-visible:ring-2",
-                  isGrid ? "relative flex flex-col" : "absolute left-1/2 top-1/2",
+                  "rotunda-card will-change-transform cursor-pointer overflow-hidden rounded-none border-2 border-line bg-panel shadow-xl outline-none ring-focus focus-visible:ring-2",
+                  isGrid ? "rotunda-card--grid relative mb-2 block break-inside-avoid" : "absolute left-1/2 top-1/2",
                 )}
                 style={
                   isGrid
@@ -532,60 +771,68 @@ export function RotundaCarousel({
                     : { width: "var(--rc-card-w)", height: "var(--rc-card-h)" }
                 }
               >
-                <FallbackImage
-                  src={slide.src}
-                  alt={slide.alt}
-                  draggable={false}
-                  loading="lazy"
-                  decoding="async"
-                  className={cn(
-                    "select-none object-cover",
-                    isGrid ? "aspect-[3/4] w-full" : "h-full w-full",
-                  )}
-                />
-                {isGrid && (slide.title || slide.subtitle) && (
-                  <div className="flex flex-col items-start gap-0.5 border-t-2 border-line bg-panel/80 px-3 py-2">
-                    {slide.title && (
-                      <p className="font-[family-name:var(--font-display)] text-[13px] font-semibold tracking-tight text-ink">
-                        {slide.title}
-                      </p>
-                    )}
-                    {slide.subtitle && (
-                      <p className="text-[12px] text-muted">{slide.subtitle}</p>
-                    )}
-                  </div>
+                {isGrid ? (
+                  <FlatArtworkSlot
+                    slide={slide}
+                    slot={index}
+                    allowChange={flatChangeSlots.has(index)}
+                    transitionDirection={flatTransitionDirection}
+                  />
+                ) : (
+                  <>
+                    <motion.div
+                      layoutId={`artwork-image-${slide.id}`}
+                      className="h-full w-full"
+                    >
+                      <FallbackImage
+                        src={slide.src}
+                        alt={slide.alt}
+                        draggable={false}
+                        loading="lazy"
+                        decoding="async"
+                        className="h-full w-full select-none object-cover"
+                      />
+                    </motion.div>
+                    {(slide.title || slide.subtitle || slide.price) ? (
+                      <div className="rotunda-card__meta">
+                        {slide.title ? <strong>{slide.title}</strong> : null}
+                        {slide.subtitle ? <span>{slide.subtitle}</span> : null}
+                        {slide.price ? <span>{slide.price}</span> : null}
+                        <button type="button" className="rotunda-card__purchase">
+                          Inquire to purchase
+                        </button>
+                      </div>
+                    ) : null}
+                  </>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
         {!reducedMotion && (
-          <button
-            type="button"
-            onClick={togglePause}
-            aria-label={paused ? "Resume rotation" : "Pause rotation"}
-            aria-pressed={manualPaused}
-            className="absolute right-3 top-3 z-[200] rounded-none border-2 border-line bg-panel/80 p-2 text-ink backdrop-blur transition hover:bg-panel focus-visible:outline-none focus-visible:ring-2 ring-focus"
-          >
-            {paused ? <Play className="size-4" /> : <Pause className="size-4" />}
-          </button>
+          <>
+            <button type="button" onPointerDown={(event) => { event.stopPropagation(); startNavShimmer("previous"); }} onPointerUp={(event) => event.stopPropagation()} onMouseEnter={() => startNavShimmer("previous")} onMouseLeave={() => finishNavShimmer("previous")} onFocus={() => startNavShimmer("previous")} onBlur={() => finishNavShimmer("previous")} onClick={() => rotateByCard(-1)} aria-label="Show previous artwork" className={cn("rotunda-nav rotunda-nav--previous", navVisual?.which === "previous" && `rotunda-nav--${navVisual.phase}`)}>
+              <ArrowLeft className="size-5" aria-hidden="true" />
+            </button>
+            <button type="button" onPointerDown={(event) => { event.stopPropagation(); startNavShimmer("next"); }} onPointerUp={(event) => event.stopPropagation()} onMouseEnter={() => startNavShimmer("next")} onMouseLeave={() => finishNavShimmer("next")} onFocus={() => startNavShimmer("next")} onBlur={() => finishNavShimmer("next")} onClick={() => rotateByCard(1)} aria-label="Show next artwork" className={cn("rotunda-nav rotunda-nav--next", navVisual?.which === "next" && `rotunda-nav--${navVisual.phase}`)}>
+              <ArrowRight className="size-5" aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              onClick={togglePause}
+              aria-label={paused ? "Resume rotation" : "Pause rotation"}
+              aria-pressed={manualPaused}
+              title={paused ? "Resume artwork rotation" : "Pause artwork rotation"}
+              className="rotunda-rotation-control absolute right-0 top-[-5.2rem] z-[200] rounded-none border-2 border-line bg-panel/80 p-2 text-ink backdrop-blur transition hover:bg-panel focus-visible:outline-none focus-visible:ring-2 ring-focus"
+            >
+              {paused ? <ScanLine className="size-5" aria-hidden="true" /> : <Orbit className="size-5" aria-hidden="true" />}
+            </button>
+          </>
         )}
       </div>
 
-      {!isGrid && active?.title && (
-        <div
-          key={activeIndex}
-          className="mt-2 flex flex-col items-center px-6"
-        >
-          <p className="font-[family-name:var(--font-display)] text-[15px] font-semibold tracking-tight text-ink">
-            {active.title}
-          </p>
-          {active.subtitle && (
-            <p className="mt-1 text-[13px] text-muted">{active.subtitle}</p>
-          )}
-        </div>
-      )}
     </div>
   );
 }

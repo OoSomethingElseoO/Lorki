@@ -46,6 +46,11 @@ type SettingsFormProps = {
     operationsEmail: string;
     siteName: string;
     heroTagline: string;
+    heroHeadlineWords: {
+      first: string[];
+      second: string[];
+      third: string[];
+    };
     heroImageUrl: string;
     heroAlt: string;
     missionStatement: string;
@@ -81,7 +86,7 @@ export function SettingsForm({ initial }: SettingsFormProps) {
     setSuccess(false);
 
     const form = new FormData(event.currentTarget);
-    const body: Record<string, string> = {};
+    const body: Record<string, unknown> = {};
 
     // Secrets: only send if the admin actually typed something new — a
     // blank field means "leave the stored value alone."
@@ -98,6 +103,17 @@ export function SettingsForm({ initial }: SettingsFormProps) {
       const value = form.get(key);
       body[key] = typeof value === "string" ? value : "";
     }
+
+    const headlineWords = (key: "first" | "second" | "third") =>
+      String(form.get(`heroHeadlineWords_${key}`) ?? "")
+        .split(",")
+        .map((word) => word.trim())
+        .filter(Boolean);
+    body.heroHeadlineWords = {
+      first: headlineWords("first"),
+      second: headlineWords("second"),
+      third: headlineWords("third"),
+    };
 
     const response = await fetch("/api/admin/settings", {
       method: "PATCH",
@@ -161,6 +177,27 @@ export function SettingsForm({ initial }: SettingsFormProps) {
                 defaultValue={initial.heroTagline}
                 placeholder="Original artwork, collected with care."
               />
+
+              <p className="admin-form__hint">
+                Headline words rotate one final word at a time. Add comma-separated options for each line; keep the
+                grammar compatible with its fixed prefix.
+              </p>
+              {(["first", "second", "third"] as const).map((key, index) => {
+                const words = initial.heroHeadlineWords as Record<string, unknown> | null;
+                const value = Array.isArray(words?.[key]) ? (words?.[key] as unknown[]).join(", ") : "";
+                const label = ["Sell", "Own", "Protect"][index];
+                return (
+                  <div key={key}>
+                    <label htmlFor={`heroHeadlineWords_${key}`}>{label} …</label>
+                    <input
+                      id={`heroHeadlineWords_${key}`}
+                      name={`heroHeadlineWords_${key}`}
+                      defaultValue={value}
+                      placeholder={key === "third" ? "wildlife, lions, elephants" : "art, masterpieces, originals"}
+                    />
+                  </div>
+                );
+              })}
 
               <ImageUploadField name="heroImageUrl" label="Hero image" defaultValue={initial.heroImageUrl} />
               <p className="admin-form__hint">

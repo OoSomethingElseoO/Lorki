@@ -13,10 +13,8 @@ type BuyButtonProps = {
 };
 
 export function BuyButton({ artworkId, title, priceCents, customerEmail }: BuyButtonProps) {
-  const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const isLoggedIn = Boolean(customerEmail);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -26,7 +24,7 @@ export function BuyButton({ artworkId, title, priceCents, customerEmail }: BuyBu
     const response = await fetch("/api/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(isLoggedIn ? { artworkId } : { artworkId, buyerEmail: email }),
+      body: JSON.stringify({ artworkId }),
     });
 
     const data = await response.json().catch(() => ({}));
@@ -48,23 +46,8 @@ export function BuyButton({ artworkId, title, priceCents, customerEmail }: BuyBu
 
   return (
     <form className="buy-form" onSubmit={handleSubmit} aria-label={`Buy ${title}`}>
-      {isLoggedIn ? null : (
-        <>
-          <label className="sr-only" htmlFor={`email-${artworkId}`}>
-            Email for order confirmation
-          </label>
-          <input
-            id={`email-${artworkId}`}
-            type="email"
-            required
-            placeholder="you@example.com"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-          />
-        </>
-      )}
       <Button type="submit" disabled={submitting}>
-        {submitting ? "Redirecting…" : `Buy — $${(priceCents / 100).toFixed(2)}`}
+        {submitting ? "Opening checkout…" : `Continue to payment — $${(priceCents / 100).toFixed(2)}`}
       </Button>
       {error ? <p className="buy-form__error">{error}</p> : null}
     </form>

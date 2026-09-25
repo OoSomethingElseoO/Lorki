@@ -10,7 +10,12 @@ const navLinks = [
   { label: "News", href: "/admin/news" },
   { label: "Orders", href: "/admin/orders" },
   { label: "Payouts", href: "/admin/payouts" },
+  { label: "Reconciliation", href: "/admin/reconciliation" },
+  { label: "Activity", href: "/admin/activity" },
+  { label: "Shares", href: "/admin/share-analytics" },
+  { label: "Security", href: "/admin/security" },
   { label: "Inquiries", href: "/admin/inquiries" },
+  { label: "Offers", href: "/admin/offers" },
   { label: "Users", href: "/admin/users" },
   { label: "Settings", href: "/admin/settings" },
 ];

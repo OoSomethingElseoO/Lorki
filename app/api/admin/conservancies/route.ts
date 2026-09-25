@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth";
+import { checkPermission, unauthorized } from "@/lib/permissions";
+import { recordAudit } from "@/lib/audit";
 
 export async function GET() {
+  const { authorized } = checkPermission(await getCurrentUser(), "OPS_ADMIN");
+  if (!authorized) return unauthorized("OPS_ADMIN");
   const conservancies = await prisma.conservancy.findMany({ orderBy: { createdAt: "desc" } });
   return NextResponse.json({ conservancies });
 }
@@ -15,6 +20,9 @@ type CreateBody = {
 };
 
 export async function POST(request: Request) {
+  const user = await getCurrentUser();
+  const { authorized } = checkPermission(user, "OPS_ADMIN");
+  if (!authorized) return unauthorized("OPS_ADMIN");
   const body = (await request.json()) as Partial<CreateBody>;
 
   if (!body.name || !body.region || !body.mission || !body.website || !body.contactEmail) {
@@ -37,6 +45,8 @@ export async function POST(request: Request) {
       verifiedAt: new Date(),
     },
   });
+
+  await recordAudit({ action: "CONSERVANCY_CREATED", affectedEntityType: "Conservancy", affectedEntityId: conservancy.id, reason: "Operations administrator created a conservancy", changedBy: user!.email, metadata: { name: conservancy.name } });
 
   return NextResponse.json({ conservancy }, { status: 201 });
 }

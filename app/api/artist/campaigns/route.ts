@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { DEFAULT_SPLIT } from "@/lib/payouts";
 import { isUniqueConstraintError, uniqueConstraintResponse } from "@/lib/prisma-errors";
 import { slugify } from "@/lib/slugify";
+import { recordAudit } from "@/lib/audit";
 
 export async function GET() {
   const currentUser = await getCurrentUser();
@@ -84,6 +85,7 @@ export async function POST(request: Request) {
         status: "DRAFT",
       },
     });
+    await recordAudit({ action: "ARTIST_CAMPAIGN_CREATED", affectedEntityType: "Campaign", affectedEntityId: campaign.id, reason: "Artist created a draft campaign", changedBy: currentUser!.email, metadata: { animalId: campaign.animalId, conservancyId: campaign.conservancyId } });
 
     return NextResponse.json({ campaign }, { status: 201 });
   } catch (error) {

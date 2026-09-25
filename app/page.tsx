@@ -83,6 +83,7 @@ export default async function Home() {
         <Hero
           eyebrow="Original art, real impact"
           headline={branding.heroTagline}
+          headlineWords={branding.heroHeadlineWords}
           subline="Each piece funds the conservancy protecting its subject."
           images={heroImages}
         />
@@ -93,14 +94,7 @@ export default async function Home() {
               <TextBlockAnimation blockColor="var(--gold)">
                 <h2>Originals</h2>
               </TextBlockAnimation>
-              {featured ? (
-                <p>
-                  <strong>{featured.title}</strong> by {featured.artistName} — ${(featured.priceCents / 100).toFixed(2)}.{" "}
-                  {originalsResult.totalCount > 1 ? `${originalsResult.totalCount} originals available now.` : null}
-                </p>
-              ) : (
-                <p>New originals are on the way — check back soon.</p>
-              )}
+              {!featured ? <p>New originals are on the way — check back soon.</p> : null}
             </div>
             {carouselArtworks.length > 0 ? (
               <>

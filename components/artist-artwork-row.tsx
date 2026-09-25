@@ -15,6 +15,8 @@ type ArtistArtworkRowProps = {
     altText: string;
     story: string | null;
     inventoryState: string;
+    saleMode: "FIXED_PRICE" | "OFFERS" | "AUCTION";
+    offerClosesAt: Date | null;
   };
   causeName: string;
 };
@@ -41,6 +43,8 @@ export function ArtistArtworkRow({ artwork, causeName }: ArtistArtworkRowProps) 
               imageUrl: artwork.imageUrl,
               altText: artwork.altText,
               story: artwork.story,
+              saleMode: artwork.saleMode,
+              offerClosesAt: artwork.offerClosesAt,
             }}
             onSaved={() => setIsEditing(false)}
           />

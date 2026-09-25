@@ -6,6 +6,7 @@ import { AccessibleModal } from "@/components/accessible-modal";
 import { BuyButton } from "@/components/buy-button";
 import { InquiryForm } from "@/components/inquiry-form";
 import { FallbackImage } from "@/components/ui/fallback-image";
+import { ShareButton } from "@/components/share-button";
 
 type ArtistGalleryProps = {
   artworks: StorefrontArtwork[];
@@ -56,6 +57,13 @@ export function ArtistGallery({ artworks, customerEmail }: ArtistGalleryProps) {
         {selectedArtwork ? (
           <div className="modal-artwork">
             <FallbackImage src={selectedArtwork.imageUrl} alt={selectedArtwork.altText} />
+            <ShareButton
+              url={`/artworks/${selectedArtwork.id}`}
+              title={`${selectedArtwork.title} — Lorki Originals`}
+              text={`View ${selectedArtwork.title} by ${selectedArtwork.artistName}.`}
+              targetType="artwork"
+              targetId={selectedArtwork.id}
+            />
             {selectedArtwork.kind === "ORIGINAL" ? (
               <InquiryForm artworkId={selectedArtwork.id} title={selectedArtwork.title} customerEmail={customerEmail} />
             ) : (
