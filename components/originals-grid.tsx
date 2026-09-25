@@ -6,6 +6,7 @@ import { ArrowUpRight, CircleUserRound, ShoppingBag } from "lucide-react";
 import { LayoutGrid } from "@/components/ui/layout-grid";
 import { InquiryForm } from "@/components/inquiry-form";
 import { SharedArtworkModal } from "@/components/shared-artwork-modal";
+import { ArtworkSkeletonGrid } from "@/components/artwork-skeleton-grid";
 import type { StorefrontArtwork } from "@/lib/storefront";
 
 type OriginalsGridProps = {
@@ -123,7 +124,7 @@ export function OriginalsGrid({ artworks: initialArtworks, customerEmail, initia
       <LayoutGrid cards={cards} className="card-grid card-grid--masonry" onCardSelect={(card) => setSelectedId(String(card.id))} />
       <SharedArtworkModal artwork={selected} onClose={() => setSelectedId(null)} customerEmail={customerEmail} />
       <div ref={sentinelRef} className="infinite-scroll-sentinel" aria-hidden="true" />
-      {loading ? <p className="centered-copy" role="status">Loading more originals…</p> : null}
+      {loading ? <ArtworkSkeletonGrid count={4} /> : null}
       {loadError ? <p className="centered-copy" role="alert">{loadError}</p> : null}
     </>
   );
