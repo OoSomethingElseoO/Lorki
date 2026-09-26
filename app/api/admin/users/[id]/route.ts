@@ -1,13 +1,31 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
-import { SESSION_COOKIE, verifyUserSessionToken } from "@/lib/auth";
 import { isNotFoundError } from "@/lib/prisma-errors";
 import { getCurrentUser } from "@/lib/auth";
 import { checkPermission, unauthorized } from "@/lib/permissions";
 import { recordAudit } from "@/lib/audit";
+import { apiContractError } from "@/lib/api-contract";
+import { sendMfaReminderEmail } from "@/lib/email";
+import { getSettings } from "@/lib/settings";
+import { readJsonObject } from "@/lib/request-json";
 
 type RouteParams = { params: Promise<{ id: string }> };
+
+export async function POST(request: Request, { params }: RouteParams) {
+  const currentUser = await getCurrentUser(request);
+  const { authorized } = checkPermission(currentUser, "OPS_ADMIN");
+  if (!authorized) return unauthorized("OPS_ADMIN");
+  const { id } = await params;
+  const body = await readJsonObject(request) as { action?: string } | null;
+  if (body?.action !== "SEND_MFA_REMINDER") return apiContractError("INVALID_INPUT", "Unsupported user action", 400);
+  const target = await prisma.user.findUnique({ where: { id } });
+  if (!target) return apiContractError("NOT_FOUND", "User not found", 404);
+  if (target.mfaEnabled) return apiContractError("CONFLICT", "MFA is already enabled for this user", 409);
+  const settings = await getSettings();
+  await sendMfaReminderEmail(target.email, settings.siteName?.trim() || "Lorki Originals");
+  await recordAudit({ action: "MFA_REMINDER_SENT", affectedEntityType: "User", affectedEntityId: id, reason: "Administrator sent an MFA enrollment reminder", changedBy: currentUser!.email, metadata: { targetEmail: target.email } });
+  return NextResponse.json({ ok: true });
+}
 
 // "Delete" here means revoke admin access, not destroy the account — the
 // target row is a shared identity that may also be an artist (linked
@@ -15,30 +33,27 @@ type RouteParams = { params: Promise<{ id: string }> };
 // take those down with it. Setting isAdmin back to false is the correct
 // operation; the account itself, and anything else attached to it, is
 // untouched.
-export async function DELETE(_request: Request, { params }: RouteParams) {
-  const currentUser = await getCurrentUser();
+export async function DELETE(request: Request, { params }: RouteParams) {
+  const currentUser = await getCurrentUser(request);
   const { authorized } = checkPermission(currentUser, "SUPER_ADMIN");
   if (!authorized) return unauthorized("SUPER_ADMIN");
   const { id } = await params;
 
   const target = await prisma.user.findUnique({ where: { id } });
   if (!target || !target.isAdmin) {
-    return NextResponse.json({ error: "Admin not found" }, { status: 404 });
+    return apiContractError("NOT_FOUND", "Admin not found", 404);
   }
 
   // Never let the app lock itself out of /admin entirely.
   const totalAdmins = await prisma.user.count({ where: { isAdmin: true } });
   if (totalAdmins <= 1) {
-    return NextResponse.json({ error: "Can't remove the last remaining admin" }, { status: 400 });
+    return apiContractError("CONFLICT", "Can't remove the last remaining admin", 400);
   }
 
   // Never let an admin remove their own access — avoids an accidental
   // self-lockout when they're the only one currently signed in.
-  const cookieStore = await cookies();
-  const currentUserId = await verifyUserSessionToken(cookieStore.get(SESSION_COOKIE)?.value);
-
-  if (currentUserId === id) {
-    return NextResponse.json({ error: "You can't remove your own admin access while signed in as it" }, { status: 400 });
+  if (currentUser?.id === id) {
+    return apiContractError("CONFLICT", "You can't remove your own admin access while signed in as it", 400);
   }
 
   try {
@@ -47,7 +62,7 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
     return NextResponse.json({ ok: true });
   } catch (error) {
     if (isNotFoundError(error)) {
-      return NextResponse.json({ error: "Admin not found" }, { status: 404 });
+      return apiContractError("NOT_FOUND", "Admin not found", 404);
     }
     throw error;
   }

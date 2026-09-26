@@ -48,6 +48,7 @@ in the application database.
 - `AUDIT_ARCHIVE_ROLE_ARN`
 - `AUDIT_ARCHIVE_AWS_REGION`
 - `AUDIT_ARCHIVE_BUCKET`
+- `OUTBOX_WORKER_SECRET`
 
 Generate application secrets with:
 
@@ -71,6 +72,13 @@ support tickets.
 Object Lock remains outside the application database so a compromised app or
 database credential cannot rewrite archived audit records.
 
+The archive workflow also writes a SHA-256 sidecar object under the same locked
+prefix. Treat the NDJSON object and its sidecar as one record: download both,
+verify `sha256sum -c audit.ndjson.sha256`, and record the object key and checksum
+in the incident/change ticket. The export endpoint exposes a truncation header;
+the workflow refuses to archive a truncated response so a 5,000-row query cap
+cannot silently become a false-complete archive.
+
 ## WAF and secret-manager prerequisites
 
 Put the deployed hostname behind the selected WAF/CDN, enable managed rules and
@@ -86,6 +94,39 @@ old values after successful deployment.
 - [ ] GitHub Actions hourly jobs return successful JSON responses.
 - [ ] The nightly job writes a locked S3 object.
 - [ ] Invalid cron secrets are rejected.
+- [ ] The hourly workflow drains the outbox and returns a JSON result.
+- [ ] An invalid outbox secret returns `401`.
+- [ ] Failed outbox delivery retries and eventually becomes `FAILED` after five attempts.
 - [ ] WAF blocks a test rate-limit request while allowing normal traffic.
 - [ ] Secret rotation has been tested with the old value revoked.
 - [ ] Retention has been reviewed against Kenyan legal and provider obligations.
+
+## Restore drill
+
+Run the restore drill against a disposable Neon branch or separate PostgreSQL
+instance, never the production `DATABASE_URL`:
+
+```bash
+RESTORE_DATABASE_URL="postgresql://...disposable-restore..." \
+  npx prisma migrate deploy
+RESTORE_DATABASE_URL="postgresql://...disposable-restore..." \
+  npm run restore:drill
+```
+
+The script refuses an unspecified restore URL and refuses an exact match with
+`DATABASE_URL`. It verifies connectivity, completed Prisma migrations, and the
+presence/counts of critical audit, provider-event, order, and artwork tables.
+The manual GitHub Actions workflow (`Restore drill`) runs the same check with a
+`RESTORE_DATABASE_URL` repository secret. It does not create, mutate, or restore
+production data automatically. Record the timestamp, latest migration,
+row-count output, and time-to-ready after each drill.
+
+## Notification templates
+
+Operations administrators can edit notification subjects and bodies from
+`/admin/settings` under **Notifications**. Templates support placeholders such
+as `{{artworkTitle}}`, `{{amount}}`, `{{tracking}}`, `{{decision}}`, and
+`{{siteName}}`. Values are HTML-escaped before rendering. Missing or malformed
+templates fall back to the built-in defaults. Provider credentials still use
+the admin-settings-over-environment fallback and are encrypted at rest when
+`SETTINGS_ENCRYPTION_KEY` is configured.

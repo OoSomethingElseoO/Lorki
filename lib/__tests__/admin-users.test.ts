@@ -5,17 +5,20 @@
 // Calling it directly exercises exactly the route's own validation,
 // hashing, and uniqueness handling.
 import "dotenv/config";
-import { test } from "node:test";
+import { before, test } from "node:test";
 import assert from "node:assert/strict";
 import { GET, POST } from "@/app/api/admin/users/route";
 import { prisma } from "@/lib/prisma";
+import { adminHeaders, initTestAdmin } from "./test-auth";
+
+before(initTestAdmin);
 
 const unique = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 function createRequest(body: unknown) {
   return new Request("http://localhost/api/admin/users", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: adminHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(body),
   });
 }
@@ -26,7 +29,7 @@ test("creating an admin user succeeds, hashes the password, and returns isAdmin:
     await prisma.user.deleteMany({ where: { email } });
   });
 
-  const response = await POST(createRequest({ name: "Test Admin", email, password: "password123" }));
+  const response = await POST(createRequest({ name: "Test Admin", email, password: "AdminStrongPass1!", passwordConfirmation: "AdminStrongPass1!" }));
   assert.equal(response.status, 201);
   const body = await response.json();
   assert.equal(body.user.email, email);
@@ -64,10 +67,10 @@ test("creating an admin user with a duplicate email is rejected with 409", async
     await prisma.user.deleteMany({ where: { email } });
   });
 
-  const first = await POST(createRequest({ name: "First Admin", email, password: "password123" }));
+  const first = await POST(createRequest({ name: "First Admin", email, password: "AdminStrongPass1!", passwordConfirmation: "AdminStrongPass1!" }));
   assert.equal(first.status, 201);
 
-  const second = await POST(createRequest({ name: "Second Admin", email, password: "password456" }));
+  const second = await POST(createRequest({ name: "Second Admin", email, password: "AdminOtherPass1!", passwordConfirmation: "AdminOtherPass1!" }));
   assert.equal(second.status, 409);
 
   const count = await prisma.user.count({ where: { email } });
@@ -77,14 +80,14 @@ test("creating an admin user with a duplicate email is rejected with 409", async
 test("GET lists only isAdmin: true users, never a non-admin one", async (t) => {
   const adminEmail = `admin-user-list-${unique()}@example.com`;
   const nonAdminEmail = `non-admin-list-${unique()}@example.com`;
-  const created = await POST(createRequest({ name: "List Admin", email: adminEmail, password: "password123" }));
+  const created = await POST(createRequest({ name: "List Admin", email: adminEmail, password: "AdminListPass1!", passwordConfirmation: "AdminListPass1!" }));
   assert.equal(created.status, 201);
   const nonAdmin = await prisma.user.create({ data: { email: nonAdminEmail, passwordHash: "not-a-real-hash", isAdmin: false } });
   t.after(async () => {
     await prisma.user.deleteMany({ where: { email: { in: [adminEmail, nonAdminEmail] } } });
   });
 
-  const response = await GET();
+  const response = await GET(new Request("http://localhost/api/admin/users", { headers: adminHeaders() }));
   assert.equal(response.status, 200);
   const body = await response.json();
   assert.ok(body.users.some((user: { email: string }) => user.email === adminEmail), "admin user must be listed");

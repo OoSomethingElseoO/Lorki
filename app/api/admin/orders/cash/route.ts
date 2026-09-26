@@ -6,6 +6,8 @@ import { attemptAutomaticPayout } from "@/lib/payout-channels";
 import { getCurrentUser } from "@/lib/auth";
 import { checkPermission, unauthorized } from "@/lib/permissions";
 import { recordAudit } from "@/lib/audit";
+import { apiContractError } from "@/lib/api-contract";
+import { readJsonObject } from "@/lib/request-json";
 
 type CashSaleBody = {
   artworkId: string;
@@ -29,13 +31,14 @@ type CashSaleBody = {
 // there, an authenticated admin here. Shipping fields are optional since a
 // cash sale is often handed over in person with nothing to ship.
 export async function POST(request: Request) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUser(request);
   const { authorized } = checkPermission(user, "FINANCE_ADMIN");
   if (!authorized) return unauthorized("FINANCE_ADMIN");
-  const body = (await request.json()) as Partial<CashSaleBody>;
+  const body = await readJsonObject(request) as Partial<CashSaleBody> | null;
+  if (!body) return apiContractError("INVALID_JSON", "Request body must be a JSON object", 400);
 
   if (!body.artworkId || !body.buyerEmail) {
-    return NextResponse.json({ error: "artworkId and buyerEmail are required" }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", "artworkId and buyerEmail are required", 400);
   }
 
   const artwork = await prisma.artwork.findUnique({
@@ -48,7 +51,7 @@ export async function POST(request: Request) {
   });
 
   if (!artwork) {
-    return NextResponse.json({ error: "Artwork not found" }, { status: 404 });
+    return apiContractError("NOT_FOUND", "Artwork not found", 404);
   }
 
   // RESERVED is expected and fine here, not a block — it's exactly the
@@ -57,10 +60,10 @@ export async function POST(request: Request) {
   // that reservation is meant to resolve. Only an already-SOLD piece
   // should actually refuse a second sale.
   if (artwork.inventoryState === "SOLD") {
-    return NextResponse.json({ error: "Artwork is not available" }, { status: 409 });
+    return apiContractError("CONFLICT", "Artwork is not available", 409);
   }
   if (artwork.currentHighestOfferAmountCents !== null && artwork.priceCents < artwork.currentHighestOfferAmountCents) {
-    return NextResponse.json({ error: "Cannot record a cash sale below the current highest valid offer" }, { status: 409 });
+    return apiContractError("CONFLICT", "Cannot record a cash sale below the current highest valid offer", 409);
   }
 
   const inPerson = body.inPerson === true;
@@ -68,7 +71,7 @@ export async function POST(request: Request) {
   const conservancy = artwork.campaign.animal?.conservancy ?? artwork.campaign.conservancy;
 
   if (!conservancy) {
-    return NextResponse.json({ error: "Campaign has no conservancy — cannot complete sale" }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", "Campaign has no conservancy — cannot complete sale", 400);
   }
 
   const order = await prisma.$transaction(async (tx) => {

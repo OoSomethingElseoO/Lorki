@@ -21,7 +21,7 @@ export default async function AccountLayout({ children }: { children: ReactNode 
   ];
 
   return (
-    <DashboardShell title="My Account" navLinks={navLinks} variant="brand">
+    <DashboardShell title="My Account" navLinks={navLinks} variant="brand" layout="tabs">
       {children}
     </DashboardShell>
   );

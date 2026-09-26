@@ -5,9 +5,12 @@ import { isUniqueConstraintError, uniqueConstraintResponse } from "@/lib/prisma-
 import { getCurrentUser } from "@/lib/auth";
 import { checkPermission, unauthorized } from "@/lib/permissions";
 import { recordAudit } from "@/lib/audit";
+import { apiContractError } from "@/lib/api-contract";
+import { validatePassword } from "@/lib/validation";
+import { readJsonObject } from "@/lib/request-json";
 
-export async function GET() {
-  const user = await getCurrentUser();
+export async function GET(request: Request) {
+  const user = await getCurrentUser(request);
   const { authorized } = checkPermission(user, "SUPER_ADMIN");
   if (!authorized) return unauthorized("SUPER_ADMIN");
   const users = await prisma.user.findMany({
@@ -22,29 +25,35 @@ type CreateBody = {
   name: string;
   email: string;
   password: string;
+  passwordConfirmation: string;
 };
 
 export async function POST(request: Request) {
-  const currentUser = await getCurrentUser();
+  const currentUser = await getCurrentUser(request);
   const { authorized } = checkPermission(currentUser, "SUPER_ADMIN");
   if (!authorized) return unauthorized("SUPER_ADMIN");
-  const body = (await request.json()) as Partial<CreateBody>;
+  const body = await readJsonObject(request) as Partial<CreateBody> | null;
+  if (!body) return apiContractError("INVALID_JSON", "Request body must be a JSON object", 400);
 
-  if (!body.name || !body.email || !body.password) {
-    return NextResponse.json({ error: "name, email, and password are required" }, { status: 400 });
+  if (!body.name || !body.email || !body.password || !body.passwordConfirmation) {
+    return apiContractError("VALIDATION_ERROR", "name, email, password, and password confirmation are required", 400);
   }
 
-  if (body.password.length < 8) {
-    return NextResponse.json({ error: "Password must be at least 8 characters" }, { status: 400 });
+  const passwordError = validatePassword(body.password, { email: body.email, name: body.name });
+  if (passwordError) {
+    return apiContractError("VALIDATION_ERROR", passwordError, 400);
   }
+  if (body.password !== body.passwordConfirmation) return apiContractError("VALIDATION_ERROR", "Passwords do not match", 400, { field: "passwordConfirmation" });
 
   try {
+    const passwordHash = await hashPassword(body.password);
     const user = await prisma.user.create({
       data: {
         name: body.name,
         email: body.email.toLowerCase().trim(),
-        passwordHash: await hashPassword(body.password),
+        passwordHash,
         isAdmin: true,
+        passwordHistory: { create: { passwordHash } },
       },
       select: { id: true, email: true, name: true, createdAt: true },
     });

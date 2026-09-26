@@ -2,11 +2,16 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { toCsv } from "@/lib/csv";
 import { getCampaignLabel } from "@/lib/campaigns";
+import { getCurrentUser } from "@/lib/auth";
+import { checkPermission, unauthorized } from "@/lib/permissions";
 
 // Exports every order matching the same search as /admin/orders — not just
 // the current page — since a report an admin pulls offline should reflect
 // the whole filtered set, not one page's worth of rows.
 export async function GET(request: Request) {
+  const { authorized } = checkPermission(await getCurrentUser(request), "OPS_ADMIN");
+  if (!authorized) return unauthorized("OPS_ADMIN");
+
   const url = new URL(request.url);
   const query = url.searchParams.get("q")?.trim();
 

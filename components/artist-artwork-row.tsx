@@ -19,9 +19,10 @@ type ArtistArtworkRowProps = {
     offerClosesAt: Date | null;
   };
   causeName: string;
+  auctionsEnabled?: boolean;
 };
 
-export function ArtistArtworkRow({ artwork, causeName }: ArtistArtworkRowProps) {
+export function ArtistArtworkRow({ artwork, causeName, auctionsEnabled = false }: ArtistArtworkRowProps) {
   const [isEditing, setIsEditing] = useState(false);
   // Once sold, the piece is immutable — /api/artist/artworks/[id] already
   // 409s any PATCH/DELETE on it (a buyer's order now references the exact
@@ -47,6 +48,7 @@ export function ArtistArtworkRow({ artwork, causeName }: ArtistArtworkRowProps) 
               offerClosesAt: artwork.offerClosesAt,
             }}
             onSaved={() => setIsEditing(false)}
+            auctionsEnabled={auctionsEnabled}
           />
         </td>
       </tr>

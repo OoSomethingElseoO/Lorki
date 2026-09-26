@@ -21,9 +21,10 @@ type ArtistArtworkFormProps = {
     offerClosesAt: Date | string | null;
   };
   onSaved: () => void;
+  auctionsEnabled?: boolean;
 };
 
-export function ArtistArtworkForm({ id, initial, onSaved }: ArtistArtworkFormProps) {
+export function ArtistArtworkForm({ id, initial, onSaved, auctionsEnabled = false }: ArtistArtworkFormProps) {
   const router = useRouter();
   const { error, clearErrors, setError, getFieldError } = useFormErrors();
   const { validators } = useFormValidation();
@@ -146,7 +147,7 @@ export function ArtistArtworkForm({ id, initial, onSaved }: ArtistArtworkFormPro
       <select id="saleMode" name="saleMode" defaultValue={initial.saleMode} disabled={initial.kind !== "ORIGINAL"}>
         <option value="FIXED_PRICE">Fixed price</option>
         <option value="OFFERS">Accept offers</option>
-        <option value="AUCTION">Timed auction</option>
+        <option value="AUCTION" disabled={!auctionsEnabled}>Timed auction{!auctionsEnabled ? " (not enabled)" : ""}</option>
       </select>
       <input
         name="offerClosesAt"
@@ -155,6 +156,7 @@ export function ArtistArtworkForm({ id, initial, onSaved }: ArtistArtworkFormPro
         disabled={initial.saleMode !== "AUCTION"}
         aria-label="Auction closing time"
       />
+      {!auctionsEnabled ? <p className="admin-form__hint">Auctions are currently disabled. Enable FEATURE_AUCTIONS before publishing a timed auction.</p> : null}
 
       <div>
         <input

@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
+import { apiContractError } from "@/lib/api-contract";
 import { prisma } from "@/lib/prisma";
 import { getFlutterwaveWebhookSecret } from "@/lib/settings";
 import { sendOperationsAlert } from "@/lib/email";
+import { shouldIgnoreDuplicateInboxEvent } from "@/lib/webhook-inbox";
 
 // Flutterwave transfers start "NEW" (see lib/payout-channels/mpesa-flutterwave.ts)
 // and confirm asynchronously here. Verification uses Flutterwave's
@@ -16,7 +18,7 @@ export async function POST(request: Request) {
 
   if (!expectedSecret || !receivedSecret || receivedSecret !== expectedSecret) {
     console.error("[flutterwave:webhook] Invalid or missing webhook signature");
-    return NextResponse.json({ error: "Invalid or missing webhook signature" }, { status: 400 });
+    return apiContractError("WEBHOOK_SIGNATURE_INVALID", "Invalid or missing webhook signature", 400);
   }
 
   const event = await request.json().catch(() => null);
@@ -38,8 +40,13 @@ export async function POST(request: Request) {
       data: { provider: "FLUTTERWAVE", externalId: externalEventId, eventType: "transfer.status", payload: JSON.parse(JSON.stringify(event)) },
     });
   } catch (error) {
-    if ((error as { code?: string }).code === "P2002") return NextResponse.json({ received: true, duplicate: true });
-    throw error;
+    if ((error as { code?: string }).code !== "P2002") throw error;
+    const existing = await prisma.paymentProviderEvent.findUnique({ where: { provider_externalId: { provider: "FLUTTERWAVE", externalId: externalEventId } } });
+    if (!existing || shouldIgnoreDuplicateInboxEvent(existing.status as "RECEIVED" | "PROCESSED" | "FAILED" | undefined)) return NextResponse.json({ received: true, duplicate: true });
+    providerEvent = await prisma.paymentProviderEvent.update({
+      where: { id: existing.id },
+      data: { status: "RECEIVED", error: null, processedAt: null },
+    });
   }
 
   // ✅ IDEMPOTENCY: Check if we already processed this transfer

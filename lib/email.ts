@@ -1,19 +1,38 @@
 import nodemailer from "nodemailer";
 import { prisma } from "@/lib/prisma";
-import { getEmailFrom, getOperationsEmail, getResendApiKey, getSmtpConfig, type SmtpConfig } from "@/lib/settings";
+import { getEmailFrom, getOperationsEmail, getResendApiKey, getSmtpConfig, getSettings, normalizeEmailTemplates, type SmtpConfig } from "@/lib/settings";
+import { CircuitBreaker } from "@/lib/reliability";
 
 type SendResult = { ok: true } | { ok: false; error: string };
 
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>\"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[character] ?? character);
+}
+
+async function sendTemplate(key: keyof ReturnType<typeof normalizeEmailTemplates>, to: string, variables: Record<string, string>): Promise<void> {
+  const settings = await getSettings();
+  const template = normalizeEmailTemplates(settings.emailTemplates)[key];
+  const replace = (text: string) => text.replace(/{{\s*([a-zA-Z0-9_]+)\s*}}/g, (_, name: string) => escapeHtml(variables[name] ?? ""));
+  await sendEmail(to, replace(template.subject), `<p>${replace(template.body).replace(/\n/g, "</p><p>")}</p>`);
+}
+
+const resendCircuit = new CircuitBreaker(3, 30_000);
+
 async function sendViaResend(apiKey: string, from: string, to: string, subject: string, html: string): Promise<SendResult> {
   try {
-    const response = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ from, to: [to], subject, html }),
-    });
+    const response = await resendCircuit.run(() => fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        // Email sends are deliberately not retried: unlike payout requests,
+        // repeating this POST can duplicate a customer notification. The
+        // circuit breaker prevents repeatedly paying the timeout cost while
+        // SMTP remains the existing fallback.
+        signal: AbortSignal.timeout(10_000),
+        body: JSON.stringify({ from, to: [to], subject, html }),
+      }));
 
     if (!response.ok) {
       return { ok: false, error: `Resend responded ${response.status}: ${await response.text().catch(() => "")}` };
@@ -68,7 +87,7 @@ async function logEmail(
 // EmailLog — sendEmail never throwing means the console.log this used to
 // rely on was the only record of whether anything actually went out, and
 // that vanishes with the process.
-async function sendEmail(to: string, subject: string, html: string): Promise<void> {
+export async function sendEmail(to: string, subject: string, html: string): Promise<void> {
   const from = await getEmailFrom();
   const resendApiKey = await getResendApiKey();
   const smtpConfig = await getSmtpConfig();
@@ -105,12 +124,7 @@ export async function sendOrderConfirmationEmail(params: {
   artworkTitle: string;
   amountCents: number;
 }) {
-  const amount = (params.amountCents / 100).toFixed(2);
-  await sendEmail(
-    params.buyerEmail,
-    `Your order: ${params.artworkTitle}`,
-    `<p>Thanks for your order.</p><p><strong>${params.artworkTitle}</strong> — $${amount}</p><p>We'll email you again once it ships.</p>`,
-  );
+  await sendTemplate("orderConfirmation", params.buyerEmail, { artworkTitle: params.artworkTitle, amount: `$${(params.amountCents / 100).toFixed(2)}` });
 }
 
 export async function sendShippingNotificationEmail(params: {
@@ -119,15 +133,8 @@ export async function sendShippingNotificationEmail(params: {
   carrier: string;
   trackingNumber?: string | null;
 }) {
-  const tracking = params.trackingNumber
-    ? `<p>Tracking number: ${params.trackingNumber} (${params.carrier})</p>`
-    : `<p>Shipped via ${params.carrier}.</p>`;
-
-  await sendEmail(
-    params.buyerEmail,
-    `Your order has shipped: ${params.artworkTitle}`,
-    `<p><strong>${params.artworkTitle}</strong> is on its way.</p>${tracking}`,
-  );
+  const tracking = params.trackingNumber ? `${params.trackingNumber} (${params.carrier})` : `Shipped via ${params.carrier}`;
+  await sendTemplate("shipping", params.buyerEmail, { artworkTitle: params.artworkTitle, tracking });
 }
 
 export async function sendPasswordResetEmail(params: { to: string; resetUrl: string }) {
@@ -139,20 +146,22 @@ export async function sendPasswordResetEmail(params: { to: string; resetUrl: str
 }
 
 export async function sendRefundConfirmationEmail(params: { buyerEmail: string; artworkTitle: string; amountCents: number }) {
-  const amount = (params.amountCents / 100).toFixed(2);
-  await sendEmail(
-    params.buyerEmail,
-    `Your refund: ${params.artworkTitle}`,
-    `<p>Your order for <strong>${params.artworkTitle}</strong> ($${amount}) has been refunded.</p><p>If you paid by card, the refund should appear on your statement within a few business days.</p>`,
-  );
+  await sendTemplate("refund", params.buyerEmail, { artworkTitle: params.artworkTitle, amount: `$${(params.amountCents / 100).toFixed(2)}` });
 }
 
 export async function sendInquiryConfirmationEmail(params: { email: string; artworkTitle: string }) {
-  await sendEmail(
-    params.email,
-    `We received your inquiry: ${params.artworkTitle}`,
-    `<p>Thanks for your interest in <strong>${params.artworkTitle}</strong>.</p><p>This is a one-of-one original, so we arrange these sales personally — someone from our team will be in touch with you by email shortly to sort out payment and shipping.</p>`,
-  );
+  await sendTemplate("inquiryConfirmation", params.email, { artworkTitle: params.artworkTitle });
+}
+
+export async function sendWelcomeEmail(to: string, siteName: string) { await sendTemplate("welcome", to, { siteName, productsUrl: "/products" }); }
+export async function sendDeletionRequestedEmail(to: string, siteName: string) { await sendTemplate("deletionRequested", to, { siteName }); }
+export async function sendDeletionDecisionEmail(to: string, decision: string, note: string) { await sendTemplate("deletionDecision", to, { decision, note }); }
+export async function sendOfferNotificationEmail(to: string, artworkTitle: string, amount: string, decision?: string) { await sendTemplate(decision ? "offerDecision" : "offerSubmitted", to, { artworkTitle, amount, decision: decision ?? "received" }); }
+export async function sendPayoutNotificationEmail(to: string, artworkTitle: string, amount: string, status: string) { await sendTemplate("payout", to, { artworkTitle, amount, status }); }
+export async function sendWorkVisibilityEmail(to: string, count: number, action: string) { await sendTemplate("workVisibility", to, { count: String(count), action }); }
+export async function sendMfaReminderEmail(to: string, siteName = "Lorki Originals") { await sendTemplate("mfaReminder", to, { siteName }); }
+export async function sendMfaEmailOtp(to: string, code: string, siteName = "Lorki Originals") {
+  await sendEmail(to, `${siteName} sign-in code`, `<p>Your one-time sign-in code is <strong>${escapeHtml(code)}</strong>.</p><p>It expires in 10 minutes. If you did not request this, change your password and contact support.</p>`);
 }
 
 export async function sendOperationsAlert(subject: string, html: string) {

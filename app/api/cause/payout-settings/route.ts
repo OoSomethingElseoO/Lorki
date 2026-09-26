@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { validatePayoutSettings, validateTextField } from "@/lib/validation";
+import { conservancyRequired } from "@/lib/authorization";
+import { apiContractError } from "@/lib/api-contract";
+import { readJsonObject } from "@/lib/request-json";
 
 type PayoutSettingsBody = {
   payoutChannel: "MANUAL" | "FLUTTERWAVE" | "CRYPTO";
@@ -27,16 +30,17 @@ const VALID_CHANNELS = ["MANUAL", "FLUTTERWAVE", "CRYPTO"];
 // separate name check — Stripe's own onboarding already verifies the
 // connected account's identity.
 export async function PATCH(request: Request) {
-  const currentUser = await getCurrentUser();
-  const cause = currentUser?.conservancy;
+  const currentUser = await getCurrentUser(request);
+  const cause = conservancyRequired(currentUser);
   if (!cause) {
-    return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+    return apiContractError("UNAUTHORIZED", "Not signed in", 401);
   }
 
-  const body = (await request.json()) as Partial<PayoutSettingsBody>;
+  const body = await readJsonObject(request) as Partial<PayoutSettingsBody> | null;
+  if (!body) return apiContractError("INVALID_JSON", "Request body must be a JSON object", 400);
 
   if (!body.payoutChannel || !VALID_CHANNELS.includes(body.payoutChannel)) {
-    return NextResponse.json({ error: `payoutChannel must be one of ${VALID_CHANNELS.join(", ")}` }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", `payoutChannel must be one of ${VALID_CHANNELS.join(", ")}`, 400);
   }
 
   // ✅ Comprehensive validation
@@ -50,7 +54,7 @@ export async function PATCH(request: Request) {
   });
 
   if (!validation.isValid) {
-    return NextResponse.json({ errors: validation.errors }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", "Invalid payout settings", 400, { errors: validation.errors });
   }
 
   // ✅ Account holder name validation (org name, not individual)
@@ -61,7 +65,7 @@ export async function PATCH(request: Request) {
       name: "Account holder name",
     });
     if (nameError) {
-      return NextResponse.json({ error: nameError }, { status: 400 });
+      return apiContractError("VALIDATION_ERROR", nameError, 400);
     }
   }
 

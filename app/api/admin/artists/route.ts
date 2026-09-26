@@ -5,9 +5,11 @@ import { isUniqueConstraintError, uniqueConstraintResponse } from "@/lib/prisma-
 import { getCurrentUser } from "@/lib/auth";
 import { checkPermission, unauthorized } from "@/lib/permissions";
 import { recordAudit } from "@/lib/audit";
+import { apiContractError } from "@/lib/api-contract";
+import { readJsonObject } from "@/lib/request-json";
 
-export async function GET() {
-  const { authorized } = checkPermission(await getCurrentUser(), "OPS_ADMIN");
+export async function GET(request: Request) {
+  const { authorized } = checkPermission(await getCurrentUser(request), "OPS_ADMIN");
   if (!authorized) return unauthorized("OPS_ADMIN");
   const artists = await prisma.artist.findMany({
     include: { socialLinks: true, coOp: true },
@@ -26,19 +28,20 @@ type CreateBody = {
 };
 
 export async function POST(request: Request) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUser(request);
   const { authorized } = checkPermission(user, "OPS_ADMIN");
   if (!authorized) return unauthorized("OPS_ADMIN");
-  const body = (await request.json()) as Partial<CreateBody>;
+  const body = await readJsonObject(request) as Partial<CreateBody> | null;
+  if (!body) return apiContractError("INVALID_JSON", "Request body must be a JSON object", 400);
 
   if (!body.name || !body.country || !body.bio || !body.imageUrl) {
-    return NextResponse.json({ error: "name, country, bio, and imageUrl are required" }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", "name, country, bio, and imageUrl are required", 400);
   }
 
   if (body.coOpId) {
     const coOp = await prisma.coOp.findUnique({ where: { id: body.coOpId } });
     if (!coOp) {
-      return NextResponse.json({ error: "coOpId does not match an existing co-op" }, { status: 400 });
+      return apiContractError("VALIDATION_ERROR", "coOpId does not match an existing co-op", 400);
     }
   }
 

@@ -5,6 +5,7 @@ import { isPayoutRevivable } from "@/lib/payouts";
 import { getCurrentUser } from "@/lib/auth";
 import { checkPermission, unauthorized } from "@/lib/permissions";
 import { recordAudit } from "@/lib/audit";
+import { apiContractError } from "@/lib/api-contract";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -21,8 +22,8 @@ type RouteParams = { params: Promise<{ id: string }> };
 // identical. Deliberately no guard on the order's own disputedAt/status:
 // same "trust the admin's judgment on the real-world facts" reasoning as
 // the refund route.
-export async function POST(_request: Request, { params }: RouteParams) {
-  const user = await getCurrentUser();
+export async function POST(request: Request, { params }: RouteParams) {
+  const user = await getCurrentUser(request);
   const { authorized } = checkPermission(user, "FINANCE_ADMIN");
   if (!authorized) return unauthorized("FINANCE_ADMIN");
   const { id } = await params;
@@ -45,14 +46,11 @@ export async function POST(_request: Request, { params }: RouteParams) {
   });
 
   if (!payout) {
-    return NextResponse.json({ error: "Payout not found" }, { status: 404 });
+    return apiContractError("NOT_FOUND", "Payout not found", 404);
   }
 
   if (!isPayoutRevivable(payout.status)) {
-    return NextResponse.json(
-      { error: `Cannot revive — payout status is ${payout.status}, not FAILED` },
-      { status: 409 },
-    );
+    return apiContractError("CONFLICT", `Cannot revive — payout status is ${payout.status}, not FAILED`, 409);
   }
 
   const updated = await prisma.payout.update({

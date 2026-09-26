@@ -5,6 +5,8 @@ import { isPriceTooLow, MIN_PRICE_CENTS } from "@/lib/pricing";
 import { getCurrentUser } from "@/lib/auth";
 import { checkPermission, unauthorized } from "@/lib/permissions";
 import { recordAudit } from "@/lib/audit";
+import { apiContractError } from "@/lib/api-contract";
+import { readJsonObject } from "@/lib/request-json";
 
 type RouteParams = { params: Promise<{ id: string; artworkId: string }> };
 
@@ -18,33 +20,31 @@ type UpdateBody = {
 };
 
 export async function PATCH(request: Request, { params }: RouteParams) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUser(request);
   const { authorized } = checkPermission(user, "OPS_ADMIN");
   if (!authorized) return unauthorized("OPS_ADMIN");
   const { id, artworkId } = await params;
-  const body = (await request.json()) as Partial<UpdateBody>;
+  const body = await readJsonObject(request) as Partial<UpdateBody> | null;
+  if (!body) return apiContractError("INVALID_JSON", "Request body must be a JSON object", 400);
 
   if (!body.title || !body.kind || typeof body.priceCents !== "number" || !body.imageUrl || !body.altText) {
-    return NextResponse.json(
-      { error: "title, kind, priceCents, imageUrl, and altText are required" },
-      { status: 400 },
-    );
+    return apiContractError("VALIDATION_ERROR", "title, kind, priceCents, imageUrl, and altText are required", 400);
   }
 
   if (body.kind !== "ORIGINAL" && body.kind !== "PRINT") {
-    return NextResponse.json({ error: "kind must be ORIGINAL or PRINT" }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", "kind must be ORIGINAL or PRINT", 400);
   }
 
   if (isPriceTooLow(body.priceCents)) {
-    return NextResponse.json({ error: `priceCents must be at least ${MIN_PRICE_CENTS}` }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", `priceCents must be at least ${MIN_PRICE_CENTS}`, 400);
   }
 
   const artwork = await prisma.artwork.findUnique({ where: { id: artworkId } });
   if (!artwork || artwork.campaignId !== id) {
-    return NextResponse.json({ error: "Artwork not found on this campaign" }, { status: 404 });
+    return apiContractError("NOT_FOUND", "Artwork not found on this campaign", 404);
   }
   if (artwork.currentHighestOfferAmountCents !== null && body.priceCents < artwork.currentHighestOfferAmountCents) {
-    return NextResponse.json({ error: "Price cannot be below the current highest valid offer" }, { status: 409 });
+    return apiContractError("CONFLICT", "Price cannot be below the current highest valid offer", 409);
   }
 
   try {
@@ -65,21 +65,21 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     return NextResponse.json({ artwork: updated });
   } catch (error) {
     if (isNotFoundError(error)) {
-      return NextResponse.json({ error: "Artwork not found" }, { status: 404 });
+      return apiContractError("NOT_FOUND", "Artwork not found", 404);
     }
     throw error;
   }
 }
 
-export async function DELETE(_request: Request, { params }: RouteParams) {
-  const user = await getCurrentUser();
+export async function DELETE(request: Request, { params }: RouteParams) {
+  const user = await getCurrentUser(request);
   const { authorized } = checkPermission(user, "OPS_ADMIN");
   if (!authorized) return unauthorized("OPS_ADMIN");
   const { id, artworkId } = await params;
 
   const artwork = await prisma.artwork.findUnique({ where: { id: artworkId } });
   if (!artwork || artwork.campaignId !== id) {
-    return NextResponse.json({ error: "Artwork not found on this campaign" }, { status: 404 });
+    return apiContractError("NOT_FOUND", "Artwork not found on this campaign", 404);
   }
 
   try {
@@ -88,7 +88,7 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
     return NextResponse.json({ ok: true });
   } catch (error) {
     if (isNotFoundError(error)) {
-      return NextResponse.json({ error: "Artwork not found" }, { status: 404 });
+      return apiContractError("NOT_FOUND", "Artwork not found", 404);
     }
     if (isForeignKeyConstraintError(error)) {
       return foreignKeyConstraintResponse("This artwork already has orders against it and can't be deleted");

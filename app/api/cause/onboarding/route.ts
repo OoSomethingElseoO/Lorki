@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { apiContractError } from "@/lib/api-contract";
+import { readJsonObject } from "@/lib/request-json";
 
 type OnboardBody = {
   name: string;
@@ -17,31 +19,20 @@ type OnboardBody = {
 // account into a cause, no separate signup, no new credentials, no admin
 // approval step.
 export async function POST(request: Request) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUser(request);
   if (!user) {
-    return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+    return apiContractError("UNAUTHORIZED", "Not signed in", 401);
   }
 
   if (user.conservancy) {
-    return NextResponse.json({ error: "You already have a cause profile" }, { status: 409 });
+    return apiContractError("CONFLICT", "You already have a cause profile", 409);
   }
 
-  // One account, one role — mirrors /api/artist/onboarding's check. An
-  // artist can't also register as a cause on the same login.
-  if (user.artist) {
-    return NextResponse.json(
-      { error: "This account is already registered as an artist — one account can't be both an artist and a cause." },
-      { status: 409 },
-    );
-  }
-
-  const body = (await request.json()) as Partial<OnboardBody>;
+  const body = await readJsonObject(request) as Partial<OnboardBody> | null;
+  if (!body) return apiContractError("INVALID_JSON", "Request body must be a JSON object", 400);
 
   if (!body.name || !body.region || !body.mission || !body.website || !body.contactEmail || !body.registrationNumber) {
-    return NextResponse.json(
-      { error: "name, region, mission, website, contactEmail, and registrationNumber are required" },
-      { status: 400 },
-    );
+    return apiContractError("VALIDATION_ERROR", "name, region, mission, website, contactEmail, and registrationNumber are required", 400);
   }
 
   const conservancy = await prisma.conservancy.create({

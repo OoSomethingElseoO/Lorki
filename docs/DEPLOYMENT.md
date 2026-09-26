@@ -16,9 +16,20 @@ Set these at runtime, on whatever host runs the container (not baked into the im
 | `STRIPE_SECRET_KEY` | No | Can be left unset and entered later via `/admin/settings` (DB value overrides env). |
 | `STRIPE_WEBHOOK_SECRET` | No | Same — set via `/admin/settings` once a webhook endpoint is registered in the Stripe dashboard. |
 | `RESEND_API_KEY`, `EMAIL_FROM`, `OPERATIONS_EMAIL` | No | Same — settable via `/admin/settings`. |
+
+Password recovery uses `RESEND_API_KEY` first and SMTP settings (`SMTP_HOST`,
+`SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`) as fallback. Without either provider,
+reset requests are recorded as skipped in `EmailLog` and no message reaches the
+user; verify delivery in a staging mailbox before production launch.
+
+Admin-entered provider credentials are encrypted before being stored in Neon.
+Set `SETTINGS_ENCRYPTION_KEY` to a stable randomly generated 32-byte base64 or
+64-character hex value in the deployment secret manager. Keep it separate from
+`DATABASE_URL`; losing it makes encrypted provider settings unreadable.
 | `RECONCILIATION_CRON_SECRET` | No | Required to call the internal rolling reconciliation sweep. Store it in the scheduler, never in client code. |
 | `SECURITY_ALERT_CRON_SECRET` | No | Required to run threshold-based security alerts from an external scheduler. |
 | `AUDIT_EXPORT_SECRET` | No | Required to export audit/provider events to an external Object-Lock/WORM archive job. |
+| `OUTBOX_WORKER_SECRET` | Yes when outbox processing is enabled | Shared secret for the scheduler/worker that drains durable transactional outbox jobs. Never expose it to browser code. |
 
 ### GitHub Actions scheduler
 
@@ -38,6 +49,7 @@ Configure these repository secrets before enabling the workflow:
 - `RECONCILIATION_CRON_SECRET`
 - `SECURITY_ALERT_CRON_SECRET`
 - `AUDIT_EXPORT_SECRET`
+- `OUTBOX_WORKER_SECRET`
 - `AUDIT_ARCHIVE_ROLE_ARN` (an AWS IAM role trusted by GitHub's OIDC provider)
 - `AUDIT_ARCHIVE_AWS_REGION`
 - `AUDIT_ARCHIVE_BUCKET` (an S3 bucket created with Object Lock enabled)
@@ -62,6 +74,45 @@ npx prisma migrate deploy
 ```
 
 against the target `DATABASE_URL`. Do this from a machine/CI step with network access to the production database — the running container doesn't do it for you. Run `npx prisma db seed` once afterward (with `ADMIN_EMAIL`/`ADMIN_PASSWORD` set) to create the first admin login.
+
+### Health and rollout checks
+
+The container exposes two unauthenticated, read-only checks:
+
+```bash
+curl -fsS https://your-host.example/api/health/live
+curl -fsS https://your-host.example/api/health/ready
+```
+
+`/api/health/live` proves only that the Node process can serve requests; it
+does not query Postgres. `/api/health/ready` runs `SELECT 1` and returns HTTP
+503 when the database dependency is unavailable. Keep them separate in the
+load balancer: a database outage should drain traffic without restarting a
+healthy process in a loop. Both responses preserve the `x-request-id`
+correlation header when one was supplied (or the proxy-generated ID when the
+request passed through `proxy.ts`).
+
+For each deploy, run migrations before switching traffic, then verify both
+checks and one authenticated read-only page. The image does not run migrations
+implicitly, so a failed migration cannot be hidden by a partially-started
+application.
+
+### Restore verification (not just backup configuration)
+
+Backups are not considered verified until a disposable restore has been tested.
+Use a separate database branch/instance and never point a restore test at the
+production `DATABASE_URL`:
+
+```bash
+DATABASE_URL="$RESTORE_DATABASE_URL" npx prisma migrate deploy
+DATABASE_URL="$RESTORE_DATABASE_URL" npx prisma db seed
+DATABASE_URL="$RESTORE_DATABASE_URL" npx prisma validate
+```
+
+Then exercise `/api/health/ready` against that instance and run the read-only
+smoke tests from CI. Record the restore timestamp, migration version, critical
+table row counts, and time-to-ready. This is a human/CI runbook step; the
+application deliberately does not restore or mutate a database automatically.
 
 ## Reconciliation sweep
 
@@ -89,6 +140,55 @@ The endpoint requires a `FINANCE_ADMIN` session, is idempotent for the same prov
 The external archive job can pull `/api/internal/audit/export?since=...` with `AUDIT_EXPORT_SECRET` and write the NDJSON response to an Object-Lock bucket. The app does not treat its own database as the immutable archive.
 
 Run `/api/internal/security/alerts` hourly with `SECURITY_ALERT_CRON_SECRET` to evaluate refund, payout, admin-access, critical-case, and missing-record thresholds. Alerts are deduplicated for one hour through the append-only audit ledger.
+
+## Background outbox worker
+
+Payment webhooks enqueue durable side effects (currently order-confirmation
+email) in `OutboxJob` as part of the same database transaction as the order
+mutation. A scheduler or separate worker must periodically `POST` to
+`/api/internal/outbox` with the `x-outbox-worker-secret` header. Jobs are
+deduplicated, reclaimed after a five-minute worker lease, and marked `FAILED`
+after five attempts. The endpoint bounds each batch and returns `429` when the
+pending/processing backlog reaches its safety limit; monitor that condition
+instead of retrying forever.
+
+The included GitHub Actions workflow calls this endpoint hourly with a batch
+limit of 50. Add `OUTBOX_WORKER_SECRET` to repository secrets before enabling
+the workflow. Other schedulers should make the same authenticated request:
+
+```bash
+curl --fail-with-body --retry 3 --retry-all-errors \
+  -X POST "$BASE_URL/api/internal/outbox?limit=50" \
+  -H "x-outbox-worker-secret: $OUTBOX_WORKER_SECRET" \
+  -H 'content-type: application/json'
+```
+
+The request is safe to retry: claims are conditional, jobs are deduplicated,
+stale leases are reclaimed, and failed jobs stop after five attempts. Treat a
+`429` response as a backlog alarm rather than increasing the batch indefinitely.
+
+## Feature flags
+
+The supported flags are `FEATURE_AUCTIONS`, `FEATURE_AUTOMATIC_PAYOUTS`,
+`FEATURE_SHARE_ANALYTICS`, and `FEATURE_ORIGINALS_INFINITE_SCROLL`. Existing
+capabilities default on to preserve current behavior. Set a flag explicitly to
+`false` for a controlled disable; unknown values fall back to the existing
+default.
+
+## Database connection budget
+
+`DATABASE_POOL_MAX` controls the PostgreSQL connections available to each Node
+worker and defaults to `10` (bounded to `1..50`). Lorki runs one Prisma pool per
+worker, not one pool for the whole deployment. Set the value from the database
+provider's connection budget using:
+
+```text
+total possible connections = DATABASE_POOL_MAX × WEB_CONCURRENCY × instances
+```
+
+Leave headroom for migrations, admin tools, and background workers. For example,
+with a 40-connection database budget and four web workers, use a per-worker
+pool of `8` or lower rather than leaving every worker at `10`.
 
 ## Log retention
 

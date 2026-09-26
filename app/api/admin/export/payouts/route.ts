@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { toCsv } from "@/lib/csv";
+import { getCurrentUser } from "@/lib/auth";
+import { checkPermission, unauthorized } from "@/lib/permissions";
 
 type PayoutChannelFields = {
   payoutChannel: string;
@@ -28,6 +30,9 @@ function describeChannel(
 // Exports every RELEASED payout matching the same search as /admin/payouts,
 // not just the current page — see the sibling orders export for why.
 export async function GET(request: Request) {
+  const { authorized } = checkPermission(await getCurrentUser(request), "FINANCE_ADMIN");
+  if (!authorized) return unauthorized("FINANCE_ADMIN");
+
   const url = new URL(request.url);
   const query = url.searchParams.get("q")?.trim();
 

@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { apiContractError, apiJson } from "@/lib/api-contract";
 import { prisma } from "@/lib/prisma";
 import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
 import { sendInquiryConfirmationEmail, sendOperationsAlert } from "@/lib/email";
@@ -26,15 +26,15 @@ export async function POST(request: Request) {
 
   const ip = getRequestIp(request);
   if (await isRateLimited(`inquiry:${ip}`, INQUIRY_RATE_LIMIT, INQUIRY_RATE_WINDOW_MS)) {
-    return NextResponse.json({ error: "Too many inquiries. Please try again in a few minutes." }, { status: 429 });
+    return apiContractError("RATE_LIMITED", "Too many inquiries. Please try again in a few minutes.", 429);
   }
 
   const body = await readJsonObject(request) as Partial<InquiryBody> | null;
 
-  if (!body) return NextResponse.json({ error: "Request body must be a JSON object" }, { status: 400 });
+  if (!body) return apiContractError("INVALID_JSON", "Request body must be a JSON object", 400);
 
   if (!body.artworkId || !body.name || !body.email) {
-    return NextResponse.json({ error: "artworkId, name, and email are required" }, { status: 400 });
+    return apiContractError("INVALID_INPUT", "artworkId, name, and email are required", 400);
   }
 
   // ✅ Comprehensive validation
@@ -44,12 +44,12 @@ export async function POST(request: Request) {
     name: "Name",
   });
   if (nameError) {
-    return NextResponse.json({ error: nameError }, { status: 400 });
+    return apiContractError("INVALID_INPUT", nameError, 400, { field: "name" });
   }
 
   const emailError = validateEmail(body.email);
   if (emailError) {
-    return NextResponse.json({ error: emailError }, { status: 400 });
+    return apiContractError("INVALID_EMAIL", emailError, 400, { field: "email" });
   }
 
   if (body.message) {
@@ -58,18 +58,18 @@ export async function POST(request: Request) {
       name: "Message",
     });
     if (messageError) {
-      return NextResponse.json({ error: messageError }, { status: 400 });
+      return apiContractError("INVALID_INPUT", messageError, 400, { field: "message" });
     }
   }
 
   const artwork = await prisma.artwork.findUnique({ where: { id: body.artworkId } });
 
   if (!artwork) {
-    return NextResponse.json({ error: "Artwork not found" }, { status: 404 });
+    return apiContractError("NOT_FOUND", "Artwork not found", 404);
   }
 
   if (artwork.kind !== "ORIGINAL" || artwork.inventoryState !== "AVAILABLE") {
-    return NextResponse.json({ error: "This piece isn't available for inquiries" }, { status: 409 });
+    return apiContractError("ARTWORK_UNAVAILABLE", "This piece isn't available for inquiries", 409);
   }
 
   // Conditioned on inventoryState still being AVAILABLE in the same
@@ -86,7 +86,7 @@ export async function POST(request: Request) {
   });
 
   if (reserved.count === 0) {
-    return NextResponse.json({ error: "This piece isn't available for inquiries" }, { status: 409 });
+    return apiContractError("ARTWORK_UNAVAILABLE", "This piece isn't available for inquiries", 409);
   }
 
   const inquiry = await prisma.inquiry.create({
@@ -112,7 +112,7 @@ export async function POST(request: Request) {
     }<p>This piece is now held for ${holdMinutes} minutes and won't show as available to other visitors. Reply directly to their email to arrange payment and shipping — once agreed, record the sale from /admin/orders before the hold expires, or the piece goes back on sale automatically.</p>`,
   ).catch((e) => console.error("[inquiries:alert-failed]", e));
 
-  const response = NextResponse.json({ inquiry }, { status: 201 });
+  const response = apiJson({ inquiry }, { status: 201 });
   // ✅ Store idempotency response for future retries
   await storeIdempotencyResponse(
     request.headers.get("Idempotency-Key"),

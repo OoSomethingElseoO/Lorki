@@ -4,6 +4,7 @@ import "./globals.css";
 import { getBranding } from "@/lib/settings";
 import { StyledComponentsRegistry } from "@/lib/styled-components-registry";
 import { KineticSkew } from "@/components/kinetic-skew";
+import { headers } from "next/headers";
 
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -32,11 +33,12 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const nonce = (await headers()).get("x-csp-nonce") ?? undefined;
   return (
     // suppressHydrationWarning: the theme-init script below deliberately
     // mutates this element's data-theme attribute before hydration (to
@@ -48,7 +50,7 @@ export default function RootLayout({
         {/* Runs before paint so a stored theme preference applies
             immediately — without this, the page would flash the default
             theme and then snap to the stored one once React hydrates. */}
-        <script
+        <script nonce={nonce}
           dangerouslySetInnerHTML={{
             __html:
               '(function(){try{var t=localStorage.getItem("theme");if(t==="dark"||t==="light"){document.documentElement.setAttribute("data-theme",t);}}catch(e){}})();',
@@ -58,7 +60,7 @@ export default function RootLayout({
             can opt into starting hidden — content stays visible by default
             if this never runs (JS blocked/failed), instead of being stuck
             invisible waiting on an IntersectionObserver that never fires. */}
-        <script
+        <script nonce={nonce}
           dangerouslySetInnerHTML={{
             __html: 'document.documentElement.classList.add("js");',
           }}

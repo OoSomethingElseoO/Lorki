@@ -5,6 +5,7 @@ import { sendPasswordResetEmail } from "@/lib/email";
 import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
 import { validateEmail } from "@/lib/validation";
 import { readJsonObject } from "@/lib/request-json";
+import { apiContractError } from "@/lib/api-contract";
 
 const RATE_LIMIT = 5;
 const RATE_WINDOW_MS = 15 * 60 * 1000;
@@ -17,21 +18,21 @@ function hashToken(rawToken: string): string {
 export async function POST(request: Request) {
   const ip = getRequestIp(request);
   if (await isRateLimited(`forgot-password:${ip}`, RATE_LIMIT, RATE_WINDOW_MS)) {
-    return NextResponse.json({ error: "Too many attempts. Please try again later." }, { status: 429 });
+    return apiContractError("RATE_LIMITED", "Too many attempts. Please try again later.", 429);
   }
 
   const body = await readJsonObject(request) as Partial<{ email: string }> | null;
 
-  if (!body) return NextResponse.json({ error: "Request body must be a JSON object" }, { status: 400 });
+  if (!body) return apiContractError("INVALID_JSON", "Request body must be a JSON object", 400);
 
   if (!body.email) {
-    return NextResponse.json({ error: "Email is required" }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", "Email is required", 400);
   }
 
   // ✅ Email validation
   const emailError = validateEmail(body.email);
   if (emailError) {
-    return NextResponse.json({ error: emailError }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", emailError, 400);
   }
 
   const user = await prisma.user.findUnique({ where: { email: body.email.toLowerCase().trim() } });

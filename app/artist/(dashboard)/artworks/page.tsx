@@ -6,6 +6,7 @@ import { CardHeader } from "@/components/ui/card";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getCampaignCauseName } from "@/lib/campaigns";
+import { isFeatureEnabled } from "@/lib/feature-flags";
 
 export const dynamic = "force-dynamic";
 
@@ -44,7 +45,7 @@ export default async function ArtistArtworksPage() {
         </thead>
         <tbody>
           {artworks.map((artwork) => (
-            <ArtistArtworkRow key={artwork.id} artwork={artwork} causeName={getCampaignCauseName(artwork.campaign)} />
+            <ArtistArtworkRow key={artwork.id} artwork={artwork} causeName={getCampaignCauseName(artwork.campaign)} auctionsEnabled={isFeatureEnabled("AUCTIONS")} />
           ))}
           {artworks.length === 0 ? (
             <tr>

@@ -8,6 +8,10 @@ import { EmptyState } from "@/components/empty-state";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FallbackImage } from "@/components/ui/fallback-image";
+import { OriginalsGrid } from "@/components/originals-grid";
+import { AccountActionBar } from "@/components/account-action-bar";
+import { AccountDeletionRequest } from "@/components/account-deletion-request";
+import { getLiveArtworksByKind } from "@/lib/storefront";
 
 export const dynamic = "force-dynamic";
 
@@ -26,25 +30,43 @@ export default async function AccountPage() {
     redirect("/login");
   }
 
-  const orders = await prisma.order.findMany({
-    where: { customerId: user.id },
-    include: { artwork: true, shipment: true },
-    orderBy: { createdAt: "desc" },
-  });
+  const [{ items: featuredArtworks, page: featuredPage, totalPages: featuredTotalPages }, orders] = await Promise.all([
+    getLiveArtworksByKind("ORIGINAL", 1),
+    prisma.order.findMany({
+      where: { customerId: user.id },
+      include: { artwork: true, shipment: true },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
 
   return (
     <>
-      <h1>My Account</h1>
-      <p className="admin-form__hint">
-        Signed in as <strong>{user.name || user.email}</strong>
-      </p>
+      <AccountActionBar
+        name={user.name || ""}
+        email={user.email}
+        hasArtist={Boolean(user.artist)}
+        hasConservancy={Boolean(user.conservancy)}
+        mfaEnabled={user.mfaEnabled}
+      />
+      <section className="account-discover" aria-labelledby="account-discover-title">
+        <p className="eyebrow">For you</p>
+        <h1 id="account-discover-title">Discover original work</h1>
+        <p className="admin-form__hint">Explore new pieces from artists supporting conservation.</p>
+        {featuredArtworks.length > 0 ? (
+          <OriginalsGrid
+            artworks={featuredArtworks}
+            customerEmail={user.email}
+            initialPage={featuredPage}
+            totalPages={featuredTotalPages}
+            infiniteScrollEnabled={false}
+          />
+        ) : <p className="centered-copy">No originals are available right now.</p>}
+      </section>
 
       {(() => {
-        // One account can only ever be one of these (see the matching
-        // check in /api/artist/onboarding and /api/cause/onboarding) — so
-        // once a user has EITHER role there's nothing left to "get
-        // involved" with; show the section only while they have neither.
-        const showGetInvolved = !user.artist && !user.conservancy;
+        // A customer can add either capability independently. Keep the
+        // account dashboard useful even after one profile has been created.
+        const showGetInvolved = !user.artist || !user.conservancy;
 
         const orderHistory =
           orders.length === 0 ? (
@@ -79,45 +101,39 @@ export default async function AccountPage() {
           );
 
         const getInvolvedCards = (
-          // flexbox, not CSS grid with auto-fit: auto-fit's "collapse empty
-          // tracks" behavior doesn't redistribute their space to a single
-          // remaining item the way it looks like it should. flex-grow on
-          // each card shares the row evenly. Both cards always render
-          // together here — this whole block only renders when the user
-          // has neither role yet (see showGetInvolved above), and picking
-          // one is final, so there's no per-card "already have this one"
-          // case to guard against anymore.
+          // Flexbox keeps the independent actions balanced as either card
+          // disappears after that profile has been created.
           <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-            <Card variant="brand" style={{ flex: "1 1 16rem" }}>
-              <h3 style={{ marginTop: 0 }}>Are you an artist?</h3>
-              <p className="admin-form__hint">
-                Sell your original work and prints — each sale splits proceeds between you and the wildlife
-                cause your piece supports.
-              </p>
-              <Link href="/artist/onboarding" className={buttonVariants({ variant: "form" })}>
-                Start selling
-              </Link>
-            </Card>
-            <Card variant="brand" style={{ flex: "1 1 16rem" }}>
-              <h3 style={{ marginTop: 0 }}>Represent a conservation cause?</h3>
-              <p className="admin-form__hint">
-                Register your organization so artists can pick your cause for new campaigns — you'll receive
-                a share of every sale, once an admin verifies your registration.
-              </p>
-              <Link href="/cause/onboarding" className={buttonVariants({ variant: "form" })}>
-                Register a cause
-              </Link>
-            </Card>
+            {!user.artist ? (
+              <Card variant="brand" style={{ flex: "1 1 16rem" }}>
+                <h3 style={{ marginTop: 0 }}>Sell your art</h3>
+                <p className="admin-form__hint">
+                  Create an artist profile, submit your work, and support the wildlife cause behind each piece.
+                </p>
+                <Link href="/artist/onboarding" className={buttonVariants({ variant: "form" })}>
+                  Start selling
+                </Link>
+              </Card>
+            ) : null}
+            {!user.conservancy ? (
+              <Card variant="brand" style={{ flex: "1 1 16rem" }}>
+                <h3 style={{ marginTop: 0 }}>Register a conservation cause</h3>
+                <p className="admin-form__hint">
+                  Register your organization separately. It will be reviewed before artists can select it for campaigns.
+                </p>
+                <Link href="/cause/onboarding" className={buttonVariants({ variant: "form" })}>
+                  Register a cause
+                </Link>
+              </Card>
+            ) : null}
           </div>
         );
 
-        // A single-tab "Tabs" is pointless UI — only show tabs when there's
-        // genuinely something in "Get involved" to switch to (a user who's
-        // already both an artist and a cause rep never sees that section at
-        // all, so Order history renders alone, same as before).
+        // Keep the account page focused on orders when both optional profiles
+        // already exist; otherwise show the independent next action(s).
         if (!showGetInvolved) {
           return (
-            <section className="account-orders" aria-label="Order history">
+            <section id="orders" className="account-orders" aria-label="Order history">
               <h2>Order history</h2>
               {orderHistory}
             </section>
@@ -131,12 +147,13 @@ export default async function AccountPage() {
               <TabsTrigger value="orders">Order history</TabsTrigger>
             </TabsList>
             <TabsContent value="get-involved">{getInvolvedCards}</TabsContent>
-            <TabsContent value="orders" className="account-orders">
+            <TabsContent id="orders" value="orders" className="account-orders">
               {orderHistory}
             </TabsContent>
           </Tabs>
         );
       })()}
+      <AccountDeletionRequest />
     </>
   );
 }

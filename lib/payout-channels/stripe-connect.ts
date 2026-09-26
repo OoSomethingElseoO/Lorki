@@ -21,7 +21,7 @@ export const sendStripeConnectPayout: PayoutChannelHandler = async ({ recipient,
     currency,
     destination: recipient.stripeConnectedAccountId,
     transfer_group: `payout-${payoutId}`,
-  });
+  }, { idempotencyKey: `payout-${payoutId}` });
 
   // Stripe Transfers move funds to the connected account's Stripe balance
   // synchronously — Stripe's own payout schedule from there to the

@@ -23,12 +23,12 @@ test("a cause-only user goes straight to /cause/profile", () => {
   assert.equal(resolvePostLoginRedirect({ ...noRoles, hasConservancy: true }), "/cause/profile");
 });
 
-test("a user with neither role falls back to /account", () => {
-  assert.equal(resolvePostLoginRedirect(noRoles), "/account");
+test("a user with neither role lands on the products catalogue", () => {
+  assert.equal(resolvePostLoginRedirect(noRoles), "/products");
 });
 
-test("a dual-role user (artist AND conservancy) falls back to /account — no single unambiguous dashboard", () => {
-  assert.equal(resolvePostLoginRedirect({ ...noRoles, hasArtist: true, hasConservancy: true }), "/account");
+test("a dual-role user (artist AND conservancy) lands on the products catalogue", () => {
+  assert.equal(resolvePostLoginRedirect({ ...noRoles, hasArtist: true, hasConservancy: true }), "/products");
 });
 
 test("admin takes priority over artist/conservancy if somehow all three are true", () => {

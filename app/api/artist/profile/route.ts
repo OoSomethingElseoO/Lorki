@@ -3,6 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { validateTextField, validateCountryCode, validateImageUrl } from "@/lib/validation";
 import { recordAudit } from "@/lib/audit";
+import { artistRequired } from "@/lib/authorization";
+import { apiContractError } from "@/lib/api-contract";
+import { readJsonObject } from "@/lib/request-json";
 
 type ProfileUpdateBody = {
   name: string;
@@ -12,16 +15,17 @@ type ProfileUpdateBody = {
 };
 
 export async function PATCH(request: Request) {
-  const currentUser = await getCurrentUser();
-  const currentArtist = currentUser?.artist;
+  const currentUser = await getCurrentUser(request);
+  const currentArtist = artistRequired(currentUser);
   if (!currentArtist) {
-    return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+    return apiContractError("UNAUTHORIZED", "Not signed in", 401);
   }
 
-  const body = (await request.json()) as Partial<ProfileUpdateBody>;
+  const body = await readJsonObject(request) as Partial<ProfileUpdateBody> | null;
+  if (!body) return apiContractError("INVALID_JSON", "Request body must be a JSON object", 400);
 
   if (!body.name || !body.country || !body.bio || !body.imageUrl) {
-    return NextResponse.json({ error: "name, country, bio, and imageUrl are required" }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", "name, country, bio, and imageUrl are required", 400);
   }
 
   // ✅ Comprehensive validation
@@ -31,12 +35,12 @@ export async function PATCH(request: Request) {
     name: "Name",
   });
   if (nameError) {
-    return NextResponse.json({ error: nameError }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", nameError, 400);
   }
 
   const countryError = validateCountryCode(body.country);
   if (countryError) {
-    return NextResponse.json({ error: countryError }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", countryError, 400);
   }
 
   const bioError = validateTextField(body.bio, {
@@ -45,12 +49,12 @@ export async function PATCH(request: Request) {
     name: "Bio",
   });
   if (bioError) {
-    return NextResponse.json({ error: bioError }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", bioError, 400);
   }
 
   const imageError = validateImageUrl(body.imageUrl);
   if (imageError) {
-    return NextResponse.json({ error: imageError }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", imageError, 400);
   }
 
   // Slug stays fixed once set — same immutable-identifier rule as

@@ -4,6 +4,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { slugify } from "@/lib/slugify";
 import { isUniqueConstraintError, uniqueConstraintResponse } from "@/lib/prisma-errors";
 import { recordAudit } from "@/lib/audit";
+import { apiContractError } from "@/lib/api-contract";
+import { readJsonObject } from "@/lib/request-json";
 
 type OnboardBody = {
   name: string;
@@ -17,31 +19,20 @@ type OnboardBody = {
 // no new credentials. If they already have one, this is a no-op redirect
 // target, not an error.
 export async function POST(request: Request) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUser(request);
   if (!user) {
-    return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+    return apiContractError("UNAUTHORIZED", "Not signed in", 401);
   }
 
   if (user.artist) {
-    return NextResponse.json({ error: "You already have an artist profile" }, { status: 409 });
+    return apiContractError("CONFLICT", "You already have an artist profile", 409);
   }
 
-  // One account, one role: a cause rep can't also become an artist (and
-  // vice versa, see /api/cause/onboarding's mirror check) — these are two
-  // different kinds of people in practice, and letting one login be both
-  // was never a deliberate design choice, just an omission (this route
-  // only ever checked its own role, not the other one).
-  if (user.conservancy) {
-    return NextResponse.json(
-      { error: "This account is already registered as a cause — one account can't be both an artist and a cause." },
-      { status: 409 },
-    );
-  }
-
-  const body = (await request.json()) as Partial<OnboardBody>;
+  const body = await readJsonObject(request) as Partial<OnboardBody> | null;
+  if (!body) return apiContractError("INVALID_JSON", "Request body must be a JSON object", 400);
 
   if (!body.name || !body.country || !body.bio || !body.imageUrl) {
-    return NextResponse.json({ error: "name, country, bio, and imageUrl are required" }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", "name, country, bio, and imageUrl are required", 400);
   }
 
   try {

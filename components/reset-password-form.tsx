@@ -11,18 +11,23 @@ type ResetPasswordFormProps = {
 export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
   const router = useRouter();
   const [password, setPassword] = useState("");
+  const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (password !== passwordConfirmation) {
+      setError("Passwords do not match");
+      return;
+    }
     setSubmitting(true);
     setError(null);
 
     const response = await fetch("/api/reset-password", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token, password }),
+      body: JSON.stringify({ token, password, passwordConfirmation }),
     });
 
     setSubmitting(false);
@@ -46,6 +51,15 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
         minLength={8}
         value={password}
         onChange={(event) => setPassword(event.target.value)}
+      />
+      <label htmlFor="passwordConfirmation">Confirm new password</label>
+      <input
+        id="passwordConfirmation"
+        type="password"
+        required
+        minLength={8}
+        value={passwordConfirmation}
+        onChange={(event) => setPasswordConfirmation(event.target.value)}
       />
       {error ? <p className="buy-form__error">{error}</p> : null}
       <Button type="submit" disabled={submitting}>

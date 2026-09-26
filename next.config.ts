@@ -1,9 +1,6 @@
 import type { NextConfig } from "next";
 import path from "node:path";
 
-const isDevelopment = process.env.NODE_ENV !== "production";
-const scriptSource = ["'self'", "'unsafe-inline'", ...(isDevelopment ? ["'unsafe-eval'"] : [])].join(" ");
-
 const nextConfig: NextConfig = {
   output: "standalone",
   // A stray package-lock.json one directory up (in the parent
@@ -36,16 +33,9 @@ const nextConfig: NextConfig = {
       { source: "/api/seller/:path*", destination: "/api/artist/:path*", permanent: true },
     ];
   },
-  // No security headers were set anywhere in the app before this — Next.js
-  // doesn't add any by default. This is a real, meaningful CSP, not a
-  // maximal one: script-src/style-src need 'unsafe-inline' because this
-  // app genuinely uses inline scripts (the theme/no-JS-reveal bootstrap in
-  // app/layout.tsx, which must run before paint) and styled-components
-  // renders inline <style> tags — a nonce-based CSP would remove that
-  // need, but is a much larger, riskier rewrite than this gap warrants
-  // right now. img-src stays broad (not 'self') because admin settings
-  // and artist/artwork forms explicitly accept "paste any image URL", a
-  // real, intended feature, not an oversight.
+  // Security headers, including the per-request nonce CSP, are applied in
+  // proxy.ts so the two intentional bootstrap scripts can be authorized
+  // without allowing arbitrary inline scripts.
   async headers() {
     return [
       {
@@ -55,21 +45,6 @@ const nextConfig: NextConfig = {
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
-          {
-            key: "Content-Security-Policy",
-            value: [
-              "default-src 'self'",
-              "script-src " + scriptSource,
-              "style-src 'self' 'unsafe-inline'",
-              "img-src * data: blob:",
-              "font-src 'self' data:",
-              "connect-src 'self'",
-              "frame-ancestors 'none'",
-              "object-src 'none'",
-              "base-uri 'self'",
-              "form-action 'self'",
-            ].join("; "),
-          },
         ],
       },
     ];

@@ -6,9 +6,11 @@ import { validateTextField, validateImageUrl } from "@/lib/validation";
 import { getCurrentUser } from "@/lib/auth";
 import { checkPermission, unauthorized } from "@/lib/permissions";
 import { recordAudit } from "@/lib/audit";
+import { apiContractError } from "@/lib/api-contract";
+import { readJsonObject } from "@/lib/request-json";
 
-export async function GET() {
-  const { authorized } = checkPermission(await getCurrentUser(), "OPS_ADMIN");
+export async function GET(request: Request) {
+  const { authorized } = checkPermission(await getCurrentUser(request), "OPS_ADMIN");
   if (!authorized) return unauthorized("OPS_ADMIN");
   const articles = await prisma.newsArticle.findMany({ orderBy: { createdAt: "desc" } });
   return NextResponse.json({ articles });
@@ -22,13 +24,14 @@ type CreateBody = {
 };
 
 export async function POST(request: Request) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUser(request);
   const { authorized } = checkPermission(user, "OPS_ADMIN");
   if (!authorized) return unauthorized("OPS_ADMIN");
-  const body = (await request.json()) as Partial<CreateBody>;
+  const body = await readJsonObject(request) as Partial<CreateBody> | null;
+  if (!body) return apiContractError("INVALID_JSON", "Request body must be a JSON object", 400);
 
   if (!body.title || !body.summary || !body.body || !body.imageUrl) {
-    return NextResponse.json({ error: "title, summary, body, and imageUrl are required" }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", "title, summary, body, and imageUrl are required", 400);
   }
 
   // ✅ Comprehensive validation
@@ -38,7 +41,7 @@ export async function POST(request: Request) {
     name: "Title",
   });
   if (titleError) {
-    return NextResponse.json({ error: titleError }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", titleError, 400);
   }
 
   const summaryError = validateTextField(body.summary, {
@@ -47,7 +50,7 @@ export async function POST(request: Request) {
     name: "Summary",
   });
   if (summaryError) {
-    return NextResponse.json({ error: summaryError }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", summaryError, 400);
   }
 
   const bodyError = validateTextField(body.body, {
@@ -56,12 +59,12 @@ export async function POST(request: Request) {
     name: "Body",
   });
   if (bodyError) {
-    return NextResponse.json({ error: bodyError }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", bodyError, 400);
   }
 
   const imageError = validateImageUrl(body.imageUrl);
   if (imageError) {
-    return NextResponse.json({ error: imageError }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", imageError, 400);
   }
 
   try {

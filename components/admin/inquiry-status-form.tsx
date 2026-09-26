@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, type ChangeEvent } from "react";
 import { statusSelectClass } from "@/lib/status-badge";
 import { useToast } from "@/components/admin/toast-provider";
+import { useOwnedMutation } from "@/lib/use-owned-mutation";
 
 type InquiryStatusFormProps = {
   inquiryId: string;
@@ -14,33 +15,35 @@ export function InquiryStatusForm({ inquiryId, status }: InquiryStatusFormProps)
   const router = useRouter();
   const { showToast } = useToast();
   const [current, setCurrent] = useState(status);
-  const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
+  const { pending: saving, error, run } = useOwnedMutation();
 
   async function handleChange(event: ChangeEvent<HTMLSelectElement>) {
     const nextStatus = event.target.value as InquiryStatusFormProps["status"];
-    setSaving(true);
-    setError(null);
-
-    const response = await fetch(`/api/admin/inquiries/${inquiryId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: nextStatus }),
-    });
-
-    setSaving(false);
-
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      const message = data.error ?? "Failed to update status";
-      setError(message);
-      showToast(message, "error");
+    const previous = current;
+    const result = await run(
+      async (signal) => {
+        const response = await fetch(`/api/admin/inquiries/${inquiryId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: nextStatus }),
+          signal,
+        });
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.error ?? "Failed to update status");
+        }
+        return response;
+      },
+      { optimistic: () => setCurrent(nextStatus), rollback: () => setCurrent(previous) },
+    );
+    if (result.applied && "error" in result) {
+      showToast(result.error, "error");
       return;
     }
-
-    setCurrent(nextStatus);
-    showToast(`Status updated to ${nextStatus}`);
-    router.refresh();
+    if (result.applied) {
+      showToast(`Status updated to ${nextStatus}`);
+      router.refresh();
+    }
   }
 
   return (

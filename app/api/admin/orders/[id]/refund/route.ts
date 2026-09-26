@@ -7,6 +7,8 @@ import { checkPermission, unauthorized } from "@/lib/permissions";
 import { getCurrentUser } from "@/lib/auth";
 import { checkIdempotency, storeIdempotencyResponse } from "@/lib/idempotency";
 import { recordAudit } from "@/lib/audit";
+import { apiContractError } from "@/lib/api-contract";
+import { enforceHighRiskMfa } from "@/lib/mfa-policy";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -14,11 +16,13 @@ type RouteParams = { params: Promise<{ id: string }> };
 // order can still be refunded (any already-RELEASED payouts just won't be
 // clawed back automatically; that's the existing, correct design).
 export async function POST(request: Request, { params }: RouteParams) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUser(request);
   const { authorized } = checkPermission(user, "FINANCE_ADMIN");
   if (!authorized) {
     return unauthorized("FINANCE_ADMIN");
   }
+  const mfaError = await enforceHighRiskMfa(request);
+  if (mfaError) return mfaError;
 
   // ✅ Check for idempotent retry
   const cached = await checkIdempotency(request, user?.id);
@@ -29,38 +33,37 @@ export async function POST(request: Request, { params }: RouteParams) {
   const order = await prisma.order.findUnique({ where: { id }, include: { artwork: true } });
 
   if (!order) {
-    return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    return apiContractError("NOT_FOUND", "Order not found", 404);
   }
 
   if (order.status === "REFUNDED") {
-    const response = NextResponse.json({ error: "Order has already been refunded" }, { status: 409 });
+    const response = apiContractError("CONFLICT", "Order has already been refunded", 409);
     // ✅ Store for future retries
     await storeIdempotencyResponse(
       request.headers.get("Idempotency-Key"),
       user?.id,
       409,
-      { error: "Order has already been refunded" }
+      { error: { code: "CONFLICT", message: "Order has already been refunded" } }
     ).catch((e) => console.error("[idempotency:storage-failed]", e));
     return response;
   }
 
   if (order.paymentMethod === "STRIPE") {
     if (!order.stripePaymentIntentId) {
-      return NextResponse.json({ error: "No Stripe payment intent on file — cannot refund" }, { status: 400 });
+      return apiContractError("VALIDATION_ERROR", "No Stripe payment intent on file — cannot refund", 400);
     }
     try {
       const stripe = await getStripe();
       await stripe.refunds.create({ payment_intent: order.stripePaymentIntentId });
     } catch (error) {
-      const errorResponse = NextResponse.json({
-        error: `Stripe refund failed: ${(error as Error).message}`
-      }, { status: 502 });
+      const message = `Stripe refund failed: ${(error as Error).message}`;
+      const errorResponse = apiContractError("UPSTREAM_ERROR", message, 502);
       // ✅ Store error for future retries
       await storeIdempotencyResponse(
         request.headers.get("Idempotency-Key"),
         user?.id,
         502,
-        { error: `Stripe refund failed: ${(error as Error).message}` }
+        { error: { code: "UPSTREAM_ERROR", message } }
       ).catch((e) => console.error("[idempotency:storage-failed]", e));
       return errorResponse;
     }

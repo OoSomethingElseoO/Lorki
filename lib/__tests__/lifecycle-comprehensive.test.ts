@@ -403,7 +403,7 @@ test("ERROR: Cannot mark original artwork sold twice", async (t) => {
   });
 
   assert.equal(stillSold?.inventoryState, "SOLD");
-  assert.equal(stillSold?.inventoryState !== "AVAILABLE", true);
+  assert.equal(String(stillSold?.inventoryState) !== "AVAILABLE", true);
 
   t.after(async () => {
     try {

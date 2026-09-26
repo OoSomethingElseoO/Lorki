@@ -7,10 +7,13 @@
 // restores it exactly in t.after(), so nothing here permanently changes
 // dev settings.
 import "dotenv/config";
-import { test } from "node:test";
+import { before, test } from "node:test";
 import assert from "node:assert/strict";
 import { GET, PATCH } from "@/app/api/admin/settings/route";
 import { prisma } from "@/lib/prisma";
+import { adminHeaders, initTestAdmin } from "./test-auth";
+
+before(initTestAdmin);
 import { Prisma } from "@prisma/client";
 
 const unique = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -18,7 +21,7 @@ const unique = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 function patchRequest(body: unknown) {
   return new Request("http://localhost/api/admin/settings", {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+    headers: adminHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(body),
   });
 }
@@ -28,12 +31,12 @@ async function snapshotSettings() {
 }
 
 async function restoreSettings(original: Awaited<ReturnType<typeof snapshotSettings>>) {
-  const { id, updatedAt, heroHeadlineWords, ...rest } = original;
+  const { id, updatedAt, heroHeadlineWords, emailTemplates, ...rest } = original;
   void id;
   void updatedAt;
   await prisma.settings.update({
     where: { id: "singleton" },
-    data: { ...rest, heroHeadlineWords: heroHeadlineWords === null ? Prisma.JsonNull : heroHeadlineWords },
+    data: { ...rest, heroHeadlineWords: heroHeadlineWords === null ? Prisma.JsonNull : heroHeadlineWords, emailTemplates: emailTemplates === null ? Prisma.JsonNull : emailTemplates },
   });
 }
 
@@ -47,7 +50,7 @@ test("GET returns secret fields as booleans, never the actual secret values", as
   // exercises the "Set" branch, not just the "unset" branch.
   await prisma.settings.update({ where: { id: "singleton" }, data: { stripeSecretKey: `sk_test_${unique()}` } });
 
-  const response = await GET();
+  const response = await GET(new Request("http://localhost/api/admin/settings", { headers: adminHeaders() }));
   assert.equal(response.status, 200);
   const body = await response.json();
 
@@ -123,7 +126,7 @@ test("PATCH stores validated hero headline word pools and GET exposes them", asy
   const after = await prisma.settings.findUnique({ where: { id: "singleton" } });
   assert.deepEqual(after!.heroHeadlineWords, pools);
 
-  const getResponse = await GET();
+  const getResponse = await GET(new Request("http://localhost/api/admin/settings", { headers: adminHeaders() }));
   const body = await getResponse.json();
   assert.deepEqual(body.settings.heroHeadlineWords, pools);
 });

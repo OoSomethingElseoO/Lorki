@@ -5,6 +5,8 @@ import { validateSplit } from "@/lib/validation";
 import { getCurrentUser } from "@/lib/auth";
 import { checkPermission, unauthorized } from "@/lib/permissions";
 import { recordAudit } from "@/lib/audit";
+import { apiContractError } from "@/lib/api-contract";
+import { readJsonObject } from "@/lib/request-json";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -29,19 +31,20 @@ type UpdateBody = {
 // whichever cause reference the campaign already has. Slug is never
 // touched on edit, same immutable-identifier rule as Animal/Artist.
 export async function PATCH(request: Request, { params }: RouteParams) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUser(request);
   const { authorized } = checkPermission(user, "OPS_ADMIN");
   if (!authorized) return unauthorized("OPS_ADMIN");
   const { id } = await params;
-  const body = (await request.json()) as UpdateBody;
+  const body = await readJsonObject(request) as UpdateBody | null;
+  if (!body) return apiContractError("INVALID_JSON", "Request body must be a JSON object", 400);
 
   const campaign = await prisma.campaign.findUnique({ where: { id } });
   if (!campaign) {
-    return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
+    return apiContractError("NOT_FOUND", "Campaign not found", 404);
   }
 
   if (body.status !== undefined && !VALID_STATUSES.includes(body.status as (typeof VALID_STATUSES)[number])) {
-    return NextResponse.json({ error: `status must be one of ${VALID_STATUSES.join(", ")}` }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", `status must be one of ${VALID_STATUSES.join(", ")}`, 400);
   }
 
   const causeFieldsPresent = body.animalId !== undefined || body.conservancyId !== undefined;
@@ -53,7 +56,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   const nextOperationsPercent = body.operationsPercent ?? campaign.operationsPercent;
 
   if (causeFieldsPresent && Boolean(nextAnimalId) === Boolean(nextConservancyId)) {
-    return NextResponse.json({ error: "Provide exactly one of animalId or conservancyId" }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", "Provide exactly one of animalId or conservancyId", 400);
   }
 
   // ✅ Comprehensive validation of split percentages
@@ -63,27 +66,27 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     nextOperationsPercent
   );
   if (splitError) {
-    return NextResponse.json({ error: splitError }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", splitError, 400);
   }
 
   if (nextAnimalId) {
     const animal = await prisma.animal.findUnique({ where: { id: nextAnimalId } });
     if (!animal) {
-      return NextResponse.json({ error: "animalId does not match an existing animal" }, { status: 400 });
+      return apiContractError("VALIDATION_ERROR", "animalId does not match an existing animal", 400);
     }
   }
 
   if (nextConservancyId) {
     const conservancy = await prisma.conservancy.findUnique({ where: { id: nextConservancyId } });
     if (!conservancy) {
-      return NextResponse.json({ error: "conservancyId does not match an existing conservancy" }, { status: 400 });
+      return apiContractError("VALIDATION_ERROR", "conservancyId does not match an existing conservancy", 400);
     }
   }
 
   if (body.artistId !== undefined) {
     const artist = await prisma.artist.findUnique({ where: { id: body.artistId } });
     if (!artist) {
-      return NextResponse.json({ error: "artistId does not match an existing artist" }, { status: 400 });
+      return apiContractError("VALIDATION_ERROR", "artistId does not match an existing artist", 400);
     }
   }
 
@@ -106,14 +109,14 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     return NextResponse.json({ campaign: updated });
   } catch (error) {
     if (isNotFoundError(error)) {
-      return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
+      return apiContractError("NOT_FOUND", "Campaign not found", 404);
     }
     throw error;
   }
 }
 
-export async function DELETE(_request: Request, { params }: RouteParams) {
-  const user = await getCurrentUser();
+export async function DELETE(request: Request, { params }: RouteParams) {
+  const user = await getCurrentUser(request);
   const { authorized } = checkPermission(user, "OPS_ADMIN");
   if (!authorized) return unauthorized("OPS_ADMIN");
   const { id } = await params;
@@ -124,7 +127,7 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
     return NextResponse.json({ ok: true });
   } catch (error) {
     if (isNotFoundError(error)) {
-      return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
+      return apiContractError("NOT_FOUND", "Campaign not found", 404);
     }
     if (isForeignKeyConstraintError(error)) {
       return foreignKeyConstraintResponse("This campaign still has artworks under it — remove those first");

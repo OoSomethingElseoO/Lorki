@@ -11,6 +11,8 @@ import { validateTextField, validateImageUrl } from "@/lib/validation";
 import { recordAudit } from "@/lib/audit";
 import { getCurrentUser } from "@/lib/auth";
 import { checkPermission, unauthorized } from "@/lib/permissions";
+import { apiContractError } from "@/lib/api-contract";
+import { readJsonObject } from "@/lib/request-json";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -24,17 +26,15 @@ type UpdateBody = {
 };
 
 export async function PATCH(request: Request, { params }: RouteParams) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUser(request);
   const { authorized } = checkPermission(user, "OPS_ADMIN");
   if (!authorized) return unauthorized("OPS_ADMIN");
   const { id } = await params;
-  const body = (await request.json()) as Partial<UpdateBody>;
+  const body = await readJsonObject(request) as Partial<UpdateBody> | null;
+  if (!body) return apiContractError("INVALID_JSON", "Request body must be a JSON object", 400);
 
   if (!body.name || !body.species || !body.region || !body.story || !body.imageUrl || !body.conservancyId) {
-    return NextResponse.json(
-      { error: "name, species, region, story, imageUrl, and conservancyId are required" },
-      { status: 400 },
-    );
+    return apiContractError("VALIDATION_ERROR", "name, species, region, story, imageUrl, and conservancyId are required", 400);
   }
 
   // ✅ Comprehensive validation
@@ -44,7 +44,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     name: "Name",
   });
   if (nameError) {
-    return NextResponse.json({ error: nameError }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", nameError, 400);
   }
 
   const speciesError = validateTextField(body.species, {
@@ -53,7 +53,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     name: "Species",
   });
   if (speciesError) {
-    return NextResponse.json({ error: speciesError }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", speciesError, 400);
   }
 
   const regionError = validateTextField(body.region, {
@@ -62,7 +62,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     name: "Region",
   });
   if (regionError) {
-    return NextResponse.json({ error: regionError }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", regionError, 400);
   }
 
   const storyError = validateTextField(body.story, {
@@ -71,17 +71,17 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     name: "Story",
   });
   if (storyError) {
-    return NextResponse.json({ error: storyError }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", storyError, 400);
   }
 
   const imageError = validateImageUrl(body.imageUrl);
   if (imageError) {
-    return NextResponse.json({ error: imageError }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", imageError, 400);
   }
 
   const conservancy = await prisma.conservancy.findUnique({ where: { id: body.conservancyId } });
   if (!conservancy) {
-    return NextResponse.json({ error: "conservancyId does not match an existing conservancy" }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", "conservancyId does not match an existing conservancy", 400);
   }
 
   try {
@@ -105,7 +105,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     return NextResponse.json({ animal });
   } catch (error) {
     if (isNotFoundError(error)) {
-      return NextResponse.json({ error: "Animal not found" }, { status: 404 });
+      return apiContractError("NOT_FOUND", "Animal not found", 404);
     }
     if (isUniqueConstraintError(error)) {
       return uniqueConstraintResponse("An animal with this name already exists");
@@ -114,8 +114,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   }
 }
 
-export async function DELETE(_request: Request, { params }: RouteParams) {
-  const user = await getCurrentUser();
+export async function DELETE(request: Request, { params }: RouteParams) {
+  const user = await getCurrentUser(request);
   const { authorized } = checkPermission(user, "OPS_ADMIN");
   if (!authorized) return unauthorized("OPS_ADMIN");
   const { id } = await params;
@@ -126,7 +126,7 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
     return NextResponse.json({ ok: true });
   } catch (error) {
     if (isNotFoundError(error)) {
-      return NextResponse.json({ error: "Animal not found" }, { status: 404 });
+      return apiContractError("NOT_FOUND", "Animal not found", 404);
     }
     if (isForeignKeyConstraintError(error)) {
       return foreignKeyConstraintResponse("This animal still has campaigns linked to it — remove those first");

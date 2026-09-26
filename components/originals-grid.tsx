@@ -14,6 +14,7 @@ type OriginalsGridProps = {
   customerEmail?: string;
   initialPage: number;
   totalPages: number;
+  infiniteScrollEnabled?: boolean;
 };
 
 type ArtworkInstance = {
@@ -25,43 +26,60 @@ type ArtworkInstance = {
 // grid reports "clicked, here's the index + rect", this component owns the
 // selection/originRect state and hands the resolved artwork to one shared
 // ArtworkLightbox, wired for Next/Previous across the full `artworks` array.
-export function OriginalsGrid({ artworks: initialArtworks, customerEmail, initialPage, totalPages }: OriginalsGridProps) {
+export function OriginalsGrid({ artworks: initialArtworks, customerEmail, initialPage, totalPages, infiniteScrollEnabled = true }: OriginalsGridProps) {
   const [artworks, setArtworks] = useState<ArtworkInstance[]>(() => initialArtworks.map((artwork) => ({ artwork, displayId: artwork.id })));
   const sourceArtworksRef = useRef(initialArtworks);
   const loopNumberRef = useRef(0);
   const [page, setPage] = useState(initialPage);
+  const [hasMoreRemotePages, setHasMoreRemotePages] = useState(initialPage < totalPages);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const loadingRef = useRef(false);
-  const hasMore = true;
+  const lastLocalLoopAtRef = useRef(0);
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
-    if (!sentinel || !hasMore) return;
+    if (!sentinel || !infiniteScrollEnabled) return;
+    const controller = new AbortController();
+
+    const appendLocalLoop = () => {
+      // IntersectionObserver can remain intersecting while React appends a
+      // batch. Rate-limit local repeats so a large viewport cannot append the
+      // same source batch in a tight loop.
+      const now = Date.now();
+      if (now - lastLocalLoopAtRef.current < 350 || sourceArtworksRef.current.length === 0) return;
+      lastLocalLoopAtRef.current = now;
+      loopNumberRef.current += 1;
+      const loop = [...sourceArtworksRef.current].sort(() => Math.random() - 0.5);
+      setArtworks((current) => [
+        ...current,
+        ...loop.map((artwork, index) => ({
+          artwork,
+          displayId: `${artwork.id}::loop-${loopNumberRef.current}-${index}`,
+        })),
+      ]);
+    };
 
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (!entry.isIntersecting || loadingRef.current) return;
+        if (!hasMoreRemotePages) {
+          appendLocalLoop();
+          return;
+        }
         loadingRef.current = true;
         setLoading(true);
         setLoadError(null);
-        fetch(`/api/originals?page=${page + 1}`, { cache: "force-cache" })
+        fetch(`/api/originals?page=${page + 1}`, { cache: "force-cache", signal: controller.signal })
           .then(async (response) => {
             if (!response.ok) throw new Error("Unable to load more originals");
             return response.json() as Promise<{ items: StorefrontArtwork[]; page: number }>;
           })
           .then((next) => {
             if (next.items.length === 0 || next.page >= totalPages) {
-              loopNumberRef.current += 1;
-              const loop = [...sourceArtworksRef.current].sort(() => Math.random() - 0.5);
-              setArtworks((current) => [
-                ...current,
-                ...loop.map((artwork, index) => ({
-                  artwork,
-                  displayId: `${artwork.id}::loop-${loopNumberRef.current}-${index}`,
-                })),
-              ]);
+              setHasMoreRemotePages(false);
+              appendLocalLoop();
             } else {
               setArtworks((current) => [
                 ...current,
@@ -71,7 +89,10 @@ export function OriginalsGrid({ artworks: initialArtworks, customerEmail, initia
               setPage(next.page);
             }
           })
-          .catch(() => setLoadError("More originals could not be loaded. Try again."))
+          .catch((error: unknown) => {
+            if (error instanceof DOMException && error.name === "AbortError") return;
+            setLoadError("More originals could not be loaded. Try again.");
+          })
           .finally(() => {
             loadingRef.current = false;
             setLoading(false);
@@ -80,8 +101,11 @@ export function OriginalsGrid({ artworks: initialArtworks, customerEmail, initia
       { rootMargin: "600px 0px" },
     );
     observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [hasMore, page]);
+    return () => {
+      controller.abort();
+      observer.disconnect();
+    };
+  }, [hasMoreRemotePages, infiniteScrollEnabled, page, totalPages]);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const cards = artworks.map(({ artwork, displayId }) => ({
@@ -123,8 +147,8 @@ export function OriginalsGrid({ artworks: initialArtworks, customerEmail, initia
     <>
       <LayoutGrid cards={cards} className="card-grid card-grid--masonry" onCardSelect={(card) => setSelectedId(String(card.id))} />
       <SharedArtworkModal artwork={selected} onClose={() => setSelectedId(null)} customerEmail={customerEmail} />
-      <div ref={sentinelRef} className="infinite-scroll-sentinel" aria-hidden="true" />
-      {loading ? <ArtworkSkeletonGrid count={4} /> : null}
+      {infiniteScrollEnabled ? <div ref={sentinelRef} className="infinite-scroll-sentinel" aria-hidden="true" /> : null}
+      {infiniteScrollEnabled && loading ? <ArtworkSkeletonGrid count={4} /> : null}
       {loadError ? <p className="centered-copy" role="alert">{loadError}</p> : null}
     </>
   );

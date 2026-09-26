@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { checkPermission, unauthorized } from "@/lib/permissions";
 import { ADMIN_PAGE_SIZE, normalizeAdminPage } from "@/lib/admin-list";
+import { apiJson } from "@/lib/api-contract";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +13,7 @@ function dateValue(value: string | null, endOfDay = false) {
 }
 
 export async function GET(request: Request) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUser(request);
   if (!checkPermission(user, "OPS_ADMIN").authorized) return unauthorized("OPS_ADMIN");
 
   const url = new URL(request.url);
@@ -37,7 +37,7 @@ export async function GET(request: Request) {
     prisma.shareEvent.groupBy({ by: ["channel"], where, _count: { _all: true }, orderBy: { _count: { channel: "desc" } } }),
   ]);
 
-  return NextResponse.json({
+  return apiJson({
     events,
     total,
     page,

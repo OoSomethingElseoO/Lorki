@@ -35,6 +35,35 @@ if (cluster.isPrimary) {
   const numWorkers = Number(process.env.WEB_CONCURRENCY) || os.availableParallelism();
   console.log(`[cluster] primary ${process.pid} starting ${numWorkers} worker(s)`);
 
+  let shuttingDown = false;
+  const shutdown = (signal) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    console.log(`[cluster] ${signal} received; draining workers`);
+    for (const worker of Object.values(cluster.workers)) {
+      worker?.disconnect();
+    }
+    const forceExit = setTimeout(() => {
+      console.error("[cluster] drain deadline exceeded; terminating remaining workers");
+      for (const worker of Object.values(cluster.workers)) {
+        worker?.kill("SIGTERM");
+      }
+      process.exit(1);
+    }, 10_000);
+    forceExit.unref();
+    const check = setInterval(() => {
+      if (Object.keys(cluster.workers).length === 0) {
+        clearInterval(check);
+        clearTimeout(forceExit);
+        process.exit(0);
+      }
+    }, 100);
+    check.unref();
+  };
+
+  process.once("SIGTERM", () => shutdown("SIGTERM"));
+  process.once("SIGINT", () => shutdown("SIGINT"));
+
   for (let i = 0; i < numWorkers; i++) {
     cluster.fork();
   }
@@ -43,7 +72,7 @@ if (cluster.isPrimary) {
   // replace it rather than silently running with fewer workers than intended.
   cluster.on("exit", (worker, code, signal) => {
     console.error(`[cluster] worker ${worker.process.pid} exited (code=${code} signal=${signal}), restarting`);
-    cluster.fork();
+    if (!shuttingDown) cluster.fork();
   });
 } else {
   require(path.join(__dirname, ".next", "standalone", "server.js"));

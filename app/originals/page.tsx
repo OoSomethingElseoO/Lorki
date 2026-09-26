@@ -3,6 +3,7 @@ import { PageTitle } from "@/components/page-title";
 import { SiteHeader } from "@/components/site-header";
 import { getLiveArtworksByKind } from "@/lib/storefront";
 import { getCurrentUser } from "@/lib/auth";
+import { isFeatureEnabled } from "@/lib/feature-flags";
 
 type OriginalsPageProps = {
   searchParams: Promise<{ page?: string }>;
@@ -25,6 +26,7 @@ export default async function OriginalsPage({ searchParams }: OriginalsPageProps
           customerEmail={customer?.email}
           initialPage={currentPage}
           totalPages={totalPages}
+          infiniteScrollEnabled={isFeatureEnabled("ORIGINALS_INFINITE_SCROLL")}
         />
         {items.length === 0 ? <p className="centered-copy">No originals available right now.</p> : null}
       </main>

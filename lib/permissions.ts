@@ -1,5 +1,5 @@
 import { User } from "@prisma/client";
-import { NextResponse } from "next/server";
+import { apiContractError } from "@/lib/api-contract";
 
 export function checkPermission(
   user: User | null,
@@ -32,8 +32,5 @@ export function checkPermission(
 }
 
 export function unauthorized(role: string) {
-  return NextResponse.json(
-    { error: `${role} access required` },
-    { status: 403 }
-  );
+  return apiContractError("FORBIDDEN", `${role} access required`, 403, { requiredRole: role });
 }

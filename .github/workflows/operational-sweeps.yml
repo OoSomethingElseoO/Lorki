@@ -37,6 +37,17 @@ jobs:
             -X POST "$BASE_URL/api/internal/security/alerts" \
             -H "x-security-alert-secret: $CRON_SECRET"
 
+      - name: Drain transactional outbox
+        env:
+          BASE_URL: ${{ secrets.QAFORGE_BASE_URL }}
+          OUTBOX_SECRET: ${{ secrets.OUTBOX_WORKER_SECRET }}
+        run: |
+          test -n "$BASE_URL" && test -n "$OUTBOX_SECRET"
+          curl --fail-with-body --silent --show-error --retry 3 --retry-all-errors \
+            -X POST "$BASE_URL/api/internal/outbox?limit=50" \
+            -H "x-outbox-worker-secret: $OUTBOX_SECRET" \
+            -H "content-type: application/json"
+
   daily-audit-archive:
     if: github.event_name == 'workflow_dispatch' || github.event.schedule == '43 2 * * *'
     runs-on: ubuntu-latest
@@ -57,6 +68,7 @@ jobs:
           curl --fail-with-body --silent --show-error --retry 3 --retry-all-errors \
             "$BASE_URL/api/internal/audit/export?since=$SINCE" \
             -H "x-audit-export-secret: $EXPORT_SECRET" \
+            -D audit.headers \
             -o audit.ndjson
 
       - name: Write immutable archive object
@@ -65,13 +77,24 @@ jobs:
           REGION: ${{ secrets.AUDIT_ARCHIVE_AWS_REGION }}
         run: |
           test -n "$BUCKET"
+          test "$(grep -cve '^$' audit.ndjson)" -gt 0
+          test "$(awk 'tolower($1) == \"x-audit-export-truncated:\" {gsub(/\r/, \"\", $2); print $2}' audit.headers | tail -1)" != "true"
           KEY="qaforge/audit/$(date -u +%Y/%m/%d)/audit-$(date -u +%Y%m%dT%H%M%SZ).ndjson"
           RETAIN_UNTIL="$(date -u -d '7 years' +%Y-%m-%dT%H:%M:%SZ)"
+          sha256sum audit.ndjson > audit.ndjson.sha256
           aws s3api put-object \
             --bucket "$BUCKET" \
             --key "$KEY" \
             --body audit.ndjson \
             --content-type application/x-ndjson \
+            --object-lock-mode COMPLIANCE \
+            --object-lock-retain-until-date "$RETAIN_UNTIL" \
+            --region "$REGION"
+          aws s3api put-object \
+            --bucket "$BUCKET" \
+            --key "$KEY.sha256" \
+            --body audit.ndjson.sha256 \
+            --content-type text/plain \
             --object-lock-mode COMPLIANCE \
             --object-lock-retain-until-date "$RETAIN_UNTIL" \
             --region "$REGION"

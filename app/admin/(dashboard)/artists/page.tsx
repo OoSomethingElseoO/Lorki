@@ -6,6 +6,7 @@ import { AdminSearchForm } from "@/components/admin/search-form";
 import { EmptyState } from "@/components/admin/empty-state";
 import { EditIcon } from "@/components/admin/icons";
 import { Pagination } from "@/components/pagination";
+import { ArtistWorkVisibility } from "@/components/admin/artist-work-visibility";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ADMIN_PAGE_SIZE, adminTotalPages, normalizeAdminPage } from "@/lib/admin-list";
 
@@ -30,7 +31,7 @@ export default async function AdminArtistsPage({ searchParams }: PageProps) {
   const [artists, totalCount, coOps] = await Promise.all([
     prisma.artist.findMany({
       where,
-      include: { socialLinks: true, coOp: true },
+      include: { socialLinks: true, coOp: true, campaigns: { include: { artworks: { select: { isPublished: true, inventoryState: true } } } } },
       orderBy: { createdAt: "desc" },
       skip: (currentPage - 1) * ADMIN_PAGE_SIZE,
       take: ADMIN_PAGE_SIZE,
@@ -77,6 +78,7 @@ export default async function AdminArtistsPage({ searchParams }: PageProps) {
                         ))}
                   </td>
                   <td>
+                    <ArtistWorkVisibility artistId={artist.id} withdrawn={artist.campaigns.every((campaign) => campaign.artworks.filter((artwork) => artwork.inventoryState !== "SOLD").every((artwork) => !artwork.isPublished))} />{" "}
                     <Link href={`/admin/artists/${artist.id}/edit`}>
                       <EditIcon />
                       Edit

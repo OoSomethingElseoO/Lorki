@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { getStripe } from "@/lib/stripe";
+import { conservancyRequired } from "@/lib/authorization";
 
 // Stripe redirects the cause's browser here after hosted onboarding.
 // account.updated in the Stripe webhook is the reliable long-term source
@@ -9,8 +10,8 @@ import { getStripe } from "@/lib/stripe";
 // and finish later via an emailed link) — this just gives instant
 // feedback on the common case of returning right away.
 export async function GET(request: Request) {
-  const currentUser = await getCurrentUser();
-  const cause = currentUser?.conservancy;
+  const currentUser = await getCurrentUser(request);
+  const cause = conservancyRequired(currentUser);
   const origin = new URL(request.url).origin;
 
   if (!cause?.stripeConnectedAccountId) {

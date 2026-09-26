@@ -6,9 +6,11 @@ import { validateTextField, validateImageUrl } from "@/lib/validation";
 import { getCurrentUser } from "@/lib/auth";
 import { checkPermission, unauthorized } from "@/lib/permissions";
 import { recordAudit } from "@/lib/audit";
+import { apiContractError } from "@/lib/api-contract";
+import { readJsonObject } from "@/lib/request-json";
 
-export async function GET() {
-  const { authorized } = checkPermission(await getCurrentUser(), "OPS_ADMIN");
+export async function GET(request: Request) {
+  const { authorized } = checkPermission(await getCurrentUser(request), "OPS_ADMIN");
   if (!authorized) return unauthorized("OPS_ADMIN");
   const animals = await prisma.animal.findMany({
     include: { conservancy: true },
@@ -27,16 +29,14 @@ type CreateBody = {
 };
 
 export async function POST(request: Request) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUser(request);
   const { authorized } = checkPermission(user, "OPS_ADMIN");
   if (!authorized) return unauthorized("OPS_ADMIN");
-  const body = (await request.json()) as Partial<CreateBody>;
+  const body = await readJsonObject(request) as Partial<CreateBody> | null;
+  if (!body) return apiContractError("INVALID_JSON", "Request body must be a JSON object", 400);
 
   if (!body.name || !body.species || !body.region || !body.story || !body.imageUrl || !body.conservancyId) {
-    return NextResponse.json(
-      { error: "name, species, region, story, imageUrl, and conservancyId are required" },
-      { status: 400 },
-    );
+    return apiContractError("VALIDATION_ERROR", "name, species, region, story, imageUrl, and conservancyId are required", 400);
   }
 
   // ✅ Comprehensive validation
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     name: "Name",
   });
   if (nameError) {
-    return NextResponse.json({ error: nameError }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", nameError, 400);
   }
 
   const speciesError = validateTextField(body.species, {
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
     name: "Species",
   });
   if (speciesError) {
-    return NextResponse.json({ error: speciesError }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", speciesError, 400);
   }
 
   const regionError = validateTextField(body.region, {
@@ -64,7 +64,7 @@ export async function POST(request: Request) {
     name: "Region",
   });
   if (regionError) {
-    return NextResponse.json({ error: regionError }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", regionError, 400);
   }
 
   const storyError = validateTextField(body.story, {
@@ -73,17 +73,17 @@ export async function POST(request: Request) {
     name: "Story",
   });
   if (storyError) {
-    return NextResponse.json({ error: storyError }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", storyError, 400);
   }
 
   const imageError = validateImageUrl(body.imageUrl);
   if (imageError) {
-    return NextResponse.json({ error: imageError }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", imageError, 400);
   }
 
   const conservancy = await prisma.conservancy.findUnique({ where: { id: body.conservancyId } });
   if (!conservancy) {
-    return NextResponse.json({ error: "conservancyId does not match an existing conservancy" }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", "conservancyId does not match an existing conservancy", 400);
   }
 
   try {

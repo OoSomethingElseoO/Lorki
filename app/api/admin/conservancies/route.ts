@@ -3,9 +3,11 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { checkPermission, unauthorized } from "@/lib/permissions";
 import { recordAudit } from "@/lib/audit";
+import { apiContractError } from "@/lib/api-contract";
+import { readJsonObject } from "@/lib/request-json";
 
-export async function GET() {
-  const { authorized } = checkPermission(await getCurrentUser(), "OPS_ADMIN");
+export async function GET(request: Request) {
+  const { authorized } = checkPermission(await getCurrentUser(request), "OPS_ADMIN");
   if (!authorized) return unauthorized("OPS_ADMIN");
   const conservancies = await prisma.conservancy.findMany({ orderBy: { createdAt: "desc" } });
   return NextResponse.json({ conservancies });
@@ -20,16 +22,14 @@ type CreateBody = {
 };
 
 export async function POST(request: Request) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUser(request);
   const { authorized } = checkPermission(user, "OPS_ADMIN");
   if (!authorized) return unauthorized("OPS_ADMIN");
-  const body = (await request.json()) as Partial<CreateBody>;
+  const body = await readJsonObject(request) as Partial<CreateBody> | null;
+  if (!body) return apiContractError("INVALID_JSON", "Request body must be a JSON object", 400);
 
   if (!body.name || !body.region || !body.mission || !body.website || !body.contactEmail) {
-    return NextResponse.json(
-      { error: "name, region, mission, website, and contactEmail are required" },
-      { status: 400 },
-    );
+    return apiContractError("VALIDATION_ERROR", "name, region, mission, website, and contactEmail are required", 400);
   }
 
   const conservancy = await prisma.conservancy.create({

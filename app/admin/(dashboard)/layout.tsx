@@ -17,6 +17,7 @@ const navLinks = [
   { label: "Inquiries", href: "/admin/inquiries" },
   { label: "Offers", href: "/admin/offers" },
   { label: "Users", href: "/admin/users" },
+  { label: "Account closures", href: "/admin/account-deletions" },
   { label: "Settings", href: "/admin/settings" },
 ];
 

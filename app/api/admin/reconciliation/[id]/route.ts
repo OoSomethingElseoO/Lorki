@@ -4,12 +4,13 @@ import { getCurrentUser } from "@/lib/auth";
 import { checkPermission, unauthorized } from "@/lib/permissions";
 import { readJsonObject } from "@/lib/request-json";
 import { validateTextField } from "@/lib/validation";
+import { apiContractError } from "@/lib/api-contract";
 
 type RouteContext = { params: Promise<{ id: string }> };
 const priorities = new Set(["LOW", "NORMAL", "HIGH", "CRITICAL"]);
 
 export async function PATCH(request: Request, { params }: RouteContext) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUser(request);
   const { authorized } = checkPermission(user, "FINANCE_ADMIN");
   if (!authorized) return unauthorized("FINANCE_ADMIN");
 
@@ -19,16 +20,16 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   const requestedStatus = body?.status === "RESOLVED" ? "RESOLVED" : undefined;
   const priority = typeof body?.priority === "string" && priorities.has(body.priority) ? body.priority as "LOW" | "NORMAL" | "HIGH" | "CRITICAL" : undefined;
   const assignedTo = typeof body?.assignedTo === "string" ? body.assignedTo.trim().slice(0, 320) : undefined;
-  if (body?.priority !== undefined && !priority) return NextResponse.json({ error: "Invalid reconciliation priority" }, { status: 400 });
-  if (body?.assignedTo !== undefined && !assignedTo) return NextResponse.json({ error: "assignedTo cannot be empty" }, { status: 400 });
-  if (!requestedStatus && !priority && assignedTo === undefined && !note) return NextResponse.json({ error: "Provide a status, priority, assignee, or triage note" }, { status: 400 });
+  if (body?.priority !== undefined && !priority) return apiContractError("VALIDATION_ERROR", "Invalid reconciliation priority", 400);
+  if (body?.assignedTo !== undefined && !assignedTo) return apiContractError("VALIDATION_ERROR", "assignedTo cannot be empty", 400);
+  if (!requestedStatus && !priority && assignedTo === undefined && !note) return apiContractError("VALIDATION_ERROR", "Provide a status, priority, assignee, or triage note", 400);
   if (requestedStatus === "RESOLVED") {
     const noteError = validateTextField(note, { minLength: 5, maxLength: 2000, name: "Resolution note" });
-    if (noteError) return NextResponse.json({ error: noteError }, { status: 400 });
+    if (noteError) return apiContractError("VALIDATION_ERROR", noteError, 400);
   }
 
   const existing = await prisma.paymentReconciliation.findUnique({ where: { id } });
-  if (!existing) return NextResponse.json({ error: "Reconciliation case not found" }, { status: 404 });
+  if (!existing) return apiContractError("NOT_FOUND", "Reconciliation case not found", 404);
   if (existing.status === "RESOLVED" && requestedStatus !== "RESOLVED") return NextResponse.json({ reconciliation: existing, alreadyResolved: true });
 
   const now = new Date();

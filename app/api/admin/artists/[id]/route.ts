@@ -11,6 +11,8 @@ import { validateTextField, validateCountryCode, validateImageUrl, validateUrl }
 import { recordAudit } from "@/lib/audit";
 import { getCurrentUser } from "@/lib/auth";
 import { checkPermission, unauthorized } from "@/lib/permissions";
+import { apiContractError } from "@/lib/api-contract";
+import { readJsonObject } from "@/lib/request-json";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -24,14 +26,15 @@ type UpdateBody = {
 };
 
 export async function PATCH(request: Request, { params }: RouteParams) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUser(request);
   const { authorized } = checkPermission(user, "OPS_ADMIN");
   if (!authorized) return unauthorized("OPS_ADMIN");
   const { id } = await params;
-  const body = (await request.json()) as Partial<UpdateBody>;
+  const body = await readJsonObject(request) as Partial<UpdateBody> | null;
+  if (!body) return apiContractError("INVALID_JSON", "Request body must be a JSON object", 400);
 
   if (!body.name || !body.country || !body.bio || !body.imageUrl) {
-    return NextResponse.json({ error: "name, country, bio, and imageUrl are required" }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", "name, country, bio, and imageUrl are required", 400);
   }
 
   // ✅ Comprehensive validation
@@ -41,12 +44,12 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     name: "Name",
   });
   if (nameError) {
-    return NextResponse.json({ error: nameError }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", nameError, 400);
   }
 
   const countryError = validateCountryCode(body.country);
   if (countryError) {
-    return NextResponse.json({ error: countryError }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", countryError, 400);
   }
 
   const bioError = validateTextField(body.bio, {
@@ -55,18 +58,18 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     name: "Bio",
   });
   if (bioError) {
-    return NextResponse.json({ error: bioError }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", bioError, 400);
   }
 
   const imageError = validateImageUrl(body.imageUrl);
   if (imageError) {
-    return NextResponse.json({ error: imageError }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", imageError, 400);
   }
 
   if (body.coOpId) {
     const coOp = await prisma.coOp.findUnique({ where: { id: body.coOpId } });
     if (!coOp) {
-      return NextResponse.json({ error: "coOpId does not match an existing co-op" }, { status: 400 });
+      return apiContractError("VALIDATION_ERROR", "coOpId does not match an existing co-op", 400);
     }
   }
 
@@ -103,7 +106,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     return NextResponse.json({ artist });
   } catch (error) {
     if (isNotFoundError(error)) {
-      return NextResponse.json({ error: "Artist not found" }, { status: 404 });
+      return apiContractError("NOT_FOUND", "Artist not found", 404);
     }
     if (isUniqueConstraintError(error)) {
       return uniqueConstraintResponse("An artist with this name already exists");
@@ -112,8 +115,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   }
 }
 
-export async function DELETE(_request: Request, { params }: RouteParams) {
-  const user = await getCurrentUser();
+export async function DELETE(request: Request, { params }: RouteParams) {
+  const user = await getCurrentUser(request);
   const { authorized } = checkPermission(user, "OPS_ADMIN");
   if (!authorized) return unauthorized("OPS_ADMIN");
   const { id } = await params;
@@ -126,7 +129,7 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
     return NextResponse.json({ ok: true });
   } catch (error) {
     if (isNotFoundError(error)) {
-      return NextResponse.json({ error: "Artist not found" }, { status: 404 });
+      return apiContractError("NOT_FOUND", "Artist not found", 404);
     }
     if (isForeignKeyConstraintError(error)) {
       return foreignKeyConstraintResponse("This artist still has campaigns linked to them — remove those first");

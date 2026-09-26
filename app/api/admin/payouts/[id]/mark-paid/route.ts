@@ -4,6 +4,9 @@ import { checkPermission, unauthorized } from "@/lib/permissions";
 import { getCurrentUser } from "@/lib/auth";
 import { checkIdempotency, storeIdempotencyResponse } from "@/lib/idempotency";
 import { recordAudit } from "@/lib/audit";
+import { apiContractError } from "@/lib/api-contract";
+import { sendPayoutNotificationEmail } from "@/lib/email";
+import { enforceHighRiskMfa } from "@/lib/mfa-policy";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -13,11 +16,13 @@ type RouteParams = { params: Promise<{ id: string }> };
 // automated one. Idempotent: marking an already-paid-out payout again is a
 // no-op, not an error.
 export async function POST(request: Request, { params }: RouteParams) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUser(request);
   const { authorized } = checkPermission(user, "FINANCE_ADMIN");
   if (!authorized) {
     return unauthorized("FINANCE_ADMIN");
   }
+  const mfaError = await enforceHighRiskMfa(request);
+  if (mfaError) return mfaError;
 
   // ✅ Check for idempotent retry
   const cached = await checkIdempotency(request, user?.id);
@@ -25,9 +30,9 @@ export async function POST(request: Request, { params }: RouteParams) {
 
   const { id } = await params;
 
-  const payout = await prisma.payout.findUnique({ where: { id } });
+  const payout = await prisma.payout.findUnique({ where: { id }, include: { order: { include: { artwork: true } } } });
   if (!payout) {
-    return NextResponse.json({ error: "Payout not found" }, { status: 404 });
+    return apiContractError("NOT_FOUND", "Payout not found", 404);
   }
 
   // ✅ IDEMPOTENCY: If already marked paid, return success (idempotent)
@@ -47,7 +52,7 @@ export async function POST(request: Request, { params }: RouteParams) {
   }
 
   if (payout.status !== "RELEASED") {
-    return NextResponse.json({ error: `Cannot mark paid out — payout status is ${payout.status}, not RELEASED` }, { status: 409 });
+    return apiContractError("CONFLICT", `Cannot mark paid out — payout status is ${payout.status}, not RELEASED`, 409);
   }
 
   const updated = await prisma.payout.update({
@@ -55,6 +60,10 @@ export async function POST(request: Request, { params }: RouteParams) {
     data: { paidOutAt: new Date() },
   });
   await recordAudit({ action: "PAYOUT_MARKED_PAID_MANUAL", affectedEntityType: "Payout", affectedEntityId: id, reason: "Finance administrator recorded an external payout", changedBy: user!.email, metadata: { amountCents: updated.amountCents, orderId: updated.orderId } });
+  if (updated.recipientType === "ARTIST") {
+    const artist = await prisma.artist.findUnique({ where: { id: updated.recipientId }, include: { user: { select: { email: true } } } });
+    if (artist?.user?.email) sendPayoutNotificationEmail(artist.user.email, payout.order.artwork.title, `$${(updated.amountCents / 100).toFixed(2)}`, "paid").catch(() => undefined);
+  }
 
   const response = NextResponse.json({ payout: updated });
   // ✅ Store for future retries

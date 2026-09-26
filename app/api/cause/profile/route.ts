@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { validateTextField, validateEmail, validateUrl } from "@/lib/validation";
+import { conservancyRequired } from "@/lib/authorization";
+import { apiContractError } from "@/lib/api-contract";
+import { readJsonObject } from "@/lib/request-json";
 
 type ProfileUpdateBody = {
   name: string;
@@ -14,19 +17,17 @@ type ProfileUpdateBody = {
 };
 
 export async function PATCH(request: Request) {
-  const currentUser = await getCurrentUser();
-  const cause = currentUser?.conservancy;
+  const currentUser = await getCurrentUser(request);
+  const cause = conservancyRequired(currentUser);
   if (!cause) {
-    return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+    return apiContractError("UNAUTHORIZED", "Not signed in", 401);
   }
 
-  const body = (await request.json()) as Partial<ProfileUpdateBody>;
+  const body = await readJsonObject(request) as Partial<ProfileUpdateBody> | null;
+  if (!body) return apiContractError("INVALID_JSON", "Request body must be a JSON object", 400);
 
   if (!body.name || !body.region || !body.mission || !body.website || !body.contactEmail || !body.registrationNumber) {
-    return NextResponse.json(
-      { error: "name, region, mission, website, contactEmail, and registrationNumber are required" },
-      { status: 400 },
-    );
+    return apiContractError("VALIDATION_ERROR", "name, region, mission, website, contactEmail, and registrationNumber are required", 400);
   }
 
   // ✅ Comprehensive validation
@@ -36,7 +37,7 @@ export async function PATCH(request: Request) {
     name: "Name",
   });
   if (nameError) {
-    return NextResponse.json({ error: nameError }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", nameError, 400);
   }
 
   const regionError = validateTextField(body.region, {
@@ -45,7 +46,7 @@ export async function PATCH(request: Request) {
     name: "Region",
   });
   if (regionError) {
-    return NextResponse.json({ error: regionError }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", regionError, 400);
   }
 
   const missionError = validateTextField(body.mission, {
@@ -54,17 +55,17 @@ export async function PATCH(request: Request) {
     name: "Mission",
   });
   if (missionError) {
-    return NextResponse.json({ error: missionError }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", missionError, 400);
   }
 
   const websiteError = validateUrl(body.website);
   if (websiteError) {
-    return NextResponse.json({ error: websiteError }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", websiteError, 400);
   }
 
   const emailError = validateEmail(body.contactEmail);
   if (emailError) {
-    return NextResponse.json({ error: emailError }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", emailError, 400);
   }
 
   const regNumError = validateTextField(body.registrationNumber, {
@@ -73,7 +74,7 @@ export async function PATCH(request: Request) {
     name: "Registration number",
   });
   if (regNumError) {
-    return NextResponse.json({ error: regNumError }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", regNumError, 400);
   }
 
   // A name change invalidates the sanctions check (screened against the

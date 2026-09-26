@@ -4,6 +4,9 @@ import { getCurrentUser } from "@/lib/auth";
 import { foreignKeyConstraintResponse, isForeignKeyConstraintError } from "@/lib/prisma-errors";
 import { isPriceTooLow, MIN_PRICE_CENTS } from "@/lib/pricing";
 import { recordAudit } from "@/lib/audit";
+import { loadArtistArtwork, artistRequired } from "@/lib/authorization";
+import { apiContractError } from "@/lib/api-contract";
+import { readJsonObject } from "@/lib/request-json";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -16,48 +19,35 @@ type UpdateBody = {
   story?: string | null;
 };
 
-async function loadOwnArtwork(artistId: string, artworkId: string) {
-  const artwork = await prisma.artwork.findUnique({
-    where: { id: artworkId },
-    include: { campaign: true },
-  });
-  if (!artwork || artwork.campaign.artistId !== artistId) {
-    return null;
-  }
-  return artwork;
-}
-
 export async function PATCH(request: Request, { params }: RouteParams) {
-  const currentUser = await getCurrentUser();
-  const artist = currentUser?.artist;
+  const currentUser = await getCurrentUser(request);
+  const artist = artistRequired(currentUser);
   if (!artist) {
-    return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+    return apiContractError("UNAUTHORIZED", "Not signed in", 401);
   }
 
   const { id } = await params;
-  const owned = await loadOwnArtwork(artist.id, id);
+  const owned = await loadArtistArtwork(artist.id, id);
   if (!owned) {
-    return NextResponse.json({ error: "Artwork not found" }, { status: 404 });
+    return apiContractError("NOT_FOUND", "Artwork not found", 404);
   }
 
-  const body = (await request.json()) as Partial<UpdateBody>;
+  const body = await readJsonObject(request) as Partial<UpdateBody> | null;
+  if (!body) return apiContractError("INVALID_JSON", "Request body must be a JSON object", 400);
 
   if (!body.title || !body.kind || typeof body.priceCents !== "number" || !body.imageUrl || !body.altText) {
-    return NextResponse.json(
-      { error: "title, kind, priceCents, imageUrl, and altText are required" },
-      { status: 400 },
-    );
+    return apiContractError("VALIDATION_ERROR", "title, kind, priceCents, imageUrl, and altText are required", 400);
   }
 
   if (owned.inventoryState === "SOLD") {
-    return NextResponse.json({ error: "This piece has already sold and can no longer be edited" }, { status: 409 });
+    return apiContractError("CONFLICT", "This piece has already sold and can no longer be edited", 409);
   }
 
   if (isPriceTooLow(body.priceCents)) {
-    return NextResponse.json({ error: `priceCents must be at least ${MIN_PRICE_CENTS}` }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", `priceCents must be at least ${MIN_PRICE_CENTS}`, 400);
   }
   if (owned.currentHighestOfferAmountCents !== null && body.priceCents < owned.currentHighestOfferAmountCents) {
-    return NextResponse.json({ error: "Price cannot be below the current highest valid offer" }, { status: 409 });
+    return apiContractError("CONFLICT", "Price cannot be below the current highest valid offer", 409);
   }
 
   const artwork = await prisma.artwork.update({
@@ -76,21 +66,21 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   return NextResponse.json({ artwork });
 }
 
-export async function DELETE(_request: Request, { params }: RouteParams) {
-  const currentUser = await getCurrentUser();
-  const artist = currentUser?.artist;
+export async function DELETE(request: Request, { params }: RouteParams) {
+  const currentUser = await getCurrentUser(request);
+  const artist = artistRequired(currentUser);
   if (!artist) {
-    return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+    return apiContractError("UNAUTHORIZED", "Not signed in", 401);
   }
 
   const { id } = await params;
-  const owned = await loadOwnArtwork(artist.id, id);
+  const owned = await loadArtistArtwork(artist.id, id);
   if (!owned) {
-    return NextResponse.json({ error: "Artwork not found" }, { status: 404 });
+    return apiContractError("NOT_FOUND", "Artwork not found", 404);
   }
 
   if (owned.inventoryState === "SOLD") {
-    return NextResponse.json({ error: "This piece has already sold and can no longer be removed" }, { status: 409 });
+    return apiContractError("CONFLICT", "This piece has already sold and can no longer be removed", 409);
   }
 
   try {

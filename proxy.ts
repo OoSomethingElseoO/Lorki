@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { SESSION_COOKIE, verifyUserSessionToken } from "@/lib/auth";
+import { SESSION_COOKIE, verifyUserSessionTokenDetails } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 // sameSite: "lax" on the session cookie (see app/api/login/route.ts) already
@@ -56,6 +56,30 @@ function isSameOriginRequest(request: NextRequest): boolean {
 // very next request instead of requiring a re-login.
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  // Accept a caller-supplied correlation ID only when it is a bounded opaque
+  // token. Otherwise mint one at the trust boundary. Forward it to route
+  // handlers and expose it on every middleware response so support can trace
+  // a request without trusting arbitrary header contents.
+  const suppliedRequestId = request.headers.get("x-request-id")?.trim();
+  const requestId = suppliedRequestId && /^[A-Za-z0-9._:-]{1,128}$/.test(suppliedRequestId)
+    ? suppliedRequestId
+    : crypto.randomUUID();
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+  const forwardedHeaders = new Headers(request.headers);
+  forwardedHeaders.set("x-request-id", requestId);
+  forwardedHeaders.set("x-csp-nonce", nonce);
+  const contentSecurityPolicy = ["default-src 'self'", `script-src 'self' 'nonce-${nonce}'${process.env.NODE_ENV !== "production" ? " 'unsafe-eval'" : ""}`, "style-src 'self' 'unsafe-inline'", "img-src 'self' https: data: blob:", "font-src 'self' data:", "connect-src 'self'", "frame-ancestors 'none'", "object-src 'none'", "base-uri 'self'", "form-action 'self'"].join("; ");
+  const next = () => {
+    const response = NextResponse.next({ request: { headers: forwardedHeaders } });
+    response.headers.set("x-request-id", requestId);
+    response.headers.set("Content-Security-Policy", contentSecurityPolicy);
+    return response;
+  };
+  const withRequestId = (response: Response) => {
+    response.headers.set("x-request-id", requestId);
+    response.headers.set("Content-Security-Policy", contentSecurityPolicy);
+    return response;
+  };
 
   if (
     pathname.startsWith("/api/") &&
@@ -63,62 +87,62 @@ export async function proxy(request: NextRequest) {
     !SAFE_METHODS.has(request.method) &&
     !isSameOriginRequest(request)
   ) {
-    return NextResponse.json({ error: "Cross-site request rejected" }, { status: 403 });
+    return withRequestId(NextResponse.json({ error: "Cross-site request rejected" }, { status: 403 }));
   }
 
   const isAdminRoute = pathname.startsWith("/admin") || pathname.startsWith("/api/admin");
   const isArtistRoute = pathname.startsWith("/artist") || pathname.startsWith("/api/artist");
 
   if (!isAdminRoute && !isArtistRoute) {
-    return NextResponse.next();
+    return next();
   }
 
   const token = request.cookies.get(SESSION_COOKIE)?.value;
-  const userId = await verifyUserSessionToken(token);
+  const details = await verifyUserSessionTokenDetails(token);
 
-  const user = userId
-    ? await prisma.user.findUnique({ where: { id: userId }, include: { artist: true } })
+  const user = details
+    ? await prisma.user.findFirst({ where: { id: details.userId, accountStatus: "ACTIVE", ...(details.sessionVersion === null ? {} : { sessionVersion: details.sessionVersion }) }, include: { artist: true } })
     : null;
 
   const isApi = pathname.startsWith("/api/");
 
   if (isAdminRoute) {
     if (user?.isAdmin) {
-      return NextResponse.next();
+      return next();
     }
     if (isApi) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return withRequestId(NextResponse.json({ error: "Unauthorized" }, { status: 401 }));
     }
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", pathname);
-    return NextResponse.redirect(loginUrl);
+    return withRequestId(NextResponse.redirect(loginUrl));
   }
 
   // isArtistRoute
   const isOnboarding = pathname === "/artist/onboarding" || pathname === "/api/artist/onboarding";
 
   if (user?.artist) {
-    return NextResponse.next();
+    return next();
   }
   // Onboarding is for a logged-in user who does NOT have a shop yet — this
   // is exactly the route that creates one, so it can't require having one
   // already.
   if (user && isOnboarding) {
-    return NextResponse.next();
+    return next();
   }
   if (isApi) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return withRequestId(NextResponse.json({ error: "Unauthorized" }, { status: 401 }));
   }
   // Logged in but no shop yet — send them to become one instead of a bare
   // login page they've already passed.
   if (user && !isOnboarding) {
-    return NextResponse.redirect(new URL("/artist/onboarding", request.url));
+    return withRequestId(NextResponse.redirect(new URL("/artist/onboarding", request.url)));
   }
   const loginUrl = new URL("/login", request.url);
   loginUrl.searchParams.set("next", pathname);
-  return NextResponse.redirect(loginUrl);
+  return withRequestId(NextResponse.redirect(loginUrl));
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/artist/:path*", "/api/:path*"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };

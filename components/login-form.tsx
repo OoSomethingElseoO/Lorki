@@ -9,6 +9,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { resolvePostLoginRedirect } from "@/lib/post-login-redirect";
 import { useFormErrors } from "@/hooks/useFormErrors";
 import { useFormValidation } from "@/hooks/useFormValidation";
+import { AccessibleModal } from "@/components/accessible-modal";
 
 function LoginFormInner() {
   const router = useRouter();
@@ -19,6 +20,16 @@ function LoginFormInner() {
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [clientValidationErrors, setClientValidationErrors] = useState<Record<string, string>>({});
+  const [mfaChallengeToken, setMfaChallengeToken] = useState<string | null>(null);
+  const [mfaCode, setMfaCode] = useState("");
+  const [mfaSubmitting, setMfaSubmitting] = useState(false);
+  const [mfaError, setMfaError] = useState("");
+  const [emailOtpSent, setEmailOtpSent] = useState(false);
+
+  function finishLogin(data: { isAdmin?: boolean; hasArtist?: boolean; hasConservancy?: boolean }) {
+    router.push(resolvePostLoginRedirect({ next: searchParams.get("next"), isAdmin: Boolean(data.isAdmin), hasArtist: Boolean(data.hasArtist), hasConservancy: Boolean(data.hasConservancy) }));
+    router.refresh();
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -57,18 +68,40 @@ function LoginFormInner() {
       return;
     }
 
-    router.push(
-      resolvePostLoginRedirect({
-        next: searchParams.get("next"),
-        isAdmin: Boolean(data.isAdmin),
-        hasArtist: Boolean(data.hasArtist),
-        hasConservancy: Boolean(data.hasConservancy),
-      }),
-    );
-    router.refresh();
+    if (data.mfaRequired && data.challengeToken) {
+      setMfaChallengeToken(data.challengeToken);
+      setMfaCode("");
+      setMfaError("");
+      setEmailOtpSent(false);
+      return;
+    }
+    finishLogin(data);
+  }
+
+  async function verifyMfa(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!mfaChallengeToken) return;
+    setMfaSubmitting(true); setMfaError("");
+    const response = await fetch("/api/login/mfa", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ challengeToken: mfaChallengeToken, code: mfaCode }) });
+    const data = await response.json().catch(() => ({}));
+    setMfaSubmitting(false);
+    if (!response.ok) { setMfaError(data.error?.message ?? "That code is not valid"); return; }
+    setMfaChallengeToken(null);
+    finishLogin(data);
+  }
+
+  async function requestEmailOtp() {
+    if (!mfaChallengeToken) return;
+    setMfaSubmitting(true); setMfaError("");
+    const response = await fetch("/api/login/mfa/email", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ challengeToken: mfaChallengeToken }) });
+    const data = await response.json().catch(() => ({}));
+    setMfaSubmitting(false);
+    if (!response.ok) { setMfaError(data.error?.message ?? "Email OTP fallback is unavailable"); return; }
+    setEmailOtpSent(true);
   }
 
   return (
+    <>
     <form className="account-form" onSubmit={handleSubmit}>
       <label htmlFor="email">Email</label>
       <input
@@ -142,6 +175,17 @@ function LoginFormInner() {
         Don&apos;t have an account? <Link href="/signup">Create one</Link>
       </p>
     </form>
+    <AccessibleModal title="Verify your sign-in" isOpen={Boolean(mfaChallengeToken)} onClose={() => setMfaChallengeToken(null)}>
+      <form className="account-form" onSubmit={verifyMfa}>
+        <p>Enter the six-digit code from your authenticator app. You can also enter one unused recovery code.</p>
+        <label htmlFor="login-mfa-code">Verification code</label>
+        <input id="login-mfa-code" inputMode="numeric" autoComplete="one-time-code" autoFocus maxLength={12} value={mfaCode} onChange={(event) => setMfaCode(event.target.value.replace(/[^a-zA-Z0-9]/g, ""))} className="form-input" />
+        {mfaError ? <p className="buy-form__error">{mfaError}</p> : null}
+        <Button type="submit" disabled={mfaSubmitting || mfaCode.length < 6}>{mfaSubmitting ? "Verifying…" : "Verify and continue"}</Button>
+        <Button type="button" variant="outline" disabled={mfaSubmitting || emailOtpSent} onClick={requestEmailOtp}>{emailOtpSent ? "Code sent to your email" : "Email me a one-time code"}</Button>
+      </form>
+    </AccessibleModal>
+    </>
   );
 }
 

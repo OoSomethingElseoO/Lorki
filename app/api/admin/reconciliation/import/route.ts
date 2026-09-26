@@ -6,6 +6,7 @@ import { readJsonObject } from "@/lib/request-json";
 import { PRINT_SHIPPING_CENTS } from "@/lib/pricing";
 import { MAX_PRICE_CENTS } from "@/lib/pricing";
 import { sendOperationsAlert } from "@/lib/email";
+import { apiContractError } from "@/lib/api-contract";
 
 type ImportRow = {
   externalId?: unknown;
@@ -20,15 +21,15 @@ function isProvider(value: unknown): value is "STRIPE" | "FLUTTERWAVE" {
 }
 
 export async function POST(request: Request) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUser(request);
   const { authorized } = checkPermission(user, "FINANCE_ADMIN");
   if (!authorized) return unauthorized("FINANCE_ADMIN");
 
   const body = await readJsonObject(request) as { provider?: unknown; rows?: unknown } | null;
   if (!body || !isProvider(body.provider) || !Array.isArray(body.rows)) {
-    return NextResponse.json({ error: "provider and rows are required" }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", "provider and rows are required", 400);
   }
-  if (body.rows.length > 1000) return NextResponse.json({ error: "Import is limited to 1000 rows" }, { status: 413 });
+  if (body.rows.length > 1000) return apiContractError("PAYLOAD_TOO_LARGE", "Import is limited to 1000 rows", 413);
 
   const rows = body.rows as ImportRow[];
   let imported = 0;

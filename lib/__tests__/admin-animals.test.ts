@@ -4,18 +4,21 @@
 // exercises exactly the route's own validation/slugify/unique-constraint
 // logic, which is what's valuable and otherwise uncovered.
 import "dotenv/config";
-import { test } from "node:test";
+import { before, test } from "node:test";
 import assert from "node:assert/strict";
 import { GET, POST } from "@/app/api/admin/animals/route";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/slugify";
+import { adminHeaders, initTestAdmin } from "./test-auth";
+
+before(initTestAdmin);
 
 const unique = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 function createRequest(body: unknown) {
   return new Request("http://localhost/api/admin/animals", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: adminHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(body),
   });
 }
@@ -115,7 +118,7 @@ test("creating an animal with a duplicate name is rejected via the slug unique c
   );
   assert.equal(second.status, 409);
   const secondBody = await second.json();
-  assert.match(secondBody.error, /already exists/i);
+  assert.match(String(secondBody.error?.message ?? secondBody.error ?? ""), /already exists/i);
 
   const count = await prisma.animal.count({ where: { conservancyId: conservancy.id } });
   assert.equal(count, 1, "duplicate creation must not add a second row");
@@ -136,7 +139,7 @@ test("creating an animal with a conservancyId that doesn't exist is rejected", a
 
   assert.equal(response.status, 400);
   const body = await response.json();
-  assert.match(body.error, /conservancyId/i);
+  assert.match(body.error?.message ?? "", /conservancyId/i);
 
   const count = await prisma.animal.count({ where: { name } });
   assert.equal(count, 0);
@@ -162,7 +165,7 @@ test("GET returns the list of animals including a newly created one", async (t) 
   );
   assert.equal(created.status, 201);
 
-  const response = await GET();
+  const response = await GET(new Request("http://localhost/api/admin/animals", { headers: adminHeaders() }));
   assert.equal(response.status, 200);
   const body = await response.json();
   assert.ok(body.animals.some((animal: { name: string }) => animal.name === name));

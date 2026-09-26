@@ -4,6 +4,8 @@ import { sendShippingNotificationEmail } from "@/lib/email";
 import { getCurrentUser } from "@/lib/auth";
 import { checkPermission, unauthorized } from "@/lib/permissions";
 import { recordAudit } from "@/lib/audit";
+import { apiContractError } from "@/lib/api-contract";
+import { readJsonObject } from "@/lib/request-json";
 
 type ShipBody = {
   carrier: string;
@@ -18,14 +20,15 @@ type RouteParams = { params: Promise<{ id: string }> };
 // artist/conservancy/ops (see app/api/admin/orders/[id]/deliver/route.ts,
 // which is what flips Payouts from PENDING to RELEASED).
 export async function POST(request: Request, { params }: RouteParams) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUser(request);
   const { authorized } = checkPermission(user, "OPS_ADMIN");
   if (!authorized) return unauthorized("OPS_ADMIN");
   const { id } = await params;
-  const body = (await request.json()) as Partial<ShipBody>;
+  const body = await readJsonObject(request) as Partial<ShipBody> | null;
+  if (!body) return apiContractError("INVALID_JSON", "Request body must be a JSON object", 400);
 
   if (!body.carrier || !body.method) {
-    return NextResponse.json({ error: "carrier and method are required" }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", "carrier and method are required", 400);
   }
 
   const order = await prisma.order.findUnique({
@@ -34,15 +37,15 @@ export async function POST(request: Request, { params }: RouteParams) {
   });
 
   if (!order) {
-    return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    return apiContractError("NOT_FOUND", "Order not found", 404);
   }
 
   if (order.status !== "PAID") {
-    return NextResponse.json({ error: `Cannot ship an order with status ${order.status}` }, { status: 409 });
+    return apiContractError("CONFLICT", `Cannot ship an order with status ${order.status}`, 409);
   }
 
   if (order.shipment) {
-    return NextResponse.json({ error: "Order already has a shipment" }, { status: 409 });
+    return apiContractError("CONFLICT", "Order already has a shipment", 409);
   }
 
   await prisma.$transaction([

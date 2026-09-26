@@ -29,7 +29,7 @@ test("signup creates a user and returns a session cookie", async (t) => {
     await prisma.user.deleteMany({ where: { email } });
   });
 
-  const response = await POST(signupRequest({ email, password: "password123" }, fakeIp()));
+  const response = await POST(signupRequest({ email, password: "StrongSignupPass1!", passwordConfirmation: "StrongSignupPass1!" }, fakeIp()));
 
   assert.equal(response.status, 201);
   const setCookie = response.headers.get("set-cookie");
@@ -49,13 +49,13 @@ test("signup rejects a duplicate email", async (t) => {
     await prisma.user.deleteMany({ where: { email } });
   });
 
-  const first = await POST(signupRequest({ email, password: "password123" }, ip));
+  const first = await POST(signupRequest({ email, password: "StrongSignupPass1!", passwordConfirmation: "StrongSignupPass1!" }, ip));
   assert.equal(first.status, 201);
 
-  const second = await POST(signupRequest({ email, password: "anotherPassword1" }, ip));
+  const second = await POST(signupRequest({ email, password: "AnotherSignupPass1!", passwordConfirmation: "AnotherSignupPass1!" }, ip));
   assert.equal(second.status, 409);
   const body = await second.json();
-  assert.match(body.error, /already exists/i);
+  assert.match(String(body.error?.message ?? body.error ?? ""), /already exists/i);
 
   const count = await prisma.user.count({ where: { email } });
   assert.equal(count, 1, "duplicate signup must not create a second row");
@@ -67,7 +67,7 @@ test("signup rejects a password under 8 characters", async (t) => {
     await prisma.user.deleteMany({ where: { email } });
   });
 
-  const response = await POST(signupRequest({ email, password: "short1" }, fakeIp()));
+  const response = await POST(signupRequest({ email, password: "short1", passwordConfirmation: "short1" }, fakeIp()));
   assert.equal(response.status, 400);
 
   const user = await prisma.user.findUnique({ where: { email } });
@@ -78,7 +78,7 @@ test("signup rejects missing email or password", async () => {
   const missingPassword = await POST(signupRequest({ email: `signup-${unique()}@example.com` }, fakeIp()));
   assert.equal(missingPassword.status, 400);
 
-  const missingEmail = await POST(signupRequest({ password: "password123" }, fakeIp()));
+  const missingEmail = await POST(signupRequest({ password: "StrongSignupPass1!", passwordConfirmation: "StrongSignupPass1!" }, fakeIp()));
   assert.equal(missingEmail.status, 400);
 });
 
@@ -92,12 +92,12 @@ test("signup is rate-limited after 5 attempts from the same IP", async (t) => {
   for (let i = 0; i < 5; i++) {
     const email = `signup-rl-${unique()}@example.com`;
     emails.push(email);
-    const response = await POST(signupRequest({ email, password: "password123" }, ip));
+    const response = await POST(signupRequest({ email, password: "StrongSignupPass1!", passwordConfirmation: "StrongSignupPass1!" }, ip));
     assert.equal(response.status, 201, `attempt ${i + 1} should succeed`);
   }
 
   const sixthEmail = `signup-rl-${unique()}@example.com`;
-  const sixth = await POST(signupRequest({ email: sixthEmail, password: "password123" }, ip));
+  const sixth = await POST(signupRequest({ email: sixthEmail, password: "StrongSignupPass1!", passwordConfirmation: "StrongSignupPass1!" }, ip));
   assert.equal(sixth.status, 429);
 
   const user = await prisma.user.findUnique({ where: { email: sixthEmail } });

@@ -1,4 +1,5 @@
 import { getFlutterwaveSecretKey } from "@/lib/settings";
+import { CircuitBreaker, ExternalServiceError, isRetryableExternalError, withExternalRetry } from "@/lib/reliability";
 import type { PayoutChannelHandler } from "./types";
 
 // Sends a real payout via Flutterwave's direct-transfers API — mobile
@@ -27,6 +28,7 @@ const FLUTTERWAVE_TRANSFERS_URL = "https://developersandbox-api.flutterwave.com/
 // recipient's own payoutCurrency using its own live rate, so this
 // integration never needs to track or guess an FX rate itself.
 const SOURCE_CURRENCY = "USD";
+const flutterwaveCircuit = new CircuitBreaker(3, 30_000, isRetryableExternalError);
 
 function splitName(fullName: string): { first: string; last: string } {
   const parts = fullName.trim().split(/\s+/);
@@ -59,36 +61,43 @@ export const sendFlutterwavePayout: PayoutChannelHandler = async ({ recipient, a
     ? { name: { first, last }, mobile_money: { network: recipient.payoutMobileNetwork, msisdn: recipient.payoutAccountNumber } }
     : { name: { first, last }, bank: { code: recipient.payoutBankCode, account_number: recipient.payoutAccountNumber } };
 
-  const response = await fetch(FLUTTERWAVE_TRANSFERS_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${secretKey}`,
-      "Content-Type": "application/json",
-      "X-Trace-Id": `payout-${payoutId}`,
-      "X-Idempotency-Key": `payout-${payoutId}`,
-    },
-    body: JSON.stringify({
-      action: "instant",
-      type: isMobileMoney ? "mobile_money" : "bank",
-      payment_instruction: {
-        source_currency: SOURCE_CURRENCY,
-        destination_currency: recipient.payoutCurrency,
-        amount: {
-          applies_to: "source_currency",
-          value: amountCents / 100,
+  const response = await withExternalRetry(
+    () => flutterwaveCircuit.run(async () => {
+      const response = await fetch(FLUTTERWAVE_TRANSFERS_URL, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${secretKey}`,
+          "Content-Type": "application/json",
+          "X-Trace-Id": `payout-${payoutId}`,
+          "X-Idempotency-Key": `payout-${payoutId}`,
         },
-        recipient: recipientPayload,
-      },
-      narration: "Lorki payout",
-      reference: `payout-${payoutId}`,
-    }),
-  });
+        signal: AbortSignal.timeout(15_000),
+        body: JSON.stringify({
+          action: "instant",
+          type: isMobileMoney ? "mobile_money" : "bank",
+          payment_instruction: {
+            source_currency: SOURCE_CURRENCY,
+            destination_currency: recipient.payoutCurrency,
+            amount: {
+              applies_to: "source_currency",
+              value: amountCents / 100,
+            },
+            recipient: recipientPayload,
+          },
+          narration: "Lorki payout",
+          reference: `payout-${payoutId}`,
+        }),
+      });
+      if (!response.ok) {
+        const details = await response.text().catch(() => "");
+        throw new ExternalServiceError("Flutterwave", response.status, details);
+      }
+      return response;
+    }, Date.now()),
+    { attempts: 2 },
+  );
 
   const data = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    throw new Error(`Flutterwave transfer failed (${response.status}): ${JSON.stringify(data)}`);
-  }
 
   const transferId: string | undefined = data.data?.id ?? data.id;
   const status: string = data.data?.status ?? data.status ?? "NEW";

@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth";
+import { checkPermission, unauthorized } from "@/lib/permissions";
+import { apiJson } from "@/lib/api-contract";
 
 export async function GET(request: Request) {
+  const { authorized } = checkPermission(await getCurrentUser(request), "OPS_ADMIN");
+  if (!authorized) return unauthorized("OPS_ADMIN");
+
   const { searchParams } = new URL(request.url);
   const page = Math.max(1, parseInt(searchParams.get("page") ?? "1"));
   const pageSize = Math.min(100, Math.max(1, parseInt(searchParams.get("pageSize") ?? "50")));
@@ -20,5 +26,5 @@ export async function GET(request: Request) {
     prisma.order.count(),
   ]);
 
-  return NextResponse.json({ orders, pagination: { page, pageSize, total } });
+  return apiJson({ orders, pagination: { page, pageSize, total } });
 }

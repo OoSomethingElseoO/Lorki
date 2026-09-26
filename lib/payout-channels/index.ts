@@ -3,6 +3,7 @@ import { sendOperationsAlert } from "@/lib/email";
 import { sendFlutterwavePayout } from "./flutterwave";
 import { sendStripeConnectPayout } from "./stripe-connect";
 import type { PayoutChannelHandler, PayoutRecipient } from "./types";
+import { isFeatureEnabled } from "@/lib/feature-flags";
 
 const HANDLERS: Record<string, PayoutChannelHandler | undefined> = {
   FLUTTERWAVE: sendFlutterwavePayout,
@@ -22,6 +23,7 @@ const HANDLERS: Record<string, PayoutChannelHandler | undefined> = {
 // means the admin settles it manually, same as any MANUAL-channel
 // recipient, plus an alert telling them so.
 export async function attemptAutomaticPayout(payoutId: string, recipient: PayoutRecipient): Promise<void> {
+  if (!isFeatureEnabled("AUTOMATIC_PAYOUTS")) return;
   if (recipient.payoutChannel === "MANUAL") {
     return;
   }

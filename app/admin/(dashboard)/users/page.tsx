@@ -4,6 +4,7 @@ import { DeleteButton } from "@/components/admin/delete-button";
 import { AdminSearchForm } from "@/components/admin/search-form";
 import { EmptyState } from "@/components/admin/empty-state";
 import { Pagination } from "@/components/pagination";
+import { MfaReminderButton } from "@/components/admin/mfa-reminder-button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ADMIN_PAGE_SIZE, adminTotalPages, normalizeAdminPage } from "@/lib/admin-list";
 
@@ -29,7 +30,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
   const [users, totalCount] = await Promise.all([
     prisma.user.findMany({
       where,
-      select: { id: true, email: true, name: true, createdAt: true },
+      select: { id: true, email: true, name: true, createdAt: true, mfaEnabled: true },
       orderBy: { createdAt: "asc" },
       skip: (currentPage - 1) * ADMIN_PAGE_SIZE,
       take: ADMIN_PAGE_SIZE,
@@ -58,6 +59,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
                 <th>Name</th>
                 <th>Email</th>
                 <th>Created</th>
+                <th>Security</th>
                 <th></th>
               </tr>
             </thead>
@@ -67,6 +69,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
                   <td>{user.name}</td>
                   <td>{user.email}</td>
                   <td>{user.createdAt.toLocaleDateString()}</td>
+                  <td>{user.mfaEnabled ? "MFA enabled" : <MfaReminderButton userId={user.id} />}</td>
                   <td>
                     <DeleteButton endpoint={`/api/admin/users/${user.id}`} confirmLabel={user.email} />
                   </td>

@@ -5,6 +5,8 @@ import { releaseReservationIfHeld } from "@/lib/reservations";
 import { getCurrentUser } from "@/lib/auth";
 import { checkPermission, unauthorized } from "@/lib/permissions";
 import { recordAudit } from "@/lib/audit";
+import { apiContractError } from "@/lib/api-contract";
+import { readJsonObject } from "@/lib/request-json";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -15,15 +17,16 @@ type UpdateBody = {
 const VALID_STATUSES = ["NEW", "CONTACTED", "APPROVED", "REJECTED", "CLOSED"];
 
 export async function PATCH(request: Request, { params }: RouteParams) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUser(request);
   const { authorized } = checkPermission(user, "OPS_ADMIN");
   if (!authorized) return unauthorized("OPS_ADMIN");
 
   const { id } = await params;
-  const body = (await request.json()) as Partial<UpdateBody>;
+  const body = await readJsonObject(request) as Partial<UpdateBody> | null;
+  if (!body) return apiContractError("INVALID_JSON", "Request body must be a JSON object", 400);
 
   if (!body.status || !VALID_STATUSES.includes(body.status)) {
-    return NextResponse.json({ error: "status must be NEW, CONTACTED, APPROVED, REJECTED, or CLOSED" }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", "status must be NEW, CONTACTED, APPROVED, REJECTED, or CLOSED", 400);
   }
 
   try {
@@ -45,7 +48,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     return NextResponse.json({ inquiry });
   } catch (error) {
     if (isNotFoundError(error)) {
-      return NextResponse.json({ error: "Inquiry not found" }, { status: 404 });
+      return apiContractError("NOT_FOUND", "Inquiry not found", 404);
     }
     throw error;
   }

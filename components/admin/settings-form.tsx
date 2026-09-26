@@ -6,6 +6,7 @@ import { ImageUploadField } from "@/components/admin/image-upload-field";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { MfaReminderForm } from "@/components/admin/mfa-reminder-form";
 
 const SECRET_FIELDS = [
   "stripeSecretKey",
@@ -56,7 +57,11 @@ type SettingsFormProps = {
     missionStatement: string;
     contactName: string;
     contactEmail: string;
-    contactPhone: string;
+  contactPhone: string;
+    emailTemplates: Record<string, { subject: string; body: string }>;
+    requireMfaForAdmins: boolean;
+    requireMfaForHighRisk: boolean;
+    allowMfaEmailOtp: boolean;
   };
 };
 
@@ -114,6 +119,11 @@ export function SettingsForm({ initial }: SettingsFormProps) {
       second: headlineWords("second"),
       third: headlineWords("third"),
     };
+    const templateKeys = ["welcome", "orderConfirmation", "inquiryConfirmation", "shipping", "refund", "deletionRequested", "deletionDecision", "offerSubmitted", "offerDecision", "payout", "workVisibility", "mfaReminder"];
+    body.emailTemplates = Object.fromEntries(templateKeys.map((key) => [key, { subject: String(form.get(`email_${key}_subject`) ?? ""), body: String(form.get(`email_${key}_body`) ?? "") }]));
+    body.requireMfaForAdmins = form.get("requireMfaForAdmins") === "on";
+    body.requireMfaForHighRisk = form.get("requireMfaForHighRisk") === "on";
+    body.allowMfaEmailOtp = form.get("allowMfaEmailOtp") === "on";
 
     const response = await fetch("/api/admin/settings", {
       method: "PATCH",
@@ -159,6 +169,8 @@ export function SettingsForm({ initial }: SettingsFormProps) {
           <TabsTrigger value="stripe">Stripe</TabsTrigger>
           <TabsTrigger value="flutterwave">Flutterwave</TabsTrigger>
           <TabsTrigger value="email">Email</TabsTrigger>
+          <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          <TabsTrigger value="security">Security</TabsTrigger>
         </TabsList>
 
         <TabsContent value="branding">
@@ -218,6 +230,35 @@ export function SettingsForm({ initial }: SettingsFormProps) {
 
               <label htmlFor="contactPhone">Contact phone</label>
               <input id="contactPhone" name="contactPhone" defaultValue={initial.contactPhone} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="security">
+          <Card variant="admin">
+            <CardHeader><CardTitle>Authentication policy</CardTitle><CardDescription>These controls change enforcement for future sign-ins and high-risk actions. They never expose a user's authenticator secret.</CardDescription></CardHeader>
+            <CardContent className="admin-form admin-form--embedded">
+              <label><input type="checkbox" name="requireMfaForAdmins" defaultChecked={initial.requireMfaForAdmins} /> Require MFA for administrator sign-ins</label>
+              <label><input type="checkbox" name="requireMfaForHighRisk" defaultChecked={initial.requireMfaForHighRisk} /> Require MFA before high-risk actions</label>
+              <label><input type="checkbox" name="allowMfaEmailOtp" defaultChecked={initial.allowMfaEmailOtp} /> Allow email OTP fallback when an authenticator is unavailable</label>
+              <p className="admin-form__hint">Email OTP is weaker than an authenticator. If enabled, use it only as a recovery path, rate-limit it, expire it quickly, and audit every use. The administrator requirement cannot be enabled until every active administrator has enrolled.</p>
+              <h3>Send an enrollment reminder</h3>
+              <MfaReminderForm />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="notifications">
+          <Card variant="admin">
+            <CardHeader><CardTitle>Notification templates</CardTitle><CardDescription>Use the listed placeholders. Values are escaped before being inserted into email HTML.</CardDescription></CardHeader>
+            <CardContent className="admin-form admin-form--embedded">
+              {Object.entries(initial.emailTemplates).map(([key, template]) => <div key={key} className="admin-notification-template">
+                <h3>{key}</h3>
+                <label htmlFor={`email_${key}_subject`}>Subject</label>
+                <input id={`email_${key}_subject`} name={`email_${key}_subject`} defaultValue={template.subject} />
+                <label htmlFor={`email_${key}_body`}>Body</label>
+                <textarea id={`email_${key}_body`} name={`email_${key}_body`} rows={3} defaultValue={template.body} />
+              </div>)}
             </CardContent>
           </Card>
         </TabsContent>

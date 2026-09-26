@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { checkPermission } from "@/lib/permissions";
 import { Pagination } from "@/components/pagination";
 import { ADMIN_PAGE_SIZE, adminTotalPages, normalizeAdminPage } from "@/lib/admin-list";
+import { isFeatureEnabled } from "@/lib/feature-flags";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,7 @@ function dateValue(value: string | undefined, endOfDay = false) {
 export default async function ShareAnalyticsPage({ searchParams }: PageProps) {
   const user = await getCurrentUser();
   if (!checkPermission(user, "OPS_ADMIN").authorized) redirect("/login?next=/admin/share-analytics");
+  if (!isFeatureEnabled("SHARE_ANALYTICS")) return <><h1>Share analytics</h1><p className="admin-form__hint" role="status">Share analytics is disabled. Set FEATURE_SHARE_ANALYTICS=true to enable event collection and reporting.</p></>;
   const params = await searchParams;
   const page = normalizeAdminPage(params.page);
   const targetType = params.targetType?.trim();

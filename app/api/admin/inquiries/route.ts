@@ -1,10 +1,10 @@
-import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { checkPermission, unauthorized } from "@/lib/permissions";
+import { apiJson } from "@/lib/api-contract";
 
-export async function GET() {
-  const { authorized } = checkPermission(await getCurrentUser(), "OPS_ADMIN");
+export async function GET(request: Request) {
+  const { authorized } = checkPermission(await getCurrentUser(request), "OPS_ADMIN");
   if (!authorized) return unauthorized("OPS_ADMIN");
 
   const inquiries = await prisma.inquiry.findMany({
@@ -14,5 +14,5 @@ export async function GET() {
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json({ inquiries });
+  return apiJson({ inquiries });
 }

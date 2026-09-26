@@ -3,24 +3,27 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { checkPermission, unauthorized } from "@/lib/permissions";
 import { recordAudit } from "@/lib/audit";
+import { apiContractError } from "@/lib/api-contract";
+import { readJsonObject } from "@/lib/request-json";
 
 type BulkBody = { inquiryIds?: string[]; status?: "NEW" | "CONTACTED" | "CLOSED" };
 
 const VALID_STATUSES = ["NEW", "CONTACTED", "CLOSED"];
 
 export async function PATCH(request: Request) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUser(request);
   const { authorized } = checkPermission(user, "OPS_ADMIN");
   if (!authorized) return unauthorized("OPS_ADMIN");
 
-  const body = (await request.json()) as Partial<BulkBody>;
+  const body = await readJsonObject(request) as Partial<BulkBody> | null;
+  if (!body) return apiContractError("INVALID_JSON", "Request body must be a JSON object", 400);
 
   if (!Array.isArray(body.inquiryIds) || body.inquiryIds.length === 0) {
-    return NextResponse.json({ error: "inquiryIds must be a non-empty array" }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", "inquiryIds must be a non-empty array", 400);
   }
 
   if (!body.status || !VALID_STATUSES.includes(body.status)) {
-    return NextResponse.json({ error: "status must be NEW, CONTACTED, or CLOSED" }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", "status must be NEW, CONTACTED, or CLOSED", 400);
   }
 
   // Needed before the bulk status update below only for the CLOSED case

@@ -54,7 +54,15 @@ export const validateEmail = (email: string): string | null => {
 // PASSWORD VALIDATION
 // ============================================================================
 
-export const validatePassword = (password: string): string | null => {
+const COMMON_PASSWORDS = new Set([
+  "password", "password1", "password123", "12345678", "123456789",
+  "qwerty123", "letmein123", "welcome123", "admin123", "iloveyou",
+]);
+
+export const validatePassword = (
+  password: string,
+  context?: { email?: string; name?: string },
+): string | null => {
   if (!password) {
     return "Password is required";
   }
@@ -63,6 +71,14 @@ export const validatePassword = (password: string): string | null => {
   }
   if (password.length > 128) {
     return "Password must be less than 128 characters";
+  }
+  const normalized = password.trim().toLowerCase();
+  if (COMMON_PASSWORDS.has(normalized)) return "Choose a less common password";
+  if (context?.email && normalized === context.email.split("@")[0].toLowerCase()) {
+    return "Password must not be based on your email";
+  }
+  if (context?.name && normalized === context.name.trim().toLowerCase()) {
+    return "Password must not be your name";
   }
   return null;
 };
@@ -226,7 +242,10 @@ export const validateUrl = (url: string): string | null => {
   }
 
   try {
-    new URL(url);
+    const parsed = new URL(url);
+    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+      return "Only HTTP(S) URLs are allowed";
+    }
     return null;
   } catch {
     return "URL format is invalid";
@@ -238,7 +257,7 @@ export const validateImageUrl = (url: string): string | null => {
   if (urlError) return urlError;
 
   const allowedExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
-  const urlLower = url.toLowerCase();
+  const urlLower = url.toLowerCase().split("?")[0].split("#")[0];
 
   if (!allowedExtensions.some((ext) => urlLower.endsWith(ext))) {
     return "Image must be JPG, PNG, GIF, or WebP";

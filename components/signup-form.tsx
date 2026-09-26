@@ -2,42 +2,26 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { PasswordInput } from "@/components/ui/password-input";
 import { FormFieldError } from "@/components/ui/form-field-error";
-import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { useFormErrors } from "@/hooks/useFormErrors";
 import { useFormValidation } from "@/hooks/useFormValidation";
 
-type Role = "artist" | "cause" | null;
-
-const ROLE_OPTIONS: { value: Role; label: string }[] = [
-  { value: "artist", label: "Sell my art" },
-  { value: "cause", label: "Represent a conservation cause" },
-  { value: null, label: "Just browse for now" },
-];
-
 type SignupFormProps = {
-  /** Pre-selects the picker below — see app/signup/page.tsx's ?role= handling. */
-  initialRole?: Role;
+  /** Where to continue after the base account is created. */
+  redirectTo?: string;
 };
 
-// The intent picker below decides ONLY where signup redirects to
-// afterward — it never touches account creation itself. /api/signup stays
-// a single, generic "create a plain account" endpoint (same rate limiting,
-// same password handling, no forked logic to keep in sync); becoming an
-// artist or a cause still goes through the real /artist/onboarding or
-// /cause/onboarding flow and its own validation, exactly as before. This
-// is routing, not a shortcut around that.
-export function SignupForm({ initialRole = null }: SignupFormProps) {
+export function SignupForm({ redirectTo = "/account" }: SignupFormProps) {
   const router = useRouter();
   const { error, fieldErrors, setError, clearErrors, getFieldError } = useFormErrors();
   const { validators } = useFormValidation();
-  const [role, setRole] = useState<Role>(initialRole);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [clientValidationErrors, setClientValidationErrors] = useState<Record<string, string>>({});
 
@@ -52,6 +36,7 @@ export function SignupForm({ initialRole = null }: SignupFormProps) {
 
     const passwordError = validators.password(password);
     if (passwordError) errors.password = passwordError;
+    if (password !== passwordConfirmation) errors.passwordConfirmation = "Passwords do not match";
 
     if (Object.keys(errors).length > 0) {
       setClientValidationErrors(errors);
@@ -66,7 +51,7 @@ export function SignupForm({ initialRole = null }: SignupFormProps) {
     const response = await fetch("/api/signup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password }),
+      body: JSON.stringify({ name, email, password, passwordConfirmation }),
     });
 
     setSubmitting(false);
@@ -77,31 +62,12 @@ export function SignupForm({ initialRole = null }: SignupFormProps) {
       return;
     }
 
-    const destination = role === "artist" ? "/artist/onboarding" : role === "cause" ? "/cause/onboarding" : "/account";
-    router.push(destination);
+    router.push(redirectTo);
     router.refresh();
   }
 
   return (
     <form className="account-form" onSubmit={handleSubmit}>
-      <fieldset className="signup-role-picker">
-        <legend>What brings you here?</legend>
-        <div className="signup-role-picker__options" role="radiogroup" aria-label="What brings you here?">
-          {ROLE_OPTIONS.map((option) => (
-            <button
-              key={option.label}
-              type="button"
-              role="radio"
-              aria-checked={role === option.value}
-              className={cn(buttonVariants({ variant: role === option.value ? "default" : "outline" }), "signup-role-picker__option")}
-              onClick={() => setRole(option.value)}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-      </fieldset>
-
       <label htmlFor="name">Name (optional)</label>
       <input id="name" value={name} onChange={(event) => setName(event.target.value)} />
 
@@ -163,7 +129,7 @@ export function SignupForm({ initialRole = null }: SignupFormProps) {
         }
       />
       <p id="password-hint" className="account-form__field-hint">
-        At least 8 characters
+        Use at least 8 characters and avoid common passwords.
       </p>
       {/* ✅ Show client validation first (fastest feedback), then server errors */}
       {(clientValidationErrors.password || getFieldError("password")) && (
@@ -171,6 +137,19 @@ export function SignupForm({ initialRole = null }: SignupFormProps) {
           id="password-error"
           message={clientValidationErrors.password || getFieldError("password")}
         />
+      )}
+
+      <label htmlFor="passwordConfirmation">Confirm password</label>
+      <PasswordInput
+        id="passwordConfirmation"
+        required
+        value={passwordConfirmation}
+        onChange={(event) => setPasswordConfirmation(event.target.value)}
+        className={getFieldError("passwordConfirmation") || clientValidationErrors.passwordConfirmation ? "form-input--error" : ""}
+        aria-invalid={!!(getFieldError("passwordConfirmation") || clientValidationErrors.passwordConfirmation)}
+      />
+      {(clientValidationErrors.passwordConfirmation || getFieldError("passwordConfirmation")) && (
+        <FormFieldError id="password-confirmation-error" message={clientValidationErrors.passwordConfirmation || getFieldError("passwordConfirmation")} />
       )}
 
       {error ? <p className="buy-form__error">{error}</p> : null}

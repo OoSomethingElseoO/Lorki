@@ -1,4 +1,4 @@
-import { getSettings, normalizeHeroHeadlineWords } from "@/lib/settings";
+import { getSettings, normalizeEmailTemplates, normalizeHeroHeadlineWords } from "@/lib/settings";
 import { SettingsForm } from "@/components/admin/settings-form";
 
 export const dynamic = "force-dynamic";
@@ -35,6 +35,10 @@ export default async function AdminSettingsPage() {
           contactName: settings.contactName ?? "",
           contactEmail: settings.contactEmail ?? "",
           contactPhone: settings.contactPhone ?? "",
+          emailTemplates: normalizeEmailTemplates(settings.emailTemplates),
+          requireMfaForAdmins: Boolean(settings.requireMfaForAdmins),
+          requireMfaForHighRisk: Boolean(settings.requireMfaForHighRisk),
+          allowMfaEmailOtp: Boolean(settings.allowMfaEmailOtp),
         }}
       />
     </>

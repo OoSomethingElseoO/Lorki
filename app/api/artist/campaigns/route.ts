@@ -1,16 +1,19 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { artistRequired } from "@/lib/authorization";
 import { DEFAULT_SPLIT } from "@/lib/payouts";
 import { isUniqueConstraintError, uniqueConstraintResponse } from "@/lib/prisma-errors";
 import { slugify } from "@/lib/slugify";
 import { recordAudit } from "@/lib/audit";
+import { apiContractError, apiJson } from "@/lib/api-contract";
+import { readJsonObject } from "@/lib/request-json";
 
-export async function GET() {
-  const currentUser = await getCurrentUser();
-  const artist = currentUser?.artist;
+export async function GET(request: Request) {
+  const currentUser = await getCurrentUser(request);
+  const artist = artistRequired(currentUser);
   if (!artist) {
-    return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+    return apiContractError("UNAUTHORIZED", "Not signed in", 401);
   }
 
   const campaigns = await prisma.campaign.findMany({
@@ -19,7 +22,7 @@ export async function GET() {
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json({ campaigns });
+  return apiJson({ campaigns });
 }
 
 type CreateBody = { animalId?: string; conservancyId?: string };
@@ -35,16 +38,17 @@ type CreateBody = { animalId?: string; conservancyId?: string };
 // DRAFT already means exactly this. The split ratio is fixed
 // (DEFAULT_SPLIT), never settable here; see lib/payouts.ts for why.
 export async function POST(request: Request) {
-  const currentUser = await getCurrentUser();
-  const artist = currentUser?.artist;
+  const currentUser = await getCurrentUser(request);
+  const artist = artistRequired(currentUser);
   if (!artist) {
-    return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+    return apiContractError("UNAUTHORIZED", "Not signed in", 401);
   }
 
-  const body = (await request.json()) as Partial<CreateBody>;
+  const body = await readJsonObject(request) as Partial<CreateBody> | null;
+  if (!body) return apiContractError("INVALID_JSON", "Request body must be a JSON object", 400);
 
   if (Boolean(body.animalId) === Boolean(body.conservancyId)) {
-    return NextResponse.json({ error: "Provide exactly one of animalId or conservancyId" }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", "Provide exactly one of animalId or conservancyId", 400);
   }
 
   const [animal, conservancy] = await Promise.all([
@@ -53,10 +57,10 @@ export async function POST(request: Request) {
   ]);
 
   if (body.animalId && !animal) {
-    return NextResponse.json({ error: "animalId does not match an existing animal" }, { status: 400 });
+    return apiContractError("NOT_FOUND", "animalId does not match an existing animal", 404);
   }
   if (body.conservancyId && !conservancy) {
-    return NextResponse.json({ error: "conservancyId does not match an existing conservancy" }, { status: 400 });
+    return apiContractError("NOT_FOUND", "conservancyId does not match an existing conservancy", 404);
   }
 
   // Anyone can self-register a cause (see /api/cause/onboarding) with a
@@ -66,10 +70,7 @@ export async function POST(request: Request) {
   // ever created by an admin picking from existing conservancies (see
   // /api/admin/animals), which is itself the vetting step.
   if (conservancy && !conservancy.verifiedAt) {
-    return NextResponse.json(
-      { error: "This cause hasn't been verified yet — an admin needs to review it before campaigns can support it" },
-      { status: 403 },
-    );
+    return apiContractError("FORBIDDEN", "This cause hasn't been verified yet — an admin needs to review it before campaigns can support it", 403);
   }
 
   const causeSlug = animal ? animal.slug : slugify(conservancy!.name);

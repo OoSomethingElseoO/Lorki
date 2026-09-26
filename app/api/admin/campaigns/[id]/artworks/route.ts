@@ -4,6 +4,8 @@ import { isPriceTooLow, MIN_PRICE_CENTS } from "@/lib/pricing";
 import { getCurrentUser } from "@/lib/auth";
 import { checkPermission, unauthorized } from "@/lib/permissions";
 import { recordAudit } from "@/lib/audit";
+import { apiContractError } from "@/lib/api-contract";
+import { readJsonObject } from "@/lib/request-json";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -17,30 +19,28 @@ type CreateBody = {
 };
 
 export async function POST(request: Request, { params }: RouteParams) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUser(request);
   const { authorized } = checkPermission(user, "OPS_ADMIN");
   if (!authorized) return unauthorized("OPS_ADMIN");
   const { id } = await params;
-  const body = (await request.json()) as Partial<CreateBody>;
+  const body = await readJsonObject(request) as Partial<CreateBody> | null;
+  if (!body) return apiContractError("INVALID_JSON", "Request body must be a JSON object", 400);
 
   if (!body.title || !body.kind || typeof body.priceCents !== "number" || !body.imageUrl || !body.altText) {
-    return NextResponse.json(
-      { error: "title, kind, priceCents, imageUrl, and altText are required" },
-      { status: 400 },
-    );
+    return apiContractError("VALIDATION_ERROR", "title, kind, priceCents, imageUrl, and altText are required", 400);
   }
 
   if (body.kind !== "ORIGINAL" && body.kind !== "PRINT") {
-    return NextResponse.json({ error: "kind must be ORIGINAL or PRINT" }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", "kind must be ORIGINAL or PRINT", 400);
   }
 
   if (isPriceTooLow(body.priceCents)) {
-    return NextResponse.json({ error: `priceCents must be at least ${MIN_PRICE_CENTS}` }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", `priceCents must be at least ${MIN_PRICE_CENTS}`, 400);
   }
 
   const campaign = await prisma.campaign.findUnique({ where: { id } });
   if (!campaign) {
-    return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
+    return apiContractError("NOT_FOUND", "Campaign not found", 404);
   }
 
   const artwork = await prisma.artwork.create({

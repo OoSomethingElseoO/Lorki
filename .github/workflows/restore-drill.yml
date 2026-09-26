@@ -1,0 +1,25 @@
+name: Restore drill
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-restore:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Validate disposable restore
+        env:
+          RESTORE_DATABASE_URL: ${{ secrets.RESTORE_DATABASE_URL }}
+        run: |
+          test -n "$RESTORE_DATABASE_URL"
+          DATABASE_URL="$RESTORE_DATABASE_URL" npx prisma migrate deploy
+          env -u DATABASE_URL npm run restore:drill

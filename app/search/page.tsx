@@ -3,7 +3,7 @@ import { ArtistCard } from "@/components/artist-card";
 import { PageTitle } from "@/components/page-title";
 import { SiteHeader } from "@/components/site-header";
 import { Footer } from "@/components/footer";
-import { Button } from "@/components/ui/button";
+import { SearchBox } from "@/components/search-box";
 import { searchStorefront } from "@/lib/storefront";
 
 type SearchPageProps = {
@@ -21,13 +21,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       <main className="page-main" id="main-content">
         <PageTitle>Search</PageTitle>
 
-        <form className="search-form" action="/search" role="search" aria-label="Search artwork and artists">
-          <label className="sr-only" htmlFor="search-q">
-            Search artwork and artists
-          </label>
-          <input id="search-q" name="q" type="search" defaultValue={query} placeholder="Search artwork or artists" />
-          <Button type="submit">Search</Button>
-        </form>
+        <SearchBox defaultValue={query} />
 
         {results ? (
           <>

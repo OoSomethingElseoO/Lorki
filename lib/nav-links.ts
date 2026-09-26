@@ -8,6 +8,7 @@
 export const menuLinks = [
   { label: "Mission Statement", href: "/mission-statement" },
   { label: "Artists", href: "/artists" },
+  { label: "Products", href: "/products" },
   { label: "Originals", href: "/originals" },
   { label: "Prints", href: "/prints" },
   { label: "News", href: "/news" },

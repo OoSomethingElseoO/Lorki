@@ -5,6 +5,8 @@ import { validateTextField, validateImageUrl } from "@/lib/validation";
 import { getCurrentUser } from "@/lib/auth";
 import { checkPermission, unauthorized } from "@/lib/permissions";
 import { recordAudit } from "@/lib/audit";
+import { apiContractError } from "@/lib/api-contract";
+import { readJsonObject } from "@/lib/request-json";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -19,22 +21,23 @@ type UpdateBody = {
 };
 
 export async function PATCH(request: Request, { params }: RouteParams) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUser(request);
   const { authorized } = checkPermission(user, "OPS_ADMIN");
   if (!authorized) return unauthorized("OPS_ADMIN");
   const { id } = await params;
-  const body = (await request.json()) as Partial<UpdateBody>;
+  const body = await readJsonObject(request) as Partial<UpdateBody> | null;
+  if (!body) return apiContractError("INVALID_JSON", "Request body must be a JSON object", 400);
 
   // Two shapes share this route: the full edit form (title/summary/body/
   // imageUrl) and the status-only toggle from the list page. Handle whichever
   // fields are present rather than requiring both at once.
   if (body.status !== undefined && !VALID_STATUSES.includes(body.status as (typeof VALID_STATUSES)[number])) {
-    return NextResponse.json({ error: `status must be one of ${VALID_STATUSES.join(", ")}` }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", `status must be one of ${VALID_STATUSES.join(", ")}`, 400);
   }
 
   const hasContentFields = body.title !== undefined;
   if (hasContentFields && (!body.title || !body.summary || !body.body || !body.imageUrl)) {
-    return NextResponse.json({ error: "title, summary, body, and imageUrl are required" }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", "title, summary, body, and imageUrl are required", 400);
   }
 
   // ✅ Validate content fields if present
@@ -45,7 +48,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       name: "Title",
     });
     if (titleError) {
-      return NextResponse.json({ error: titleError }, { status: 400 });
+      return apiContractError("VALIDATION_ERROR", titleError, 400);
     }
 
     const summaryError = validateTextField(body.summary as string, {
@@ -54,7 +57,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       name: "Summary",
     });
     if (summaryError) {
-      return NextResponse.json({ error: summaryError }, { status: 400 });
+      return apiContractError("VALIDATION_ERROR", summaryError, 400);
     }
 
     const bodyError = validateTextField(body.body as string, {
@@ -63,12 +66,12 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       name: "Body",
     });
     if (bodyError) {
-      return NextResponse.json({ error: bodyError }, { status: 400 });
+      return apiContractError("VALIDATION_ERROR", bodyError, 400);
     }
 
     const imageError = validateImageUrl(body.imageUrl as string);
     if (imageError) {
-      return NextResponse.json({ error: imageError }, { status: 400 });
+      return apiContractError("VALIDATION_ERROR", imageError, 400);
     }
   }
 
@@ -87,7 +90,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     return NextResponse.json({ article });
   } catch (error) {
     if (isNotFoundError(error)) {
-      return NextResponse.json({ error: "Article not found" }, { status: 404 });
+      return apiContractError("NOT_FOUND", "Article not found", 404);
     }
     if (isUniqueConstraintError(error)) {
       return uniqueConstraintResponse("An article with this title already exists");
@@ -96,8 +99,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   }
 }
 
-export async function DELETE(_request: Request, { params }: RouteParams) {
-  const user = await getCurrentUser();
+export async function DELETE(request: Request, { params }: RouteParams) {
+  const user = await getCurrentUser(request);
   const { authorized } = checkPermission(user, "OPS_ADMIN");
   if (!authorized) return unauthorized("OPS_ADMIN");
   const { id } = await params;
@@ -108,7 +111,7 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
     return NextResponse.json({ ok: true });
   } catch (error) {
     if (isNotFoundError(error)) {
-      return NextResponse.json({ error: "Article not found" }, { status: 404 });
+      return apiContractError("NOT_FOUND", "Article not found", 404);
     }
     throw error;
   }

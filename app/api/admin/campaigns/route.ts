@@ -6,9 +6,11 @@ import { validateSplit } from "@/lib/validation";
 import { getCurrentUser } from "@/lib/auth";
 import { checkPermission, unauthorized } from "@/lib/permissions";
 import { recordAudit } from "@/lib/audit";
+import { apiContractError } from "@/lib/api-contract";
+import { readJsonObject } from "@/lib/request-json";
 
-export async function GET() {
-  const { authorized } = checkPermission(await getCurrentUser(), "OPS_ADMIN");
+export async function GET(request: Request) {
+  const { authorized } = checkPermission(await getCurrentUser(request), "OPS_ADMIN");
   if (!authorized) return unauthorized("OPS_ADMIN");
   const campaigns = await prisma.campaign.findMany({
     include: {
@@ -37,10 +39,11 @@ type CreateBody = {
 // comment on Campaign and lib/campaigns.ts/lib/payouts.ts, which resolve
 // this same either/or for display and payout purposes respectively.
 export async function POST(request: Request) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUser(request);
   const { authorized } = checkPermission(user, "OPS_ADMIN");
   if (!authorized) return unauthorized("OPS_ADMIN");
-  const body = (await request.json()) as Partial<CreateBody>;
+  const body = await readJsonObject(request) as Partial<CreateBody> | null;
+  if (!body) return apiContractError("INVALID_JSON", "Request body must be a JSON object", 400);
 
   if (
     !body.artistId ||
@@ -48,14 +51,11 @@ export async function POST(request: Request) {
     typeof body.conservancyPercent !== "number" ||
     typeof body.operationsPercent !== "number"
   ) {
-    return NextResponse.json(
-      { error: "artistId, artistPercent, conservancyPercent, and operationsPercent are required" },
-      { status: 400 },
-    );
+    return apiContractError("VALIDATION_ERROR", "artistId, artistPercent, conservancyPercent, and operationsPercent are required", 400);
   }
 
   if (Boolean(body.animalId) === Boolean(body.conservancyId)) {
-    return NextResponse.json({ error: "Provide exactly one of animalId or conservancyId" }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", "Provide exactly one of animalId or conservancyId", 400);
   }
 
   // ✅ Comprehensive validation of split percentages
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
     body.operationsPercent
   );
   if (splitError) {
-    return NextResponse.json({ error: splitError }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", splitError, 400);
   }
 
   const [animal, conservancy, artist] = await Promise.all([
@@ -75,13 +75,13 @@ export async function POST(request: Request) {
   ]);
 
   if (body.animalId && !animal) {
-    return NextResponse.json({ error: "animalId does not match an existing animal" }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", "animalId does not match an existing animal", 400);
   }
   if (body.conservancyId && !conservancy) {
-    return NextResponse.json({ error: "conservancyId does not match an existing conservancy" }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", "conservancyId does not match an existing conservancy", 400);
   }
   if (!artist) {
-    return NextResponse.json({ error: "artistId does not match an existing artist" }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", "artistId does not match an existing artist", 400);
   }
 
   const causeSlug = animal ? animal.slug : slugify(conservancy!.name);

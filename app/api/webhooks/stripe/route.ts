@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
+import { apiContractError } from "@/lib/api-contract";
 import type Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
 import { getStripe } from "@/lib/stripe";
 import { getStripeWebhookSecret } from "@/lib/settings";
 import { computeSplit, getCampaignConservancyId } from "@/lib/payouts";
 import { processRefund } from "@/lib/refunds";
-import { sendOperationsAlert, sendOrderConfirmationEmail } from "@/lib/email";
+import { sendOperationsAlert } from "@/lib/email";
 import { PRINT_SHIPPING_CENTS } from "@/lib/pricing";
+import { enqueueOrderConfirmationTx } from "@/lib/outbox";
+import { shouldIgnoreDuplicateInboxEvent } from "@/lib/webhook-inbox";
 
 export async function POST(request: Request) {
   const signature = request.headers.get("stripe-signature");
@@ -14,7 +17,7 @@ export async function POST(request: Request) {
 
   if (!signature || !webhookSecret) {
     console.error("[stripe:webhook] Missing signature or secret");
-    return NextResponse.json({ error: "Missing webhook signature or secret" }, { status: 400 });
+    return apiContractError("WEBHOOK_SIGNATURE_INVALID", "Missing webhook signature or secret", 400);
   }
 
   const rawBody = await request.text();
@@ -25,7 +28,7 @@ export async function POST(request: Request) {
     event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
   } catch (error) {
     console.error("[stripe:webhook] Invalid signature:", (error as Error).message);
-    return NextResponse.json({ error: `Invalid signature: ${(error as Error).message}` }, { status: 400 });
+    return apiContractError("WEBHOOK_SIGNATURE_INVALID", `Invalid signature: ${(error as Error).message}`, 400);
   }
 
   console.log(`[stripe:webhook] Received event: ${event.type} (${event.id})`);
@@ -39,14 +42,26 @@ export async function POST(request: Request) {
     // Stripe retries use the same event ID. The immutable ledger makes a
     // duplicate visible without running its financial side effects twice.
     if ((error as { code?: string }).code === "P2002") {
-      return NextResponse.json({ received: true, duplicate: true });
+      const existing = await prisma.paymentProviderEvent.findUnique({ where: { provider_externalId: { provider: "STRIPE", externalId: event.id } } });
+      if (!existing || shouldIgnoreDuplicateInboxEvent(existing.status as "RECEIVED" | "PROCESSED" | "FAILED" | undefined)) {
+        // PROCESSED means the event is complete; RECEIVED means another
+        // worker currently owns it. Neither should run financial effects a
+        // second time.
+        return NextResponse.json({ received: true, duplicate: true });
+      }
+      // A prior attempt failed after inbox insertion. Reclaim it so the
+      // provider's retry can safely execute the handler again.
+      providerEvent = await prisma.paymentProviderEvent.update({
+        where: { id: existing.id },
+        data: { status: "RECEIVED", error: null, processedAt: null },
+      });
     }
-    throw error;
+    else throw error;
   }
 
   try {
     if (event.type === "checkout.session.completed") {
-      await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
+      await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session, event.id);
     }
 
     if (event.type === "charge.refunded") {
@@ -85,7 +100,7 @@ export async function POST(request: Request) {
   }
 }
 
-async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
+async function handleCheckoutCompleted(session: Stripe.Checkout.Session, eventId: string) {
   const paymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
   const artworkId = session.metadata?.artworkId;
 
@@ -127,6 +142,12 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
         { orderId: order.id, recipientType: "CONSERVANCY", recipientId: getCampaignConservancyId(pending.artwork.campaign), amountCents: split.conservancyCents },
         { orderId: order.id, recipientType: "OPERATIONS", recipientId: "operations", amountCents: split.operationsCents },
       ] });
+      await enqueueOrderConfirmationTx(tx, {
+        eventId,
+        buyerEmail: pending.buyerEmail,
+        artworkTitle: pending.artwork.title,
+        amountCents: order.amountCents,
+      });
     });
     await recordPaymentReconciliation({
       paymentIntentId,
@@ -195,6 +216,12 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
         { orderId: order.id, recipientType: "OPERATIONS", recipientId: "operations", amountCents: split.operationsCents },
       ],
     });
+    await enqueueOrderConfirmationTx(tx, {
+      eventId,
+      buyerEmail: order.buyerEmail,
+      artworkTitle: artwork.title,
+      amountCents: order.amountCents,
+    });
 
     return order;
   });
@@ -209,18 +236,6 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     expectedCurrency: order.currency,
     actualCurrency: session.currency,
     eventType: "checkout.session.completed",
-  });
-
-  // Not awaited: the order/inventory/payout rows are already committed
-  // above, so Stripe's webhook response shouldn't sit blocked on Resend —
-  // under a burst of concurrent checkouts that's needless latency on every
-  // request, and a slow or down email provider would risk the response
-  // missing Stripe's own webhook timeout and triggering a retry. Neither
-  // send can throw (see sendEmail's own try/catch in lib/email.ts).
-  sendOrderConfirmationEmail({
-    buyerEmail: order.buyerEmail,
-    artworkTitle: artwork.title,
-    amountCents: order.amountCents,
   });
 
   sendOperationsAlert(

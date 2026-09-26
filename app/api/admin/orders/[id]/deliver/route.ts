@@ -4,6 +4,7 @@ import { attemptAutomaticPayout } from "@/lib/payout-channels";
 import { checkPermission, unauthorized } from "@/lib/permissions";
 import { getCurrentUser } from "@/lib/auth";
 import { recordAudit } from "@/lib/audit";
+import { apiContractError } from "@/lib/api-contract";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -11,8 +12,8 @@ type RouteParams = { params: Promise<{ id: string }> };
 // needs to have the piece in hand before money moves to the
 // artist/conservancy/ops, since a lost-in-transit or damaged delivery still
 // needs to be refundable with nothing to unwind on the recipient's side.
-export async function POST(_request: Request, { params }: RouteParams) {
-  const user = await getCurrentUser();
+export async function POST(request: Request, { params }: RouteParams) {
+  const user = await getCurrentUser(request);
   const { authorized } = checkPermission(user, "OPS_ADMIN");
   if (!authorized) {
     return unauthorized("OPS_ADMIN");
@@ -40,7 +41,7 @@ export async function POST(_request: Request, { params }: RouteParams) {
   });
 
   if (!order) {
-    return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    return apiContractError("NOT_FOUND", "Order not found", 404);
   }
 
   // ✅ IDEMPOTENCY: If already delivered, return success (idempotent)
@@ -52,10 +53,7 @@ export async function POST(_request: Request, { params }: RouteParams) {
   }
 
   if (order.status !== "SHIPPED" || !order.shipment) {
-    return NextResponse.json(
-      { error: `Cannot mark delivered — order must be SHIPPED with a shipment on file (currently ${order.status})` },
-      { status: 409 },
-    );
+    return apiContractError("CONFLICT", `Cannot mark delivered — order must be SHIPPED with a shipment on file (currently ${order.status})`, 409);
   }
 
   const pendingArtistPayoutId = order.payouts.find((p) => p.recipientType === "ARTIST" && p.status === "PENDING")?.id;
@@ -63,10 +61,7 @@ export async function POST(_request: Request, { params }: RouteParams) {
   const conservancy = order.artwork.campaign.animal?.conservancy ?? order.artwork.campaign.conservancy;
 
   if (pendingConservancyPayoutId && !conservancy) {
-    return NextResponse.json(
-      { error: "Cannot deliver — conservancy payout pending but conservancy not found on campaign" },
-      { status: 500 },
-    );
+    return apiContractError("INTERNAL_ERROR", "Cannot deliver — conservancy payout pending but conservancy not found on campaign", 500);
   }
 
   const updated = await prisma.$transaction(async (tx) => {

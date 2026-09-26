@@ -18,3 +18,10 @@ Use these documents by concern:
   GitHub, AWS, WAF, DNS, and secret-manager configuration.
 - [DEPLOYMENT.md](./DEPLOYMENT.md) — container, environment, migration, and
   scheduled workflow deployment.
+- [RELIABILITY_AND_FAILURE_MODES.md](./RELIABILITY_AND_FAILURE_MODES.md) —
+  shutdown, retries, circuit breakers, outbox, UI concurrency, and query/race
+  controls.
+- [API_CONTRACTS_AND_AUTH.md](./API_CONTRACTS_AND_AUTH.md) — response contracts,
+  ownership isolation, admin permissions, and route-authoring rules.
+- [AUDIT_ARCHIVE_AND_RESTORE.md](./AUDIT_ARCHIVE_AND_RESTORE.md) — immutable
+  archive requirements, checksums, restore drills, and infrastructure limits.

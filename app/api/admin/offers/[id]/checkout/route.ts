@@ -3,18 +3,19 @@ import { prisma } from "@/lib/prisma";
 import { getStripe } from "@/lib/stripe";
 import { getCurrentUser } from "@/lib/auth";
 import { checkPermission, unauthorized } from "@/lib/permissions";
+import { apiContractError } from "@/lib/api-contract";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUser(request);
   const { authorized } = checkPermission(user, "OPS_ADMIN");
   if (!authorized) return unauthorized("OPS_ADMIN");
   const { id } = await params;
   const offer = await prisma.offer.findUnique({ where: { id }, include: { artwork: true, order: true } });
-  if (!offer || !offer.order) return NextResponse.json({ error: "Winning offer payment is not ready" }, { status: 404 });
-  if (offer.status !== "WINNING" || offer.order.status !== "AWAITING_PAYMENT") return NextResponse.json({ error: "Offer is not awaiting payment" }, { status: 409 });
-  if (offer.expiresAt && offer.expiresAt < new Date()) return NextResponse.json({ error: "Payment window has expired" }, { status: 409 });
+  if (!offer || !offer.order) return apiContractError("NOT_FOUND", "Winning offer payment is not ready", 404);
+  if (offer.status !== "WINNING" || offer.order.status !== "AWAITING_PAYMENT") return apiContractError("CONFLICT", "Offer is not awaiting payment", 409);
+  if (offer.expiresAt && offer.expiresAt < new Date()) return apiContractError("CONFLICT", "Payment window has expired", 409);
   let stripe;
-  try { stripe = await getStripe(); } catch { return NextResponse.json({ error: "Stripe isn't configured yet" }, { status: 503 }); }
+  try { stripe = await getStripe(); } catch { return apiContractError("SERVICE_UNAVAILABLE", "Stripe isn't configured yet", 503); }
   const origin = request.headers.get("origin") ?? new URL(request.url).origin;
   const session = await stripe.checkout.sessions.create({
     mode: "payment",

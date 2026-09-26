@@ -13,6 +13,9 @@ RUN npm ci --ignore-scripts
 
 FROM node:22-slim AS builder
 WORKDIR /app
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends openssl \
+  && rm -rf /var/lib/apt/lists/*
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
 ENV NODE_ENV=production
@@ -30,6 +33,10 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends openssl \
+  && rm -rf /var/lib/apt/lists/*
 
 RUN groupadd --system nodejs && useradd --system --gid nodejs nextjs
 

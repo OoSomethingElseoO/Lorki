@@ -28,7 +28,8 @@ function resetRequest(body: unknown) {
 
 async function createUserWithToken(overrides: { expiresAt: Date; usedAt?: Date | null }) {
   const email = `reset-${unique()}@example.com`;
-  const user = await prisma.user.create({ data: { email, passwordHash: await hashPassword("originalPassword1") } });
+  const originalHash = await hashPassword("originalPassword1");
+  const user = await prisma.user.create({ data: { email, passwordHash: originalHash, passwordHistory: { create: { passwordHash: originalHash } } } });
   const rawToken = randomBytes(32).toString("hex");
   const token = await prisma.passwordResetToken.create({
     data: {
@@ -48,15 +49,40 @@ test("a valid, unexpired, unused token changes the password and marks itself use
     await prisma.user.delete({ where: { id: user.id } });
   });
 
-  const response = await POST(resetRequest({ token: rawToken, password: "brandNewPassword1" }));
+  const response = await POST(resetRequest({ token: rawToken, password: "BrandNewPassword1!", passwordConfirmation: "BrandNewPassword1!" }));
   assert.equal(response.status, 200);
 
   const updatedUser = await prisma.user.findUniqueOrThrow({ where: { id: user.id } });
-  assert.ok(await verifyPassword("brandNewPassword1", updatedUser.passwordHash), "password must actually change");
+  assert.ok(await verifyPassword("BrandNewPassword1!", updatedUser.passwordHash), "password must actually change");
   assert.ok(!(await verifyPassword("originalPassword1", updatedUser.passwordHash)), "old password must no longer work");
+  assert.equal(updatedUser.sessionVersion, 1, "reset must revoke existing sessions");
 
   const updatedToken = await prisma.passwordResetToken.findUniqueOrThrow({ where: { id: token.id } });
   assert.ok(updatedToken.usedAt, "token must be marked used");
+});
+
+test("reset rejects a password recently used by the account", async (t) => {
+  const { user, rawToken } = await createUserWithToken({ expiresAt: new Date(Date.now() + 60 * 60 * 1000) });
+  t.after(async () => {
+    await prisma.passwordResetToken.deleteMany({ where: { userId: user.id } });
+    await prisma.passwordHistory.deleteMany({ where: { userId: user.id } });
+    await prisma.user.delete({ where: { id: user.id } });
+  });
+  const response = await POST(resetRequest({ token: rawToken, password: "originalPassword1", passwordConfirmation: "originalPassword1" }));
+  assert.equal(response.status, 409);
+  const unchanged = await prisma.user.findUniqueOrThrow({ where: { id: user.id } });
+  assert.equal(unchanged.sessionVersion, 0);
+});
+
+test("reset rejects mismatched password confirmation", async (t) => {
+  const { user, rawToken } = await createUserWithToken({ expiresAt: new Date(Date.now() + 60 * 60 * 1000) });
+  t.after(async () => {
+    await prisma.passwordResetToken.deleteMany({ where: { userId: user.id } });
+    await prisma.passwordHistory.deleteMany({ where: { userId: user.id } });
+    await prisma.user.delete({ where: { id: user.id } });
+  });
+  const response = await POST(resetRequest({ token: rawToken, password: "BrandNewPassword1!", passwordConfirmation: "DifferentPassword1!" }));
+  assert.equal(response.status, 400);
 });
 
 test("an expired token is rejected and the password is unchanged", async (t) => {
@@ -66,7 +92,7 @@ test("an expired token is rejected and the password is unchanged", async (t) => 
     await prisma.user.delete({ where: { id: user.id } });
   });
 
-  const response = await POST(resetRequest({ token: rawToken, password: "brandNewPassword1" }));
+  const response = await POST(resetRequest({ token: rawToken, password: "BrandNewPassword1!", passwordConfirmation: "BrandNewPassword1!" }));
   assert.equal(response.status, 400);
 
   const stillUser = await prisma.user.findUniqueOrThrow({ where: { id: user.id } });
@@ -80,7 +106,7 @@ test("an already-used token is rejected, even if not yet expired", async (t) => 
     await prisma.user.delete({ where: { id: user.id } });
   });
 
-  const response = await POST(resetRequest({ token: rawToken, password: "brandNewPassword1" }));
+  const response = await POST(resetRequest({ token: rawToken, password: "BrandNewPassword1!", passwordConfirmation: "BrandNewPassword1!" }));
   assert.equal(response.status, 400);
 
   const stillUser = await prisma.user.findUniqueOrThrow({ where: { id: user.id } });
@@ -88,7 +114,7 @@ test("an already-used token is rejected, even if not yet expired", async (t) => 
 });
 
 test("an unknown token is rejected", async () => {
-  const response = await POST(resetRequest({ token: "not-a-real-token", password: "brandNewPassword1" }));
+  const response = await POST(resetRequest({ token: "not-a-real-token", password: "BrandNewPassword1!", passwordConfirmation: "BrandNewPassword1!" }));
   assert.equal(response.status, 400);
 });
 
@@ -99,7 +125,7 @@ test("a password under 8 characters is rejected even with a valid token", async 
     await prisma.user.delete({ where: { id: user.id } });
   });
 
-  const response = await POST(resetRequest({ token: rawToken, password: "short1" }));
+  const response = await POST(resetRequest({ token: rawToken, password: "short1", passwordConfirmation: "short1" }));
   assert.equal(response.status, 400);
 
   const stillUnused = await prisma.passwordResetToken.findUniqueOrThrow({ where: { id: token.id } });

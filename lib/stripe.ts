@@ -13,5 +13,8 @@ export async function getStripe(): Promise<Stripe> {
     throw new Error("No Stripe secret key configured — set it in /admin/settings or STRIPE_SECRET_KEY");
   }
 
-  return new Stripe(secretKey);
+  // Stripe's SDK retries transient network failures. Payout calls also pass
+  // an explicit idempotency key at the operation boundary, so a retry cannot
+  // create a second transfer.
+  return new Stripe(secretKey, { maxNetworkRetries: 2, timeout: 15_000 });
 }

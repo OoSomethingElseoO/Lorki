@@ -220,6 +220,7 @@ model Artwork {
   currency       String       @default("usd")
   imageUrl       String
   altText        String
+  isPublished    Boolean      @default(true)
   // The curatorial write-up shown on the detail view (ArtworkLightbox) —
   // distinct from Artist.bio, which is about the person, not this specific
   // piece. Optional: existing rows predate this field, and a quick print
@@ -497,6 +498,10 @@ model Settings {
   smtpPassword        String?
   emailFrom           String?
   operationsEmail     String?
+  emailTemplates      Json?
+  requireMfaForAdmins  Boolean               @default(false)
+  requireMfaForHighRisk Boolean              @default(false)
+  allowMfaEmailOtp     Boolean               @default(false)
 
   // Branding — controlled entirely from /admin/settings so the site's name,
   // hero image, mission copy, and contact details never require a code
@@ -635,6 +640,32 @@ model PaymentProviderEvent {
   @@index([receivedAt])
 }
 
+enum OutboxStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+// Durable boundary for work that must happen after a financial transaction
+// commits. A webhook can enqueue an email atomically with the Order update;
+// a separate worker may retry it without replaying the payment mutation.
+model OutboxJob {
+  id            String       @id @default(cuid())
+  kind          String
+  dedupeKey     String       @unique
+  payload       Json
+  status        OutboxStatus @default(PENDING)
+  attempts      Int          @default(0)
+  availableAt   DateTime     @default(now())
+  lockedAt      DateTime?
+  lastError     String?
+  processedAt   DateTime?
+  createdAt     DateTime     @default(now())
+
+  @@index([status, availableAt])
+}
+
 enum ReconciliationStatus {
   MATCHED
   MISSING_PROVIDER_PAYMENT
@@ -694,6 +725,21 @@ enum AdminRole {
   VIEWER
 }
 
+enum AccountStatus {
+  ACTIVE
+  DELETION_REQUESTED
+  SUSPENDED
+  DELETION_APPROVED
+  ANONYMIZED
+}
+
+enum DeletionRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  RESTORED
+}
+
 // One identity, one login, for everyone — a single email+password gets you
 // in through the same page regardless of what you're here to do. What you
 // can actually access is layered on top of this one row, not a separate
@@ -709,13 +755,95 @@ model User {
   name                String?
   isAdmin             Boolean               @default(false)
   adminRole           AdminRole?            // Only set if isAdmin=true
+  accountStatus       AccountStatus         @default(ACTIVE)
+  sessionVersion      Int                   @default(0)
+  mfaEnabled          Boolean               @default(false)
+  mfaSecretEncrypted  String?
+  mfaEnabledAt        DateTime?
+  deletionRequestedAt DateTime?
+  deletionApprovedAt  DateTime?
+  anonymizedAt        DateTime?
+  legalHoldUntil      DateTime?
   artist              Artist?
   conservancy         Conservancy?
   orders              Order[]
   offers              Offer[]
   shareEvents         ShareEvent[]
   passwordResetTokens PasswordResetToken[]
+  passwordHistory    PasswordHistory[]
+  mfaChallenges       MfaChallenge[]
+  mfaSetups           MfaSetup[]
+  mfaRecoveryCodes    MfaRecoveryCode[]
+  deletionRequests    AccountDeletionRequest[]
   createdAt           DateTime              @default(now())
+}
+
+model MfaChallenge {
+  id         String   @id @default(cuid())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  tokenHash  String   @unique
+  expiresAt  DateTime
+  attempts   Int      @default(0)
+  emailCodeHash String?
+  emailCodeExpiresAt DateTime?
+  emailCodeAttempts Int @default(0)
+  createdAt  DateTime @default(now())
+
+  @@index([userId, expiresAt])
+}
+
+model MfaSetup {
+  id             String   @id @default(cuid())
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String
+  tokenHash      String   @unique
+  secretEncrypted String
+  expiresAt      DateTime
+  createdAt      DateTime @default(now())
+
+  @@index([userId, expiresAt])
+}
+
+model MfaRecoveryCode {
+  id        String    @id @default(cuid())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  codeHash  String
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, usedAt])
+}
+
+model PasswordHistory {
+  id           String   @id @default(cuid())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+// A deletion request is retained as workflow evidence. Approving it disables
+// the account; it does not delete orders, payments, payouts, reconciliation,
+// or audit records. A later retention job can anonymize/delete eligible data
+// while preserving legally and financially required history.
+model AccountDeletionRequest {
+  id          String                @id @default(cuid())
+  user        User                  @relation(fields: [userId], references: [id])
+  userId      String
+  status      DeletionRequestStatus @default(PENDING)
+  reason      String?
+  requestedAt DateTime              @default(now())
+  reviewedAt  DateTime?
+  reviewedBy  String?
+  reviewNote  String?
+  completedAt DateTime?
+
+  @@index([status, requestedAt])
+  @@index([userId, requestedAt])
 }
 
 model PasswordResetToken {

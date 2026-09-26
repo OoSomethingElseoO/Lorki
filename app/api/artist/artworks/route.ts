@@ -1,15 +1,18 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { artistRequired } from "@/lib/authorization";
 import { isPriceTooLow, isPriceTooHigh, MIN_PRICE_CENTS, MAX_PRICE_CENTS } from "@/lib/pricing";
 import { validateArtworkCreation } from "@/lib/validation";
 import { recordAudit } from "@/lib/audit";
+import { apiContractError, apiJson } from "@/lib/api-contract";
+import { readJsonObject } from "@/lib/request-json";
 
-export async function GET() {
-  const currentUser = await getCurrentUser();
-  const artist = currentUser?.artist;
+export async function GET(request: Request) {
+  const currentUser = await getCurrentUser(request);
+  const artist = artistRequired(currentUser);
   if (!artist) {
-    return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+    return apiContractError("UNAUTHORIZED", "Not signed in", 401);
   }
 
   const artworks = await prisma.artwork.findMany({
@@ -18,7 +21,7 @@ export async function GET() {
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json({ artworks });
+  return apiJson({ artworks });
 }
 
 type CreateBody = {
@@ -36,23 +39,21 @@ type CreateBody = {
 // whole point: submit, then we set the real price and publish). Only
 // PAUSED/ARCHIVED, an admin's deliberate stop, blocks new submissions.
 export async function POST(request: Request) {
-  const currentUser = await getCurrentUser();
-  const artist = currentUser?.artist;
+  const currentUser = await getCurrentUser(request);
+  const artist = artistRequired(currentUser);
   if (!artist) {
-    return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+    return apiContractError("UNAUTHORIZED", "Not signed in", 401);
   }
 
-  const body = (await request.json()) as Partial<CreateBody>;
+  const body = await readJsonObject(request) as Partial<CreateBody> | null;
+  if (!body) return apiContractError("INVALID_JSON", "Request body must be a JSON object", 400);
 
   if (!body.campaignId || !body.title || !body.kind || typeof body.priceCents !== "number" || !body.imageUrl || !body.altText) {
-    return NextResponse.json(
-      { error: "campaignId, title, kind, priceCents, imageUrl, and altText are required" },
-      { status: 400 },
-    );
+    return apiContractError("VALIDATION_ERROR", "campaignId, title, kind, priceCents, imageUrl, and altText are required", 400);
   }
 
   if (body.kind !== "ORIGINAL" && body.kind !== "PRINT") {
-    return NextResponse.json({ error: "kind must be ORIGINAL or PRINT" }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", "kind must be ORIGINAL or PRINT", 400);
   }
 
   // ✅ Comprehensive validation
@@ -61,11 +62,11 @@ export async function POST(request: Request) {
     priceDollars: body.priceCents / 100,
     altText: body.altText,
     imageUrl: body.imageUrl,
-    story: body.story,
+    story: body.story ?? undefined,
   });
 
   if (!validation.isValid) {
-    return NextResponse.json({ errors: validation.errors }, { status: 400 });
+    return apiContractError("VALIDATION_ERROR", "Invalid artwork", 400, { errors: validation.errors });
   }
 
   // Ownership check: this campaign must actually belong to the artist
@@ -73,7 +74,7 @@ export async function POST(request: Request) {
   // someone else's campaign.
   const campaign = await prisma.campaign.findUnique({ where: { id: body.campaignId } });
   if (!campaign || campaign.artistId !== artist.id) {
-    return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
+    return apiContractError("NOT_FOUND", "Campaign not found", 404);
   }
 
   // DRAFT (pending review) and LIVE both accept new submissions. Only a
@@ -81,10 +82,7 @@ export async function POST(request: Request) {
   // letting a listing get created that would then silently never appear
   // anywhere (every storefront query filters on campaign.status === "LIVE").
   if (campaign.status === "PAUSED" || campaign.status === "ARCHIVED") {
-    return NextResponse.json(
-      { error: `This campaign is ${campaign.status.toLowerCase()} — new listings aren't accepted right now.` },
-      { status: 409 },
-    );
+    return apiContractError("CONFLICT", `This campaign is ${campaign.status.toLowerCase()} — new listings aren't accepted right now.`, 409);
   }
 
   const artwork = await prisma.artwork.create({

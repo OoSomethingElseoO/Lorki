@@ -4,6 +4,8 @@ import { isNotFoundError } from "@/lib/prisma-errors";
 import { getCurrentUser } from "@/lib/auth";
 import { checkPermission, unauthorized } from "@/lib/permissions";
 import { recordAudit } from "@/lib/audit";
+import { apiContractError } from "@/lib/api-contract";
+import { readJsonObject } from "@/lib/request-json";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -37,24 +39,19 @@ type VerifyBody = {
 // timestamped separately so there's a record of what was checked, not
 // just a single unlabeled "verified" flag.
 export async function POST(request: Request, { params }: RouteParams) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUser(request);
   const { authorized } = checkPermission(user, "OPS_ADMIN");
   if (!authorized) return unauthorized("OPS_ADMIN");
   const { id } = await params;
-  const body = (await request.json()) as Partial<VerifyBody>;
+  const body = await readJsonObject(request) as Partial<VerifyBody> | null;
+  if (!body) return apiContractError("INVALID_JSON", "Request body must be a JSON object", 400);
 
   if (!body.registrationChecked || !body.sanctionsChecked || !body.payoutNameChecked) {
-    return NextResponse.json(
-      { error: "All three checklist items must be confirmed to verify a cause" },
-      { status: 400 },
-    );
+    return apiContractError("VALIDATION_ERROR", "All three checklist items must be confirmed to verify a cause", 400);
   }
 
   if (!body.registrationVerificationMethod?.trim()) {
-    return NextResponse.json(
-      { error: "Describe how the registration number was actually checked (which registry, a paid search, a direct call, etc.)" },
-      { status: 400 },
-    );
+    return apiContractError("VALIDATION_ERROR", "Describe how the registration number was actually checked (which registry, a paid search, a direct call, etc.)", 400);
   }
 
   const now = new Date();
@@ -74,7 +71,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     return NextResponse.json({ conservancy });
   } catch (error) {
     if (isNotFoundError(error)) {
-      return NextResponse.json({ error: "Conservancy not found" }, { status: 404 });
+      return apiContractError("NOT_FOUND", "Conservancy not found", 404);
     }
     throw error;
   }

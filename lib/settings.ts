@@ -1,7 +1,39 @@
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
+import { decryptSetting } from "@/lib/secret-settings";
 
 const SETTINGS_ID = "singleton";
+
+export const DEFAULT_EMAIL_TEMPLATES = {
+  welcome: { subject: "Welcome to {{siteName}}", body: "Your account is ready. Browse the collection at {{productsUrl}}." },
+  orderConfirmation: { subject: "Your order: {{artworkTitle}}", body: "Thanks for your order. {{artworkTitle}} — {{amount}}. We will email you when it ships." },
+  inquiryConfirmation: { subject: "We received your inquiry: {{artworkTitle}}", body: "Thanks for your interest in {{artworkTitle}}. Our team will contact you about payment and shipping." },
+  shipping: { subject: "Your artwork has shipped: {{artworkTitle}}", body: "{{artworkTitle}} is on its way. Tracking: {{tracking}}." },
+  refund: { subject: "Your refund: {{artworkTitle}}", body: "Your refund for {{artworkTitle}} ({{amount}}) has been recorded." },
+  deletionRequested: { subject: "Account closure request received", body: "We received your request to close your {{siteName}} account. Access is suspended while it is reviewed." },
+  deletionDecision: { subject: "Update on your account request", body: "Your account request was {{decision}}. {{note}}" },
+  offerSubmitted: { subject: "Offer received for {{artworkTitle}}", body: "We received your offer of {{amount}} for {{artworkTitle}}." },
+  offerDecision: { subject: "Offer update for {{artworkTitle}}", body: "Your offer for {{artworkTitle}} was {{decision}}." },
+  payout: { subject: "Payout update", body: "A payout of {{amount}} for {{artworkTitle}} was marked {{status}}." },
+  workVisibility: { subject: "Artwork visibility update", body: "{{count}} unsold artwork item(s) were {{action}} by the gallery team." },
+  mfaReminder: { subject: "Protect your {{siteName}} account", body: "Two-step verification is available for your account. Open your security settings to enable an authenticator app." },
+} as const;
+
+export type EmailTemplates = { -readonly [K in keyof typeof DEFAULT_EMAIL_TEMPLATES]: { subject: string; body: string } };
+
+export function normalizeEmailTemplates(value: unknown): EmailTemplates {
+  const input = value && typeof value === "object" ? value as Record<string, unknown> : {};
+  const output = {} as EmailTemplates;
+  for (const [key, fallback] of Object.entries(DEFAULT_EMAIL_TEMPLATES) as [keyof EmailTemplates, EmailTemplates[keyof EmailTemplates]][]) {
+    const candidate = input[key];
+    const row = candidate && typeof candidate === "object" ? candidate as Record<string, unknown> : {};
+    output[key] = {
+      subject: typeof row.subject === "string" && row.subject.trim() ? row.subject.trim().slice(0, 200) : fallback.subject,
+      body: typeof row.body === "string" && row.body.trim() ? row.body.trim().slice(0, 5000) : fallback.body,
+    };
+  }
+  return output;
+}
 
 // Admin-entered values in the Settings table win; unset (null/empty) falls
 // back to the env var, so a fresh deploy still works from .env before anyone
@@ -21,7 +53,19 @@ export const getSettings = cache(async function getSettings() {
   // actually needs writing when an admin saves a change in /admin/settings.
   const existing = await prisma.settings.findUnique({ where: { id: SETTINGS_ID } });
   if (existing) {
-    return existing;
+    return {
+      ...existing,
+      stripeSecretKey: decryptSetting(existing.stripeSecretKey),
+      stripeWebhookSecret: decryptSetting(existing.stripeWebhookSecret),
+      flutterwaveSecretKey: decryptSetting(existing.flutterwaveSecretKey),
+      flutterwaveWebhookSecret: decryptSetting(existing.flutterwaveWebhookSecret),
+      resendApiKey: decryptSetting(existing.resendApiKey),
+      smtpHost: decryptSetting(existing.smtpHost),
+      smtpPort: decryptSetting(existing.smtpPort),
+      smtpUser: decryptSetting(existing.smtpUser),
+      smtpPassword: decryptSetting(existing.smtpPassword),
+      emailTemplates: normalizeEmailTemplates(existing.emailTemplates),
+    };
   }
   // Only reached once, ever, on a fresh deploy before the singleton row exists.
   return prisma.settings.upsert({
@@ -87,6 +131,15 @@ export async function getEmailFrom(): Promise<string> {
 export async function getOperationsEmail(): Promise<string | undefined> {
   const settings = await getSettings();
   return resolve(settings.operationsEmail, process.env.OPERATIONS_EMAIL);
+}
+
+export async function getMfaPolicy() {
+  const settings = await getSettings();
+  return {
+    requireMfaForAdmins: Boolean(settings.requireMfaForAdmins),
+    requireMfaForHighRisk: Boolean(settings.requireMfaForHighRisk),
+    allowMfaEmailOtp: Boolean(settings.allowMfaEmailOtp),
+  };
 }
 
 // Built-in fallbacks so the site still renders sensibly before an admin has

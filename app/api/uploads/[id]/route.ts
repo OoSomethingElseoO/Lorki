@@ -1,3 +1,4 @@
+import { apiContractError, apiJson } from "@/lib/api-contract";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
@@ -12,12 +13,14 @@ export async function GET(_request: Request, { params }: RouteParams) {
 
   const file = await prisma.uploadedFile.findUnique({ where: { id } });
   if (!file) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return apiContractError("NOT_FOUND", "Not found", 404);
   }
 
   return new NextResponse(file.data, {
     headers: {
       "Content-Type": file.contentType,
+      "X-Content-Type-Options": "nosniff",
+      ...(file.contentType === "application/pdf" ? { "Content-Disposition": "attachment" } : {}),
       "Cache-Control": "public, max-age=31536000, immutable",
     },
   });

@@ -2,10 +2,13 @@
 // no getCurrentUser() dependency, so the route's own validation/slugify/
 // unique-constraint logic is directly and cleanly testable.
 import "dotenv/config";
-import { test } from "node:test";
+import { before, test } from "node:test";
 import assert from "node:assert/strict";
 import { GET, POST } from "@/app/api/admin/news/route";
 import { prisma } from "@/lib/prisma";
+import { adminHeaders, initTestAdmin } from "./test-auth";
+
+before(initTestAdmin);
 import { slugify } from "@/lib/slugify";
 
 const unique = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -13,7 +16,7 @@ const unique = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 function createRequest(body: unknown) {
   return new Request("http://localhost/api/admin/news", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: adminHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(body),
   });
 }
@@ -73,7 +76,7 @@ test("creating a news article with a duplicate title is rejected via the slug un
   );
   assert.equal(second.status, 409);
   const secondBody = await second.json();
-  assert.match(secondBody.error, /already exists/i);
+  assert.match(String(secondBody.error?.message ?? secondBody.error ?? ""), /already exists/i);
 
   const count = await prisma.newsArticle.count({ where: { title } });
   assert.equal(count, 1, "duplicate creation must not add a second row");
@@ -90,7 +93,7 @@ test("GET returns the list of articles including a newly created one", async (t)
   );
   assert.equal(created.status, 201);
 
-  const response = await GET();
+  const response = await GET(new Request("http://localhost/api/admin/news", { headers: adminHeaders() }));
   assert.equal(response.status, 200);
   const body = await response.json();
   assert.ok(body.articles.some((article: { title: string }) => article.title === title));

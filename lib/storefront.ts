@@ -21,6 +21,40 @@ export type StorefrontArtwork = {
 
 export const PAGE_SIZE = 12;
 
+export type ProductFilters = {
+  q?: string;
+  kind?: "ALL" | "ORIGINAL" | "PRINT";
+  artist?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  minPriceCents?: number;
+  maxPriceCents?: number;
+  sort?: "newest" | "oldest" | "price_asc" | "price_desc";
+};
+
+export async function getProductCatalogue(page = 1, filters: ProductFilters = {}): Promise<PaginatedResult<StorefrontArtwork>> {
+  await releaseExpiredReservations();
+  const currentPage = normalizePage(page);
+  const where = {
+    isPublished: true,
+    inventoryState: "AVAILABLE" as const,
+    campaign: {
+      status: "LIVE" as const,
+      ...(filters.artist ? { artist: { name: { contains: filters.artist, mode: "insensitive" as const } } } : {}),
+    },
+    ...(filters.q ? { OR: [{ title: { contains: filters.q, mode: "insensitive" as const } }, { campaign: { artist: { name: { contains: filters.q, mode: "insensitive" as const } } } }] } : {}),
+    ...(filters.kind && filters.kind !== "ALL" ? { kind: filters.kind } : {}),
+    ...(filters.dateFrom || filters.dateTo ? { createdAt: { ...(filters.dateFrom ? { gte: new Date(`${filters.dateFrom}T00:00:00.000Z`) } : {}), ...(filters.dateTo ? { lte: new Date(`${filters.dateTo}T23:59:59.999Z`) } : {}) } } : {}),
+    ...(filters.minPriceCents !== undefined || filters.maxPriceCents !== undefined ? { priceCents: { ...(filters.minPriceCents !== undefined ? { gte: filters.minPriceCents } : {}), ...(filters.maxPriceCents !== undefined ? { lte: filters.maxPriceCents } : {}) } } : {}),
+  };
+  const orderBy = filters.sort === "oldest" ? { createdAt: "asc" as const } : filters.sort === "price_asc" ? { priceCents: "asc" as const } : filters.sort === "price_desc" ? { priceCents: "desc" as const } : { createdAt: "desc" as const };
+  const [items, totalCount] = await Promise.all([
+    prisma.artwork.findMany({ where, include: { campaign: { include: { artist: true } } }, orderBy, skip: (currentPage - 1) * PAGE_SIZE, take: PAGE_SIZE }),
+    prisma.artwork.count({ where }),
+  ]);
+  return { items: items.map(mapArtwork), page: currentPage, totalPages: Math.max(1, Math.ceil(totalCount / PAGE_SIZE)), totalCount };
+}
+
 export type PaginatedResult<T> = {
   items: T[];
   page: number;
@@ -84,6 +118,7 @@ export async function getLiveArtworksByKind(
   const currentPage = normalizePage(page);
   const where = {
     kind,
+    isPublished: true,
     inventoryState: "AVAILABLE" as const,
     campaign: { status: "LIVE" as const },
   };
@@ -110,7 +145,7 @@ export async function getLiveArtworksByKind(
 export async function getLiveArtworkById(id: string) {
   await releaseExpiredReservations();
   const artwork = await prisma.artwork.findFirst({
-    where: { id, inventoryState: "AVAILABLE", campaign: { status: "LIVE" } },
+    where: { id, isPublished: true, inventoryState: "AVAILABLE", campaign: { status: "LIVE" } },
     include: { campaign: { include: { artist: true } } },
   });
   return artwork ? mapArtwork(artwork) : null;
@@ -141,6 +176,7 @@ export const getCarouselArtworks = unstable_cache(
   async (): Promise<StorefrontArtwork[]> => {
     const artworks = await prisma.artwork.findMany({
       where: {
+        isPublished: true,
         kind: "ORIGINAL",
         inventoryState: "AVAILABLE",
         campaign: { status: "LIVE" },
@@ -187,6 +223,7 @@ export async function getLiveArtworksForArtist(artistId: string): Promise<Storef
   await releaseExpiredReservations();
   const artworks = await prisma.artwork.findMany({
     where: {
+      isPublished: true,
       inventoryState: "AVAILABLE",
       campaign: { status: "LIVE", artistId },
     },
@@ -237,6 +274,7 @@ export async function searchStorefront(query: string) {
   const [artworks, artists] = await Promise.all([
     prisma.artwork.findMany({
       where: {
+        isPublished: true,
         inventoryState: "AVAILABLE",
         campaign: { status: "LIVE" },
         OR: [

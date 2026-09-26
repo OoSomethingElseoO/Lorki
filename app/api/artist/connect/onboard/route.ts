@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { getStripe } from "@/lib/stripe";
 import { recordAudit } from "@/lib/audit";
+import { artistRequired } from "@/lib/authorization";
+import { apiContractError } from "@/lib/api-contract";
 
 // Kicks off Stripe's own hosted onboarding for a Standard connected
 // account — Stripe collects and verifies the artist's identity/bank details
@@ -10,17 +12,17 @@ import { recordAudit } from "@/lib/audit";
 // banking in a Stripe-supported country; Kenya-based artists use
 // MPESA_FLUTTERWAVE instead (see /api/artist/payout-settings).
 export async function POST(request: Request) {
-  const currentUser = await getCurrentUser();
-  const artist = currentUser?.artist;
-  if (!artist) {
-    return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  const currentUser = await getCurrentUser(request);
+  const artist = artistRequired(currentUser);
+  if (!currentUser || !artist) {
+    return apiContractError("UNAUTHORIZED", "Not signed in", 401);
   }
 
   let stripe;
   try {
     stripe = await getStripe();
   } catch {
-    return NextResponse.json({ error: "Stripe isn't configured yet" }, { status: 503 });
+    return apiContractError("SERVICE_UNAVAILABLE", "Stripe isn't configured yet", 503);
   }
 
   let accountId = artist.stripeConnectedAccountId;

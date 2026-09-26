@@ -29,6 +29,7 @@ export function AdminUserForm() {
         name: form.get("name"),
         email: form.get("email"),
         password: form.get("password"),
+        passwordConfirmation: form.get("passwordConfirmation"),
       }),
     });
 
@@ -62,6 +63,10 @@ export function AdminUserForm() {
       <div className="admin-form__field admin-form__field--wide">
         <label htmlFor="password">Password</label>
         <input id="password" name="password" type="password" required minLength={8} />
+      </div>
+      <div className="admin-form__field admin-form__field--wide">
+        <label htmlFor="passwordConfirmation">Confirm password</label>
+        <input id="passwordConfirmation" name="passwordConfirmation" type="password" required minLength={8} />
       </div>
 
       {error ? <p className="admin-form__error">{error}</p> : null}

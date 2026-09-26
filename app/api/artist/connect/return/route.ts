@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { getStripe } from "@/lib/stripe";
+import { artistRequired } from "@/lib/authorization";
 
 // Stripe redirects the artist's browser here after hosted onboarding
 // (whether they finished it or abandoned partway). account.updated in the
@@ -10,8 +11,8 @@ import { getStripe } from "@/lib/stripe";
 // finishes later via an emailed link) — this just gives instant feedback
 // on the common case of returning right away.
 export async function GET(request: Request) {
-  const currentUser = await getCurrentUser();
-  const artist = currentUser?.artist;
+  const currentUser = await getCurrentUser(request);
+  const artist = artistRequired(currentUser);
   const origin = new URL(request.url).origin;
 
   if (!artist?.stripeConnectedAccountId) {

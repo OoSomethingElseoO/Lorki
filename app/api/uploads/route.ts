@@ -1,18 +1,27 @@
-import { NextResponse } from "next/server";
+import { apiContractError, apiJson } from "@/lib/api-contract";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { isResizableImageType, resizeImage } from "@/lib/resize-image";
+import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
 
 const ALLOWED_TYPES = new Set([
   "image/png",
   "image/jpeg",
   "image/webp",
   "image/gif",
-  "image/svg+xml",
   "application/pdf",
 ]);
 
 const MAX_BYTES = 8 * 1024 * 1024;
+
+function hasExpectedSignature(buffer: Buffer, contentType: string): boolean {
+  if (contentType === "image/jpeg") return buffer.length > 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+  if (contentType === "image/png") return buffer.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+  if (contentType === "image/gif") return buffer.subarray(0, 6).toString("ascii") === "GIF87a" || buffer.subarray(0, 6).toString("ascii") === "GIF89a";
+  if (contentType === "image/webp") return buffer.subarray(0, 4).toString("ascii") === "RIFF" && buffer.subarray(8, 12).toString("ascii") === "WEBP";
+  if (contentType === "application/pdf") return buffer.subarray(0, 5).toString("ascii") === "%PDF-";
+  return false;
+}
 
 // Deliberately NOT under /api/admin/ or /api/artist/ — proxy.ts gates those
 // path prefixes wholesale (admin-only, artist-only), and this needs to work
@@ -32,27 +41,33 @@ const MAX_BYTES = 8 * 1024 * 1024;
 // reconsider real object storage if upload volume/size ever makes this a
 // real cost or performance problem.
 export async function POST(request: Request) {
-  const currentUser = await getCurrentUser();
+  if (await isRateLimited(`upload:${getRequestIp(request)}`, 20, 60 * 60 * 1000)) {
+    return apiContractError("RATE_LIMITED", "Too many uploads. Please try again later.", 429);
+  }
+  const currentUser = await getCurrentUser(request);
   if (!currentUser) {
-    return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+    return apiContractError("UNAUTHENTICATED", "Not signed in", 401);
   }
 
   const formData = await request.formData();
   const file = formData.get("file");
 
   if (!(file instanceof File)) {
-    return NextResponse.json({ error: "No file provided" }, { status: 400 });
+    return apiContractError("INVALID_INPUT", "No file provided", 400);
   }
 
   if (!ALLOWED_TYPES.has(file.type)) {
-    return NextResponse.json({ error: "Unsupported file type — use PNG, JPEG, WEBP, GIF, SVG, or PDF" }, { status: 400 });
+    return apiContractError("UNSUPPORTED_MEDIA_TYPE", "Unsupported file type — use PNG, JPEG, WEBP, GIF, or PDF", 400);
   }
 
   if (file.size > MAX_BYTES) {
-    return NextResponse.json({ error: "File is too large (8MB max)" }, { status: 400 });
+    return apiContractError("FILE_TOO_LARGE", "File is too large (8MB max)", 413);
   }
 
   let buffer = Buffer.from(await file.arrayBuffer());
+  if (!hasExpectedSignature(buffer, file.type)) {
+    return apiContractError("INVALID_FILE", "The file contents do not match its declared type", 400);
+  }
 
   // Resize/re-encode raster photos before they ever reach Postgres — an
   // artist's original camera export can be 6MB+ at 3000px+ per side, which
@@ -63,7 +78,7 @@ export async function POST(request: Request) {
     try {
       buffer = await resizeImage(buffer, file.type);
     } catch {
-      return NextResponse.json({ error: "Could not process this image — the file may be corrupted" }, { status: 400 });
+      return apiContractError("INVALID_FILE", "Could not process this image — the file may be corrupted", 400);
     }
   }
 
@@ -71,5 +86,5 @@ export async function POST(request: Request) {
     data: { data: buffer, contentType: file.type },
   });
 
-  return NextResponse.json({ url: `/api/uploads/${uploaded.id}` }, { status: 201 });
+  return apiJson({ url: `/api/uploads/${uploaded.id}` }, { status: 201 });
 }

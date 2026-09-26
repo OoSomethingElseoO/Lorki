@@ -9,17 +9,20 @@
 // both allowed) so a future schema change that adds uniqueness is the
 // thing that would need to update this test, not silently go uncovered.
 import "dotenv/config";
-import { test } from "node:test";
+import { before, test } from "node:test";
 import assert from "node:assert/strict";
 import { GET, POST } from "@/app/api/admin/co-ops/route";
 import { prisma } from "@/lib/prisma";
+import { adminHeaders, initTestAdmin } from "./test-auth";
+
+before(initTestAdmin);
 
 const unique = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 function createRequest(body: unknown) {
   return new Request("http://localhost/api/admin/co-ops", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: adminHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(body),
   });
 }
@@ -72,7 +75,7 @@ test("GET returns the list of co-ops including a newly created one", async (t) =
   const created = await POST(createRequest({ name, region: "Nakuru", contactEmail: "coop@example.com" }));
   assert.equal(created.status, 201);
 
-  const response = await GET();
+  const response = await GET(new Request("http://localhost/api/admin/co-ops", { headers: adminHeaders() }));
   assert.equal(response.status, 200);
   const body = await response.json();
   assert.ok(body.coOps.some((coOp: { name: string }) => coOp.name === name));

@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { apiJson } from "@/lib/api-contract";
 import { prisma } from "@/lib/prisma";
+import { NextResponse } from "next/server";
 
 const IDEMPOTENCY_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 export const GUEST_IDEMPOTENCY_SCOPE = "__guest__";
@@ -53,7 +54,7 @@ export const checkIdempotency = async (
       console.error("[idempotency:cleanup-failed]", e)
     );
 
-    return NextResponse.json(stored.responseBody, { status: stored.responseStatus });
+    return apiJson(stored.responseBody, { status: stored.responseStatus });
   }
 
   return null;
