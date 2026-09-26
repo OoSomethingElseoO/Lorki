@@ -7,6 +7,12 @@
 // restores it exactly in t.after(), so nothing here permanently changes
 // dev settings.
 import "dotenv/config";
+// Provider-secret tests exercise the same encryption path as production. Keep
+// the test self-contained when a developer has not configured a local key;
+// never use this fallback outside the test process.
+if (!process.env.SETTINGS_ENCRYPTION_KEY) {
+  process.env.SETTINGS_ENCRYPTION_KEY = "00".repeat(32);
+}
 import { before, test } from "node:test";
 import assert from "node:assert/strict";
 import { GET, PATCH } from "@/app/api/admin/settings/route";
@@ -15,6 +21,7 @@ import { adminHeaders, initTestAdmin } from "./test-auth";
 
 before(initTestAdmin);
 import { Prisma } from "@prisma/client";
+import { decryptSetting } from "@/lib/secret-settings";
 
 const unique = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
@@ -91,7 +98,8 @@ test("PATCH updates a secret field when a real value is submitted", async (t) =>
   assert.equal(response.status, 200);
 
   const after = await prisma.settings.findUnique({ where: { id: "singleton" } });
-  assert.equal(after!.stripeSecretKey, newKey);
+  assert.ok(after!.stripeSecretKey?.startsWith("enc:v1:"));
+  assert.equal(decryptSetting(after!.stripeSecretKey), newKey);
 });
 
 test("PATCH clears a branding field when submitted blank, unlike a secret field", async (t) => {
