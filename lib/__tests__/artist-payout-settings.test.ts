@@ -17,11 +17,12 @@ import "dotenv/config";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { prisma } from "@/lib/prisma";
+import { withDatabaseRetry } from "@/lib/reliability";
 
 const unique = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 async function createArtist() {
-  return prisma.artist.create({
+  return withDatabaseRetry(() => prisma.artist.create({
     data: {
       slug: `test-artist-payout-${unique()}`,
       name: "Test Payout Artist",
@@ -29,7 +30,7 @@ async function createArtist() {
       bio: "A throwaway artist created by artist-payout-settings.test.ts",
       imageUrl: "https://example.com/artist.jpg",
     },
-  });
+  }));
 }
 
 type Body = {
