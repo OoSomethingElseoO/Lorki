@@ -21,6 +21,7 @@ export type StorefrontArtwork = {
 };
 
 export const PAGE_SIZE = 12;
+const INVALID_TEST_IMAGE_URL = "https://example.com/test.jpg";
 
 export type ProductFilters = {
   q?: string;
@@ -47,6 +48,7 @@ export async function getProductCatalogue(page = 1, filters: ProductFilters = {}
     ...(filters.kind && filters.kind !== "ALL" ? { kind: filters.kind } : {}),
     ...(filters.dateFrom || filters.dateTo ? { createdAt: { ...(filters.dateFrom ? { gte: new Date(`${filters.dateFrom}T00:00:00.000Z`) } : {}), ...(filters.dateTo ? { lte: new Date(`${filters.dateTo}T23:59:59.999Z`) } : {}) } } : {}),
     ...(filters.minPriceCents !== undefined || filters.maxPriceCents !== undefined ? { priceCents: { ...(filters.minPriceCents !== undefined ? { gte: filters.minPriceCents } : {}), ...(filters.maxPriceCents !== undefined ? { lte: filters.maxPriceCents } : {}) } } : {}),
+    NOT: { imageUrl: INVALID_TEST_IMAGE_URL },
   };
   const orderBy = filters.sort === "oldest" ? { createdAt: "asc" as const } : filters.sort === "price_asc" ? { priceCents: "asc" as const } : filters.sort === "price_desc" ? { priceCents: "desc" as const } : { createdAt: "desc" as const };
   const [items, totalCount] = await Promise.all([
@@ -124,6 +126,7 @@ export async function getLiveArtworksByKind(
     isPublished: true,
     inventoryState: "AVAILABLE" as const,
     campaign: { status: "LIVE" as const },
+    NOT: { imageUrl: INVALID_TEST_IMAGE_URL },
   };
 
   const [artworks, totalCount] = await Promise.all([
@@ -183,6 +186,7 @@ export const getCarouselArtworks = unstable_cache(
         kind: "ORIGINAL",
         inventoryState: "AVAILABLE",
         campaign: { status: "LIVE" },
+        NOT: { imageUrl: INVALID_TEST_IMAGE_URL },
       },
       include: { campaign: { include: { artist: true } } },
       orderBy: { createdAt: "desc" },
