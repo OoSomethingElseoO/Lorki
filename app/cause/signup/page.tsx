@@ -25,6 +25,9 @@ export default async function CauseSignupPage() {
               src="/artwork/featured-original.png"
               alt=""
               className="auth-layout__panel-image"
+              loading="eager"
+              fetchPriority="high"
+              decoding="async"
             />
             <div className="auth-layout__panel-copy">
               <p className="auth-layout__panel-quote">Put your conservation work in front of artists and collectors.</p>

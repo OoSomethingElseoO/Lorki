@@ -56,7 +56,7 @@ export function ImageUploadField({ name, label, defaultValue }: ImageUploadField
       <FileDropzone accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml" maxSizeMB={10} onUpload={handleFile} />
       {error ? <p className="admin-form__error">{error}</p> : null}
       {url ? (
-        <img src={url} alt="" className="admin-image-field__preview" />
+        <img src={url} alt="" className="admin-image-field__preview" loading="lazy" decoding="async" />
       ) : null}
     </div>
   );

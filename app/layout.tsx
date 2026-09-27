@@ -5,6 +5,7 @@ import { getBranding } from "@/lib/settings";
 import { StyledComponentsRegistry } from "@/lib/styled-components-registry";
 import { KineticSkew } from "@/components/kinetic-skew";
 import { headers } from "next/headers";
+import { PerformanceRum } from "@/components/performance-rum";
 
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -69,6 +70,7 @@ export default async function RootLayout({
       <body>
         <StyledComponentsRegistry>{children}</StyledComponentsRegistry>
         <KineticSkew />
+        <PerformanceRum />
       </body>
     </html>
   );

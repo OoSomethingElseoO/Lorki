@@ -1,0 +1,9 @@
+{
+  "maxLcpMs": 2500,
+  "maxFcpMs": 1800,
+  "maxTtfbMs": 800,
+  "maxInpMs": 200,
+  "maxCls": 0.1,
+  "maxLongTasks": 5,
+  "maxTransferBytes": 1200000
+}

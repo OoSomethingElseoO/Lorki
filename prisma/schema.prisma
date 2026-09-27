@@ -878,6 +878,24 @@ model ShareEvent {
   @@index([createdAt])
 }
 
+// Privacy-safe real-user performance measurements. No IP address, cookie,
+// user-agent, query string, or page content is stored. The endpoint only
+// accepts a small allow-listed set of browser timing values.
+model PerformanceMetric {
+  id             String   @id @default(cuid())
+  metric         String
+  value          Float
+  route          String
+  deviceClass    String
+  navigationType String?
+  connectionType String?
+  release        String?
+  createdAt      DateTime @default(now())
+
+  @@index([metric, createdAt])
+  @@index([route, createdAt])
+}
+
 enum SecurityCaseSeverity {
   LOW
   MEDIUM

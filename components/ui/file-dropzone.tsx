@@ -58,7 +58,7 @@ export function FileDropzone({ accept, maxSizeMB = 2, maxFiles, multiple = false
           {!multiple && uploadedFile ? (
             <div className="absolute inset-0 flex items-center justify-center p-4">
               {previewUrl ? (
-                <img alt={uploadedFile.name || "Uploaded file"} className="mx-auto max-h-full rounded object-contain" src={previewUrl} />
+                <img alt={uploadedFile.name || "Uploaded file"} className="mx-auto max-h-full rounded object-contain" src={previewUrl} loading="lazy" decoding="async" />
               ) : (
                 <div className="flex flex-col items-center justify-center gap-2 text-center">
                   <div aria-hidden="true" className="bg-panel flex size-16 shrink-0 items-center justify-center rounded-full border border-line">
@@ -118,7 +118,7 @@ export function FileDropzone({ accept, maxSizeMB = 2, maxFiles, multiple = false
           {files.map(({ id, file, preview }) => (
             <div key={id} className="bg-panel border-line relative flex items-center gap-3 rounded-md border p-3">
               {preview ? (
-                <img src={preview} alt={file.name} className="size-10 shrink-0 rounded object-cover" />
+                <img src={preview} alt={file.name} className="size-10 shrink-0 rounded object-cover" loading="lazy" decoding="async" />
               ) : (
                 <div className="bg-panel flex size-10 shrink-0 items-center justify-center rounded border border-line">
                   <FileIcon className="size-4 opacity-60" />

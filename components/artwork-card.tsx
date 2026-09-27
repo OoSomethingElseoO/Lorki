@@ -77,7 +77,7 @@ export function ArtworkCard({ artwork, customerEmail, onSelect }: ArtworkCardPro
           closeLabel="Close enlarged artwork"
         >
           <div className="modal-artwork">
-            <img src={artwork.imageUrl} alt={artwork.altText} />
+            <img src={artwork.imageUrl} alt={artwork.altText} loading="eager" decoding="async" />
           </div>
         </AccessibleModal>
       )}

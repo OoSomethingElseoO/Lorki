@@ -25,7 +25,7 @@ function assignRef<T>(ref: Ref<T> | undefined, value: T | null) {
 }
 
 export const FallbackImage = forwardRef<HTMLImageElement, FallbackImageProps>(function FallbackImage(props, forwardedRef): JSX.Element {
-  const { onError, onLoad, ...rest } = props;
+  const { onError, onLoad, loading = "lazy", decoding = "async", ...rest } = props;
 
   const checkAlreadyFailed = useCallback((img: HTMLImageElement | null) => {
     assignRef(forwardedRef, img);
@@ -55,6 +55,8 @@ export const FallbackImage = forwardRef<HTMLImageElement, FallbackImageProps>(fu
         onLoad?.(event);
       }}
       {...rest}
+      loading={loading}
+      decoding={decoding}
     />
   );
 });

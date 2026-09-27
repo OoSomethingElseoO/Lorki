@@ -15,6 +15,9 @@ export default function LoginPage() {
               src="/artwork/featured-original.png"
               alt=""
               className="auth-layout__panel-image"
+              loading="eager"
+              fetchPriority="high"
+              decoding="async"
             />
             <div className="auth-layout__panel-copy">
               <p className="auth-layout__panel-quote">Original artwork, collected with care.</p>

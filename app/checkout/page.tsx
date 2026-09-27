@@ -23,7 +23,7 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
       <main className="page-main" id="main-content">
         <PageTitle>{artwork.kind === "ORIGINAL" ? "Purchase request" : "Checkout"}</PageTitle>
         <section className="checkout-page" aria-labelledby="checkout-artwork-title">
-          <img src={artwork.imageUrl} alt={artwork.altText} className="checkout-page__image" />
+          <img src={artwork.imageUrl} alt={artwork.altText} className="checkout-page__image" loading="eager" fetchPriority="high" decoding="async" />
           <div className="checkout-page__details">
             <p className="detail-label">Original artwork</p>
             <h1 id="checkout-artwork-title">{artwork.title}</h1>

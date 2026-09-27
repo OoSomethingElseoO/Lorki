@@ -48,7 +48,7 @@ export function SharedArtworkModal({ artwork, onClose, customerEmail }: SharedAr
               <div className="artwork-shared-image-price">
                 ${(artwork.priceCents / 100).toFixed(2)}
               </div>
-              <img src={artwork.imageUrl} alt={artwork.altText} />
+              <img src={artwork.imageUrl} alt={artwork.altText} loading="eager" fetchPriority="high" decoding="async" />
             </motion.div>
             <div className="artwork-shared-details">
               <div className="artwork-shared-topbar">

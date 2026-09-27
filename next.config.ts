@@ -16,6 +16,11 @@ const nextConfig: NextConfig = {
   compiler: {
     styledComponents: true,
   },
+  experimental: {
+    // Tree-shake the large icon/animation packages at import time. This keeps
+    // route bundles from shipping every icon or motion helper to the browser.
+    optimizePackageImports: ["lucide-react", "framer-motion"],
+  },
   // "Seller" was renamed to "artist" throughout (routes, components,
   // internal naming) — app/seller and app/api/seller no longer exist.
   // These permanent redirects exist purely so any bookmark, external link,

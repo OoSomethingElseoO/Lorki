@@ -18,6 +18,18 @@ Use these documents by concern:
   GitHub, AWS, WAF, DNS, and secret-manager configuration.
 - [DEPLOYMENT.md](./DEPLOYMENT.md) — container, environment, migration, and
   scheduled workflow deployment.
+- [RELIABILITY_PATTERNS.md](./RELIABILITY_PATTERNS.md) — graceful shutdown,
+  retries, circuit breakers, degradation, contention, and race handling.
+- [API_CONTRACTS.md](./API_CONTRACTS.md) — versioned response headers, error
+  envelopes, compatibility rules, and migration coverage.
+- [AUTHORIZATION_DATA_ISOLATION.md](./AUTHORIZATION_DATA_ISOLATION.md) — role
+  checks, resource ownership, isolation rules, and verification.
+- [OUTBOX_WEBHOOK_PROCESSING.md](./OUTBOX_WEBHOOK_PROCESSING.md) — durable
+  side effects, webhook deduplication, retries, leases, and operations.
+- [OPTIMISTIC_UI.md](./OPTIMISTIC_UI.md) — mutation ownership, rollback,
+  cancellation, stale-response protection, and deliberately pessimistic flows.
+- [PERFORMANCE_BASELINES.md](./PERFORMANCE_BASELINES.md) — Playwright route,
+  infinite-scroll, modal, and carousel profiling.
 - [RELIABILITY_AND_FAILURE_MODES.md](./RELIABILITY_AND_FAILURE_MODES.md) —
   shutdown, retries, circuit breakers, outbox, UI concurrency, and query/race
   controls.
