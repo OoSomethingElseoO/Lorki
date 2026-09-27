@@ -17,7 +17,7 @@ import {
   getLiveArtworksByKind,
   getLiveNewsArticles,
 } from "@/lib/storefront";
-import { getBranding, getSettings } from "@/lib/settings";
+import { getBranding } from "@/lib/settings";
 import { getCurrentUser } from "@/lib/auth";
 
 function formatDollars(cents: number) {
@@ -30,18 +30,38 @@ function formatDollars(cents: number) {
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [originalsResult, printsResult, artistsResult, newsArticles, impact, branding, settings, customer, carouselArtworks] =
-    await Promise.all([
-      getLiveArtworksByKind("ORIGINAL"),
-      getLiveArtworksByKind("PRINT"),
-      getArtists(),
-      getLiveNewsArticles(),
-      getImpactTotals(),
-      getBranding(),
-      getSettings(),
-      getCurrentUser(),
-      getCarouselArtworks(),
-    ]);
+  const results = await Promise.allSettled([
+    getLiveArtworksByKind("ORIGINAL"),
+    getLiveArtworksByKind("PRINT"),
+    getArtists(),
+    getLiveNewsArticles(),
+    getImpactTotals(),
+    getBranding(),
+    getCurrentUser(),
+    getCarouselArtworks(),
+  ]);
+  const value = <T,>(result: PromiseSettledResult<T>, fallback: T): T =>
+    result.status === "fulfilled" ? result.value : fallback;
+  const dataDegraded = results.some((result) => result.status === "rejected");
+  const emptyCatalogue = { items: [], page: 1, totalPages: 1, totalCount: 0 };
+  const originalsResult = value(results[0], emptyCatalogue);
+  const printsResult = value(results[1], emptyCatalogue);
+  const artistsResult = value(results[2], { items: [], page: 1, totalPages: 1, totalCount: 0 });
+  const newsArticles = value(results[3], []);
+  const impact = value(results[4], { artistCents: 0, conservancyCents: 0, operationsCents: 0, piecesSold: 0 });
+  const branding = value(results[5], {
+    siteName: "Lorkulup",
+    heroTagline: "Protect wildlife.",
+    heroHeadlineWords: { first: ["art"], second: ["masterpieces"], third: ["wildlife"] },
+    heroImageUrl: "/images/hero-default.jpg",
+    heroAlt: "Original wildlife artwork",
+    missionStatement: "Original art supporting wildlife conservation.",
+    contactName: "",
+    contactEmail: "",
+    contactPhone: "",
+  });
+  const customer = value(results[6], null);
+  const carouselArtworks = value(results[7], []);
 
   const originals = originalsResult.items;
   // The rack (PrintsShowcase) is a horizontal browse-and-buy shelf, not a
@@ -68,8 +88,8 @@ export default async function Home() {
   // generic placeholder; a single live artwork or no live inventory at all
   // both naturally collapse to a one-entry array, which the hero also
   // renders statically.
-  const heroImages: HeroImage[] = settings.heroImageUrl
-    ? [{ src: settings.heroImageUrl, alt: branding.heroAlt }]
+  const heroImages: HeroImage[] = branding.heroImageUrl
+    ? [{ src: branding.heroImageUrl, alt: branding.heroAlt }]
     : carouselArtworks.length > 0
       ? carouselArtworks
           .slice(0, 6)
@@ -80,6 +100,11 @@ export default async function Home() {
     <>
       <SiteHeader />
       <main id="main-content">
+        {dataDegraded ? (
+          <div role="status" className="site-status-banner">
+            The catalogue is temporarily unavailable. The site is still online; please try again shortly.
+          </div>
+        ) : null}
         <Hero
           eyebrow="Original art, real impact"
           headline={branding.heroTagline}

@@ -17,6 +17,11 @@ const nextConfig: NextConfig = {
     styledComponents: true,
   },
   experimental: {
+    // Keep production builds on Next's compiler API. The CLI path in this
+    // Next release can fail while parsing `tsc --showConfig` in otherwise
+    // valid projects, which turns a deploy into a server error before the
+    // application is even bundled.
+    useTypeScriptCli: false,
     // Tree-shake the large icon/animation packages at import time. This keeps
     // route bundles from shipping every icon or motion helper to the browser.
     optimizePackageImports: ["lucide-react", "framer-motion"],

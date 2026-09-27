@@ -52,7 +52,7 @@
     "@types/styled-components": "^5.1.36",
     "artillery": "^2.0.34",
     "tsx": "^4.23.12",
-    "typescript": "latest"
+    "typescript": "^5.9.3"
   },
   "overrides": {
     "deepmerge-ts": "^8.0.2"
