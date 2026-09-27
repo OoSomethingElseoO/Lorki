@@ -14,6 +14,7 @@ export type StorefrontArtwork = {
   artistBio: string;
   artistCountry: string;
   priceCents: number;
+  currency: string;
   inventoryState: "AVAILABLE" | "RESERVED" | "SOLD";
   imageUrl: string;
   altText: string;
@@ -68,6 +69,7 @@ function mapArtwork(artwork: {
   kind: "ORIGINAL" | "PRINT";
   story: string | null;
   priceCents: number;
+  currency: string;
   inventoryState: "AVAILABLE" | "RESERVED" | "SOLD";
   imageUrl: string;
   altText: string;
@@ -83,6 +85,7 @@ function mapArtwork(artwork: {
     artistBio: artwork.campaign.artist.bio,
     artistCountry: artwork.campaign.artist.country,
     priceCents: artwork.priceCents,
+    currency: artwork.currency,
     inventoryState: artwork.inventoryState,
     imageUrl: artwork.imageUrl,
     altText: artwork.altText,

@@ -1,7 +1,12 @@
 import { redirect } from "next/navigation";
+import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { getCurrentUser } from "@/lib/auth";
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false, noarchive: true, nosnippet: true },
+};
 
 const navLinks = [
   { label: "Overview", href: "/cause/profile" },

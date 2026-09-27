@@ -9,7 +9,20 @@ import { FallbackImage } from "@/components/ui/fallback-image";
 import { buttonVariants } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth";
 import { getPublicArtworkById } from "@/lib/storefront";
+import { absoluteOrRelative, publicMetadata, imageUrlForSchema } from "@/lib/seo";
+import { StructuredData } from "@/components/structured-data";
 
+export async function generateMetadata({ params }: ArtworkPageProps) {
+  const { id } = await params;
+  const artwork = await getPublicArtworkById(id);
+  if (!artwork) return {};
+  return publicMetadata({
+    title: `${artwork.title} by ${artwork.artistName} | Lorki Originals`,
+    description: artwork.story || `${artwork.title}, an original artwork by ${artwork.artistName}.`,
+    pathname: `/artworks/${encodeURIComponent(artwork.id)}`,
+    image: artwork.imageUrl,
+  });
+}
 type ArtworkPageProps = { params: Promise<{ id: string }> };
 
 export default async function ArtworkPage({ params }: ArtworkPageProps) {
@@ -21,6 +34,22 @@ export default async function ArtworkPage({ params }: ArtworkPageProps) {
     <>
       <SiteHeader />
       <main className="page-main artwork-page" id="main-content">
+        <StructuredData data={{
+          "@context": "https://schema.org",
+          "@type": "Product",
+          name: artwork.title,
+          description: artwork.story || `${artwork.title} by ${artwork.artistName}`,
+          image: imageUrlForSchema(artwork.imageUrl),
+          sku: artwork.id,
+          brand: { "@type": "Person", name: artwork.artistName },
+          offers: {
+            "@type": "Offer",
+            priceCurrency: artwork.currency.toUpperCase(),
+            price: (artwork.priceCents / 100).toFixed(2),
+            availability: artwork.inventoryState === "AVAILABLE" ? "https://schema.org/InStock" : "https://schema.org/SoldOut",
+            url: absoluteOrRelative(`/artworks/${artwork.id}`),
+          },
+        }} />
         <Link href={`/artists/${artwork.artistSlug}`} className={buttonVariants({ variant: "outline" })}>
           View artist
         </Link>

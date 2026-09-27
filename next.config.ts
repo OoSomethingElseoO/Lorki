@@ -60,6 +60,13 @@ const nextConfig: NextConfig = {
         source: "/robots.txt",
         headers: [{ key: "Cache-Control", value: "public, max-age=3600, stale-while-revalidate=86400" }],
       },
+      // robots.txt is advisory. These response headers make the indexing
+      // policy explicit for authenticated, transactional, and operational
+      // routes even when a crawler reaches them directly.
+      ...["/admin/:path*", "/api/:path*", "/account/:path*", "/artist/:path*", "/cause/:path*", "/checkout/:path*", "/login", "/signup", "/forgot-password", "/reset-password/:path*"].map((source) => ({
+        source,
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive, nosnippet" }],
+      })),
     ];
   },
 };

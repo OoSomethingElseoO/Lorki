@@ -8,12 +8,26 @@ import { getArtistBySlug, getLiveArtworksForArtist } from "@/lib/storefront";
 import { getCurrentUser } from "@/lib/auth";
 import { FallbackImage } from "@/components/ui/fallback-image";
 import { ShareButton } from "@/components/share-button";
+import { absoluteOrRelative, publicMetadata, imageUrlForSchema } from "@/lib/seo";
+import { StructuredData } from "@/components/structured-data";
 
 type ArtistPageProps = {
   params: Promise<{
     slug: string;
   }>;
 };
+
+export async function generateMetadata({ params }: ArtistPageProps) {
+  const { slug } = await params;
+  const artist = await getArtistBySlug(slug);
+  if (!artist) return {};
+  return publicMetadata({
+    title: `${artist.name} | Lorki Originals`,
+    description: artist.bio || `Explore original artwork by ${artist.name}.`,
+    pathname: `/artists/${encodeURIComponent(artist.slug)}`,
+    image: artist.imageUrl,
+  });
+}
 
 // This page already renders dynamically on every request (getCurrentUser()
 // below forces that), so generateStaticParams achieved nothing except
@@ -38,6 +52,21 @@ export default async function ArtistPage({ params }: ArtistPageProps) {
     <>
       <SiteHeader />
       <main className="page-main" id="main-content">
+        <StructuredData data={{
+          "@context": "https://schema.org",
+          "@type": "ProfilePage",
+          name: `${artist.name} — Artist`,
+          description: artist.bio,
+          url: absoluteOrRelative(`/artists/${artist.slug}`),
+          mainEntity: {
+            "@type": "Person",
+            name: artist.name,
+            description: artist.bio,
+            image: imageUrlForSchema(artist.imageUrl),
+            homeLocation: artist.country ? { "@type": "Place", name: artist.country } : undefined,
+            sameAs: artist.socialLinks.map((link) => link.url),
+          },
+        }} />
         <section className="artist-profile" aria-labelledby="artist-name">
           <FallbackImage
             src={artist.imageUrl}

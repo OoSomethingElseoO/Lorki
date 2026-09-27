@@ -1,5 +1,10 @@
 import type { ReactNode } from "react";
+import type { Metadata } from "next";
 import { DashboardShell } from "@/components/dashboard-shell";
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false, noarchive: true, nosnippet: true },
+};
 
 const navLinks = [
   { label: "Conservancies", href: "/admin/conservancies" },

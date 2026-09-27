@@ -15,7 +15,8 @@
     "performance:lighthouse": "node scripts/lighthouse-baseline.mjs",
     "performance:budget": "node scripts/performance-budget.mjs",
     "restore:drill": "node scripts/restore-drill.mjs",
-    "audit:frontend": "node scripts/audit-frontend-assets.mjs"
+    "audit:frontend": "node scripts/audit-frontend-assets.mjs",
+    "seo:validate": "node scripts/validate-seo.mjs"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",

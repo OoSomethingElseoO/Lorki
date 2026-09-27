@@ -33,7 +33,6 @@ export async function generateMetadata(): Promise<Metadata> {
     title: siteName,
     description: "An accessibility-first homepage for an original artwork website.",
     metadataBase: siteUrl ? new URL(siteUrl) : undefined,
-    alternates: siteUrl ? { canonical: "/" } : undefined,
     robots: { index: true, follow: true },
     openGraph: { title: siteName, description: "Original artwork supporting wildlife conservation.", type: "website" },
     twitter: { card: "summary_large_image", title: siteName, description: "Original artwork supporting wildlife conservation." },
