@@ -18,7 +18,7 @@ datasource db {
 // either goes through an Animal (and this is derived) or links here
 // directly (see Campaign.conservancyId).
 model Conservancy {
-  id            String   @id @default(cuid())
+  id            String     @id @default(cuid())
   name          String
   region        String
   mission       String
@@ -27,7 +27,7 @@ model Conservancy {
   payoutAccount String? // free-text note; superseded by the structured payout fields below
   animals       Animal[]
   campaigns     Campaign[]
-  createdAt     DateTime @default(now())
+  createdAt     DateTime   @default(now())
 
   // Not real KYC/KYB — no identity or sanctions database is checked here,
   // this is a lightweight anti-impersonation checkpoint, not a compliance
@@ -42,11 +42,11 @@ model Conservancy {
   // request — see that route. Admin-created conservancies (via
   // /admin/conservancies) are verified at creation instead: an admin
   // entering one by hand already is the vetting.
-  verifiedAt              DateTime?
-  registrationNumber      String? // self-reported NGO/business registry number — the admin looks this up, it isn't validated automatically
-  registrationDocumentUrl String? // an uploaded registration certificate/scan, for the admin to review
-  payoutAccountHolderName String? // the name ON the payout account — should match `name` (money should go to the entity, not an individual); checked at verification, not enforced by the DB
-  registrationCheckedAt   DateTime? // admin confirmed the registration number checks out
+  verifiedAt                     DateTime?
+  registrationNumber             String? // self-reported NGO/business registry number — the admin looks this up, it isn't validated automatically
+  registrationDocumentUrl        String? // an uploaded registration certificate/scan, for the admin to review
+  payoutAccountHolderName        String? // the name ON the payout account — should match `name` (money should go to the entity, not an individual); checked at verification, not enforced by the DB
+  registrationCheckedAt          DateTime? // admin confirmed the registration number checks out
   // HOW it was confirmed — required, free text. Not every country has a
   // free instant registry lookup (Kenya's PBORA and Ethiopia's ACSO don't;
   // Nigeria's CAC and South Africa's NPO register do), so a uniform
@@ -56,8 +56,8 @@ model Conservancy {
   // sector-specific directory, whichever official registry) makes that
   // difference visible instead of hiding it — see lib/registry-lookups.ts.
   registrationVerificationMethod String?
-  sanctionsCheckedAt      DateTime? // admin confirmed the org/contact isn't on a sanctions list (e.g. OFAC's SDN list)
-  payoutNameCheckedAt     DateTime? // admin confirmed payoutAccountHolderName actually matches the org's name
+  sanctionsCheckedAt             DateTime? // admin confirmed the org/contact isn't on a sanctions list (e.g. OFAC's SDN list)
+  payoutNameCheckedAt            DateTime? // admin confirmed payoutAccountHolderName actually matches the org's name
 
   // Having a linked User is what lets an org register and manage itself
   // (name/mission/payout details) through the same unified login as
@@ -96,27 +96,27 @@ model CoOp {
 }
 
 model Animal {
-  id             String      @id @default(cuid())
-  slug           String      @unique
-  name           String
-  species        String
-  region         String
-  story          String
-  imageUrl       String
-  conservancy    Conservancy @relation(fields: [conservancyId], references: [id])
-  conservancyId  String
-  campaigns      Campaign[]
-  createdAt      DateTime    @default(now())
-}
-
-model Artist {
   id            String      @id @default(cuid())
   slug          String      @unique
   name          String
-  country       String
-  bio           String
+  species       String
+  region        String
+  story         String
   imageUrl      String
-  payoutAccount String?
+  conservancy   Conservancy @relation(fields: [conservancyId], references: [id])
+  conservancyId String
+  campaigns     Campaign[]
+  createdAt     DateTime    @default(now())
+}
+
+model Artist {
+  id                       String        @id @default(cuid())
+  slug                     String        @unique
+  name                     String
+  country                  String
+  bio                      String
+  imageUrl                 String
+  payoutAccount            String?
   // Which automated rail (if any) actually moves this artist's payout —
   // see lib/payout-channels/. This is per-artist, not a single global
   // choice, because artists bank in different countries through different
@@ -129,7 +129,7 @@ model Artist {
   // releases as a tracked obligation (Payout.paidOutAt), an admin just
   // settles it by hand. Adding a new country/provider later is a new enum
   // value plus a new module in lib/payout-channels/, not a rewrite.
-  payoutChannel PayoutChannel @default(MANUAL)
+  payoutChannel            PayoutChannel @default(MANUAL)
   // FLUTTERWAVE details — all generic, no country hardcoded anywhere in
   // code that reads these. payoutMobileNetwork set (e.g. "Mpesa", "MTN",
   // "Airtel") means mobile money and payoutAccountNumber is a phone
@@ -137,33 +137,33 @@ model Artist {
   // payoutAccountNumber is a bank account number with payoutBankCode
   // required alongside it (e.g. Flutterwave's numeric bank codes in
   // Nigeria, or the short bank codes South African banks use).
-  payoutCountry        String?
-  payoutCurrency       String?
-  payoutMobileNetwork  String?
-  payoutAccountNumber  String?
-  payoutBankCode       String?
+  payoutCountry            String?
+  payoutCurrency           String?
+  payoutMobileNetwork      String?
+  payoutAccountNumber      String?
+  payoutBankCode           String?
   // STRIPE_CONNECT detail: set once the artist completes Stripe's hosted
   // onboarding (see /api/seller/connect/onboard). onboarded tracks
   // charges_enabled/payouts_enabled so we don't attempt a transfer to an
   // account that can't yet receive one.
   stripeConnectedAccountId String?
-  stripeConnectOnboarded   Boolean @default(false)
+  stripeConnectOnboarded   Boolean       @default(false)
   // CRYPTO detail: e.g. cryptoNetwork "USDC on Base", cryptoAddress the
   // wallet to send to. No automated sending — see the enum comment.
-  cryptoNetwork String?
-  cryptoAddress String?
-  coOp          CoOp?       @relation(fields: [coOpId], references: [id])
-  coOpId        String?
-  socialLinks   SocialLink[]
-  campaigns     Campaign[]
-  createdAt     DateTime    @default(now())
+  cryptoNetwork            String?
+  cryptoAddress            String?
+  coOp                     CoOp?         @relation(fields: [coOpId], references: [id])
+  coOpId                   String?
+  socialLinks              SocialLink[]
+  campaigns                Campaign[]
+  createdAt                DateTime      @default(now())
 
   // Having a linked User is what makes this artist a "seller" — one login
   // (User) unlocks whichever surfaces they're entitled to. Nullable: an
   // artist added by an admin with no login has no linked User until they
   // (or an admin) connect one.
-  user          User?       @relation(fields: [userId], references: [id])
-  userId        String?     @unique
+  user   User?   @relation(fields: [userId], references: [id])
+  userId String? @unique
 }
 
 model SocialLink {
@@ -187,20 +187,23 @@ model SocialLink {
 // resolves which one applies — every payout-creating code path calls it
 // rather than re-deriving this itself.
 model Campaign {
-  id                  String      @id @default(cuid())
-  slug                String      @unique
-  animal              Animal?     @relation(fields: [animalId], references: [id])
-  animalId            String?
-  conservancy         Conservancy? @relation(fields: [conservancyId], references: [id])
-  conservancyId       String?
-  artist              Artist      @relation(fields: [artistId], references: [id])
-  artistId            String
-  artistPercent       Int
-  conservancyPercent  Int
-  operationsPercent   Int
-  status              CampaignStatus @default(DRAFT)
-  artworks            Artwork[]
-  createdAt           DateTime    @default(now())
+  id                 String         @id @default(cuid())
+  slug               String         @unique
+  animal             Animal?        @relation(fields: [animalId], references: [id])
+  animalId           String?
+  conservancy        Conservancy?   @relation(fields: [conservancyId], references: [id])
+  conservancyId      String?
+  artist             Artist         @relation(fields: [artistId], references: [id])
+  artistId           String
+  artistPercent      Int
+  conservancyPercent Int
+  operationsPercent  Int
+  status             CampaignStatus @default(DRAFT)
+  artworks           Artwork[]
+  createdAt          DateTime       @default(now())
+
+  @@index([status, artistId])
+  @@index([status, createdAt])
 }
 
 enum CampaignStatus {
@@ -211,33 +214,37 @@ enum CampaignStatus {
 }
 
 model Artwork {
-  id             String       @id @default(cuid())
-  campaign       Campaign     @relation(fields: [campaignId], references: [id])
-  campaignId     String
-  title          String
-  kind           ArtworkKind
-  priceCents     Int
-  currency       String       @default("usd")
-  imageUrl       String
-  altText        String
-  isPublished    Boolean      @default(true)
+  id                             String         @id @default(cuid())
+  campaign                       Campaign       @relation(fields: [campaignId], references: [id])
+  campaignId                     String
+  title                          String
+  kind                           ArtworkKind
+  priceCents                     Int
+  currency                       String         @default("usd")
+  imageUrl                       String
+  altText                        String
+  isPublished                    Boolean        @default(true)
   // The curatorial write-up shown on the detail view (ArtworkLightbox) —
   // distinct from Artist.bio, which is about the person, not this specific
   // piece. Optional: existing rows predate this field, and a quick print
   // reissue may not need one.
-  story          String?
-  inventoryState InventoryState @default(AVAILABLE)
-  saleMode       SaleMode      @default(FIXED_PRICE)
-  offerClosesAt  DateTime?
-  offerExtensionCount Int       @default(0)
+  story                          String?
+  inventoryState                 InventoryState @default(AVAILABLE)
+  saleMode                       SaleMode       @default(FIXED_PRICE)
+  offerClosesAt                  DateTime?
+  offerExtensionCount            Int            @default(0)
   currentHighestOfferAmountCents Int?
-  currentHighestOfferId String? @unique
-  currentHighestOffer Offer? @relation("ArtworkCurrentHighestOffer", fields: [currentHighestOfferId], references: [id])
-  reservedAt     DateTime?
-  orders         Order[]
-  inquiries      Inquiry[]
-  offers         Offer[]      @relation("ArtworkOffers")
-  createdAt      DateTime     @default(now())
+  currentHighestOfferId          String?        @unique
+  currentHighestOffer            Offer?         @relation("ArtworkCurrentHighestOffer", fields: [currentHighestOfferId], references: [id])
+  reservedAt                     DateTime?
+  orders                         Order[]
+  inquiries                      Inquiry[]
+  offers                         Offer[]        @relation("ArtworkOffers")
+  createdAt                      DateTime       @default(now())
+
+  @@index([kind, inventoryState, isPublished, createdAt])
+  @@index([campaignId, inventoryState, isPublished, createdAt])
+  @@index([inventoryState, reservedAt])
 }
 
 enum ArtworkKind {
@@ -309,10 +316,10 @@ enum InventoryState {
 }
 
 model Order {
-  id                    String      @id @default(cuid())
-  artwork               Artwork     @relation(fields: [artworkId], references: [id])
+  id                    String                  @id @default(cuid())
+  artwork               Artwork                 @relation(fields: [artworkId], references: [id])
   artworkId             String
-  customer              User?       @relation(fields: [customerId], references: [id])
+  customer              User?                   @relation(fields: [customerId], references: [id])
   customerId            String?
   buyerEmail            String
   shippingName          String
@@ -323,16 +330,16 @@ model Order {
   shippingPostalCode    String
   shippingCountry       String
   amountCents           Int
-  currency              String      @default("usd")
-  stripePaymentIntentId String?     @unique
-  paymentMethod         PaymentMethod @default(STRIPE)
-  status                OrderStatus @default(PENDING)
+  currency              String                  @default("usd")
+  stripePaymentIntentId String?                 @unique
+  paymentMethod         PaymentMethod           @default(STRIPE)
+  status                OrderStatus             @default(PENDING)
   reviewedAt            DateTime?
   reviewedBy            String?
   reviewNote            String?
   expiresAt             DateTime?
-  offerId               String?     @unique
-  offer                 Offer?      @relation(fields: [offerId], references: [id])
+  offerId               String?                 @unique
+  offer                 Offer?                  @relation(fields: [offerId], references: [id])
   // A Stripe chargeback in progress — orthogonal to `status` (fulfillment
   // progress) rather than a replacement for it, since a dispute can open on
   // an order that's already SHIPPED or DELIVERED and we must not lose that
@@ -342,7 +349,7 @@ model Order {
   payouts               Payout[]
   reconciliations       PaymentReconciliation[]
   shipment              Shipment?
-  createdAt             DateTime    @default(now())
+  createdAt             DateTime                @default(now())
 }
 
 enum OrderStatus {
@@ -358,9 +365,9 @@ enum OrderStatus {
   PENDING
   AWAITING_REVIEW
   AWAITING_PAYMENT
-  PAID       // payment confirmed (Stripe webhook, or an admin recording cash), payouts not yet released
-  SHIPPED    // buyer doesn't have it yet — payout release still waits for DELIVERED
-  DELIVERED  // triggers payout release
+  PAID // payment confirmed (Stripe webhook, or an admin recording cash), payouts not yet released
+  SHIPPED // buyer doesn't have it yet — payout release still waits for DELIVERED
+  DELIVERED // triggers payout release
   REFUNDED
   REJECTED
   EXPIRED
@@ -385,15 +392,15 @@ enum PaymentMethod {
 // unwind on the recipient's side. This is the audit trail for the public
 // impact numbers.
 model Payout {
-  id            String        @id @default(cuid())
-  order         Order         @relation(fields: [orderId], references: [id])
-  orderId       String
-  recipientType RecipientType
-  recipientId   String // Artist.id, Conservancy.id, or "operations"
-  amountCents   Int
-  status        PayoutStatus  @default(PENDING)
-  stripeTransferId String?
-  releasedAt    DateTime?
+  id                        String                  @id @default(cuid())
+  order                     Order                   @relation(fields: [orderId], references: [id])
+  orderId                   String
+  recipientType             RecipientType
+  recipientId               String // Artist.id, Conservancy.id, or "operations"
+  amountCents               Int
+  status                    PayoutStatus            @default(PENDING)
+  stripeTransferId          String?
+  releasedAt                DateTime?
   // RELEASED means "cleared to pay" (the buyer has the piece) — it does NOT
   // by itself mean money has moved. For an ARTIST payout where the artist
   // has set mpesaPhone and Flutterwave is configured, release attempts a
@@ -406,9 +413,9 @@ model Payout {
   // `status` — see /admin/payouts.
   flutterwaveTransferId     String?
   flutterwaveTransferStatus String?
-  paidOutAt     DateTime?
-  reconciliations PaymentReconciliation[]
-  createdAt     DateTime      @default(now())
+  paidOutAt                 DateTime?
+  reconciliations           PaymentReconciliation[]
+  createdAt                 DateTime                @default(now())
 }
 
 enum RecipientType {
@@ -441,15 +448,15 @@ enum PayoutStatus {
 }
 
 model Shipment {
-  id             String    @id @default(cuid())
-  order          Order     @relation(fields: [orderId], references: [id])
-  orderId        String    @unique
+  id             String         @id @default(cuid())
+  order          Order          @relation(fields: [orderId], references: [id])
+  orderId        String         @unique
   carrier        String
   trackingNumber String?
   method         ShipmentMethod
   shippedAt      DateTime?
   deliveredAt    DateTime?
-  createdAt      DateTime  @default(now())
+  createdAt      DateTime       @default(now())
 }
 
 // ORIGINAL_FOUNDER: bootstrap phase, shipped from founder-held inventory.
@@ -478,47 +485,47 @@ model UploadedFile {
 // through /admin/settings instead of editing .env by hand. Values here take
 // priority over env vars; env vars remain the fallback for first boot.
 model Settings {
-  id                  String   @id @default("singleton")
-  stripeSecretKey     String?
-  stripeWebhookSecret String?
+  id                       String  @id @default("singleton")
+  stripeSecretKey          String?
+  stripeWebhookSecret      String?
   // Sends money to Kenyan artists' M-Pesa numbers directly — Flutterwave
   // holds US money-transmitter licenses, unlike Stripe (Kenya isn't a
   // supported Stripe country at all). See lib/flutterwave.ts.
   flutterwaveSecretKey     String?
   flutterwaveWebhookSecret String?
-  resendApiKey        String?
+  resendApiKey             String?
   // SMTP is the fallback channel — sendEmail (lib/email.ts) tries Resend
   // first when configured, and only falls back to SMTP if Resend isn't
   // configured or a send through it fails. Not both-always: a customer
   // getting the same order confirmation twice is worse than one channel
   // occasionally covering for the other.
-  smtpHost            String?
-  smtpPort            String?
-  smtpUser            String?
-  smtpPassword        String?
-  emailFrom           String?
-  operationsEmail     String?
-  emailTemplates      Json?
-  requireMfaForAdmins  Boolean               @default(false)
-  requireMfaForHighRisk Boolean              @default(false)
-  allowMfaEmailOtp     Boolean               @default(false)
+  smtpHost                 String?
+  smtpPort                 String?
+  smtpUser                 String?
+  smtpPassword             String?
+  emailFrom                String?
+  operationsEmail          String?
+  emailTemplates           Json?
+  requireMfaForAdmins      Boolean @default(false)
+  requireMfaForHighRisk    Boolean @default(false)
+  allowMfaEmailOtp         Boolean @default(false)
 
   // Branding — controlled entirely from /admin/settings so the site's name,
   // hero image, mission copy, and contact details never require a code
   // change. Null means "use the built-in fallback" (see lib/settings.ts).
-  siteName         String?
-  heroTagline      String?
+  siteName          String?
+  heroTagline       String?
   // Admin-managed word pools for the three hero headline lines. The frontend
   // owns the fixed prefixes ("Sell", "Own", "Protect") and rotates only
   // these final words. Stored as JSON so an admin can expand each pool
   // without a schema migration.
   heroHeadlineWords Json?
-  heroImageUrl     String?
-  heroAlt          String?
-  missionStatement String?
-  contactName      String?
-  contactEmail     String?
-  contactPhone     String?
+  heroImageUrl      String?
+  heroAlt           String?
+  missionStatement  String?
+  contactName       String?
+  contactEmail      String?
+  contactPhone      String?
 
   updatedAt DateTime @updatedAt
 }
@@ -571,14 +578,16 @@ model RateLimitHit {
 }
 
 model NewsArticle {
-  id        String          @id @default(cuid())
-  slug      String          @unique
+  id        String     @id @default(cuid())
+  slug      String     @unique
   title     String
   summary   String
   body      String
   imageUrl  String
-  status    NewsStatus      @default(DRAFT)
-  createdAt DateTime        @default(now())
+  status    NewsStatus @default(DRAFT)
+  createdAt DateTime   @default(now())
+
+  @@index([status, createdAt])
 }
 
 enum NewsStatus {
@@ -593,20 +602,20 @@ enum NewsStatus {
 // API responses, etc.) so reconciliation discrepancies can be traced to root
 // cause and the chain of decisions is visible for compliance/dispute purposes.
 model AuditLog {
-  id                  String    @id @default(cuid())
+  id                 String   @id @default(cuid())
   // Action type: PAYOUT_MARKED_PAID_MANUAL, PAYOUT_CREATED_MANUAL, PAYOUT_MARKED_FAILED, etc.
-  action              String
+  action             String
   // What was affected: "Order", "Payout", "Artist", "Conservancy"
-  affectedEntityType  String
+  affectedEntityType String
   // ID of the affected entity (Order/Payout/Artist ID, etc.)
-  affectedEntityId    String
+  affectedEntityId   String
   // Why this action was taken (human-readable explanation)
-  reason              String
+  reason             String
   // Email of the admin who made the change
-  changedBy           String
+  changedBy          String
   // JSON metadata: external transfer IDs, API responses, payment methods, amounts, etc.
-  metadata            Json?
-  createdAt           DateTime  @default(now())
+  metadata           Json?
+  createdAt          DateTime @default(now())
 
   @@index([createdAt])
   @@index([affectedEntityType, affectedEntityId])
@@ -626,14 +635,14 @@ enum ProviderEventStatus {
 }
 
 model PaymentProviderEvent {
-  id          String             @id @default(cuid())
+  id          String              @id @default(cuid())
   provider    PaymentProvider
   externalId  String
   eventType   String
   status      ProviderEventStatus @default(RECEIVED)
   payload     Json?
   error       String?
-  receivedAt  DateTime           @default(now())
+  receivedAt  DateTime            @default(now())
   processedAt DateTime?
 
   @@unique([provider, externalId])
@@ -651,17 +660,17 @@ enum OutboxStatus {
 // commits. A webhook can enqueue an email atomically with the Order update;
 // a separate worker may retry it without replaying the payment mutation.
 model OutboxJob {
-  id            String       @id @default(cuid())
-  kind          String
-  dedupeKey     String       @unique
-  payload       Json
-  status        OutboxStatus @default(PENDING)
-  attempts      Int          @default(0)
-  availableAt   DateTime     @default(now())
-  lockedAt      DateTime?
-  lastError     String?
-  processedAt   DateTime?
-  createdAt     DateTime     @default(now())
+  id          String       @id @default(cuid())
+  kind        String
+  dedupeKey   String       @unique
+  payload     Json
+  status      OutboxStatus @default(PENDING)
+  attempts    Int          @default(0)
+  availableAt DateTime     @default(now())
+  lockedAt    DateTime?
+  lastError   String?
+  processedAt DateTime?
+  createdAt   DateTime     @default(now())
 
   @@index([status, availableAt])
 }
@@ -687,30 +696,30 @@ enum ReconciliationPriority {
 }
 
 model PaymentReconciliation {
-  id              String               @id @default(cuid())
-  provider        PaymentProvider
-  externalId      String?
-  order           Order?               @relation(fields: [orderId], references: [id])
-  orderId         String?
-  payout          Payout?              @relation(fields: [payoutId], references: [id])
-  payoutId        String?
+  id                  String                 @id @default(cuid())
+  provider            PaymentProvider
+  externalId          String?
+  order               Order?                 @relation(fields: [orderId], references: [id])
+  orderId             String?
+  payout              Payout?                @relation(fields: [payoutId], references: [id])
+  payoutId            String?
   expectedAmountCents Int?
   actualAmountCents   Int?
-  expectedCurrency String?
-  actualCurrency   String?
-  status          ReconciliationStatus
-  priority        ReconciliationPriority @default(NORMAL)
-  assignedTo      String?
-  triagedAt       DateTime?
-  triagedBy       String?
-  triageNote      String?
-  differenceCents Int?
-  eventType       String?
-  observedAt      DateTime             @default(now())
-  resolvedAt      DateTime?
-  resolvedBy      String?
-  resolutionNote  String?
-  metadata        Json?
+  expectedCurrency    String?
+  actualCurrency      String?
+  status              ReconciliationStatus
+  priority            ReconciliationPriority @default(NORMAL)
+  assignedTo          String?
+  triagedAt           DateTime?
+  triagedBy           String?
+  triageNote          String?
+  differenceCents     Int?
+  eventType           String?
+  observedAt          DateTime               @default(now())
+  resolvedAt          DateTime?
+  resolvedBy          String?
+  resolutionNote      String?
+  metadata            Json?
 
   @@index([status, observedAt])
   @@index([provider, externalId])
@@ -749,15 +758,15 @@ enum DeletionRequestStatus {
 //   - always                  -> can browse/buy, see /account order history
 // Someone can be more than one of these at once on the same login.
 model User {
-  id                  String                @id @default(cuid())
-  email               String                @unique
+  id                  String                   @id @default(cuid())
+  email               String                   @unique
   passwordHash        String
   name                String?
-  isAdmin             Boolean               @default(false)
-  adminRole           AdminRole?            // Only set if isAdmin=true
-  accountStatus       AccountStatus         @default(ACTIVE)
-  sessionVersion      Int                   @default(0)
-  mfaEnabled          Boolean               @default(false)
+  isAdmin             Boolean                  @default(false)
+  adminRole           AdminRole? // Only set if isAdmin=true
+  accountStatus       AccountStatus            @default(ACTIVE)
+  sessionVersion      Int                      @default(0)
+  mfaEnabled          Boolean                  @default(false)
   mfaSecretEncrypted  String?
   mfaEnabledAt        DateTime?
   deletionRequestedAt DateTime?
@@ -770,37 +779,37 @@ model User {
   offers              Offer[]
   shareEvents         ShareEvent[]
   passwordResetTokens PasswordResetToken[]
-  passwordHistory    PasswordHistory[]
+  passwordHistory     PasswordHistory[]
   mfaChallenges       MfaChallenge[]
   mfaSetups           MfaSetup[]
   mfaRecoveryCodes    MfaRecoveryCode[]
   deletionRequests    AccountDeletionRequest[]
-  createdAt           DateTime              @default(now())
+  createdAt           DateTime                 @default(now())
 }
 
 model MfaChallenge {
-  id         String   @id @default(cuid())
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId     String
-  tokenHash  String   @unique
-  expiresAt  DateTime
-  attempts   Int      @default(0)
-  emailCodeHash String?
+  id                 String    @id @default(cuid())
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId             String
+  tokenHash          String    @unique
+  expiresAt          DateTime
+  attempts           Int       @default(0)
+  emailCodeHash      String?
   emailCodeExpiresAt DateTime?
-  emailCodeAttempts Int @default(0)
-  createdAt  DateTime @default(now())
+  emailCodeAttempts  Int       @default(0)
+  createdAt          DateTime  @default(now())
 
   @@index([userId, expiresAt])
 }
 
 model MfaSetup {
-  id             String   @id @default(cuid())
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId         String
-  tokenHash      String   @unique
+  id              String   @id @default(cuid())
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId          String
+  tokenHash       String   @unique
   secretEncrypted String
-  expiresAt      DateTime
-  createdAt      DateTime @default(now())
+  expiresAt       DateTime
+  createdAt       DateTime @default(now())
 
   @@index([userId, expiresAt])
 }
@@ -847,13 +856,13 @@ model AccountDeletionRequest {
 }
 
 model PasswordResetToken {
-  id         String    @id @default(cuid())
-  user       User      @relation(fields: [userId], references: [id])
-  userId     String
-  tokenHash  String    @unique
-  expiresAt  DateTime
-  usedAt     DateTime?
-  createdAt  DateTime  @default(now())
+  id        String    @id @default(cuid())
+  user      User      @relation(fields: [userId], references: [id])
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
 }
 
 model ShareEvent {
@@ -885,20 +894,20 @@ enum SecurityCaseStatus {
 }
 
 model SecurityCase {
-  id           String             @id @default(cuid())
-  fingerprint  String             @unique
-  type         String
-  severity     SecurityCaseSeverity
-  status       SecurityCaseStatus @default(OPEN)
-  summary      String
-  evidence     Json?
-  assignedTo   String?
-  triageNote   String?
-  resolvedAt   DateTime?
-  resolvedBy   String?
+  id             String               @id @default(cuid())
+  fingerprint    String               @unique
+  type           String
+  severity       SecurityCaseSeverity
+  status         SecurityCaseStatus   @default(OPEN)
+  summary        String
+  evidence       Json?
+  assignedTo     String?
+  triageNote     String?
+  resolvedAt     DateTime?
+  resolvedBy     String?
   resolutionNote String?
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
 
   @@index([status, severity, createdAt])
   @@index([assignedTo])
@@ -911,14 +920,14 @@ model SecurityCase {
 // where userId is the requester's ID (or null for guest checkouts). Entries older
 // than IDEMPOTENCY_TTL_MS are garbage-collected by background cleanup.
 model IdempotencyStore {
-  id               String    @id @default(cuid())
-  idempotencyKey   String    // Client-provided unique key for this operation
+  id             String   @id @default(cuid())
+  idempotencyKey String // Client-provided unique key for this operation
   // A non-null guest scope is intentional: PostgreSQL unique indexes treat
   // NULL values as distinct, which would let the same guest key be reused.
-  userId           String    @default("__guest__") // User ID, or the guest scope
-  responseStatus   Int       // HTTP status code of the response
-  responseBody     Json      // Response body (error or success)
-  createdAt        DateTime  @default(now())
+  userId         String   @default("__guest__") // User ID, or the guest scope
+  responseStatus Int // HTTP status code of the response
+  responseBody   Json // Response body (error or success)
+  createdAt      DateTime @default(now())
 
   @@unique([idempotencyKey, userId])
   @@index([createdAt])
