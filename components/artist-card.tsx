@@ -18,6 +18,9 @@ export function ArtistCard({ artist }: ArtistCardProps) {
           src={artist.imageUrl}
           alt={`Portrait placeholder for artist ${artist.name}.`}
           className="artist-card__image"
+          loading="lazy"
+          fetchPriority="low"
+          decoding="async"
         />
         <div className="artist-card__body">
           <h2>{artist.name}</h2>

@@ -152,6 +152,7 @@ function HeroArtwork({ images }: { images: HeroImage[] }) {
           alt={image.alt}
           style={{ opacity: index === 0 ? 1 : 0, zIndex: index === 0 ? 2 : 1 }}
           loading={index === 0 ? "eager" : "lazy"}
+          fetchPriority={index === 0 ? "high" : "low"}
           decoding="async"
         />
       ))}

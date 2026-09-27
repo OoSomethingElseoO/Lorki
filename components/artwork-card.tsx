@@ -37,7 +37,14 @@ export function ArtworkCard({ artwork, customerEmail, onSelect }: ArtworkCardPro
         aria-label={`Enlarge ${artwork.title}`}
         onClick={handleImageClick}
       >
-        <FallbackImage src={artwork.imageUrl} alt={artwork.altText} className="artwork-card__image" />
+        <FallbackImage
+          src={artwork.imageUrl}
+          alt={artwork.altText}
+          className="artwork-card__image"
+          loading="lazy"
+          fetchPriority="low"
+          decoding="async"
+        />
         <span className="artwork-card__image-hint" aria-hidden="true">
           Enlarge
         </span>

@@ -13,7 +13,14 @@ type NewsCardProps = {
 export function NewsCard({ article }: NewsCardProps) {
   return (
     <article className="news-card">
-      <FallbackImage src={article.imageUrl} alt="" className="news-card__image" />
+      <FallbackImage
+        src={article.imageUrl}
+        alt=""
+        className="news-card__image"
+        loading="lazy"
+        fetchPriority="low"
+        decoding="async"
+      />
       <div className="news-card__body">
         <h2>{article.title}</h2>
         <p>{article.summary}</p>

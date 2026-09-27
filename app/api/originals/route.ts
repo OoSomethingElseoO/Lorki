@@ -22,6 +22,6 @@ export async function GET(request: Request) {
 
   const result = await getCachedOriginalsPage(page);
   return apiJson(result, {
-    headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120" },
+    headers: { "Cache-Control": "public, max-age=30, s-maxage=30, stale-while-revalidate=120" },
   });
 }
