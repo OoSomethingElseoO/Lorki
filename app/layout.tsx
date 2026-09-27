@@ -28,9 +28,15 @@ const lora = Lora({
 // Render included), so this never needs its own fallback.
 export async function generateMetadata(): Promise<Metadata> {
   const { siteName } = await getBranding();
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.SITE_URL;
   return {
     title: siteName,
     description: "An accessibility-first homepage for an original artwork website.",
+    metadataBase: siteUrl ? new URL(siteUrl) : undefined,
+    alternates: siteUrl ? { canonical: "/" } : undefined,
+    robots: { index: true, follow: true },
+    openGraph: { title: siteName, description: "Original artwork supporting wildlife conservation.", type: "website" },
+    twitter: { card: "summary_large_image", title: siteName, description: "Original artwork supporting wildlife conservation." },
   };
 }
 
