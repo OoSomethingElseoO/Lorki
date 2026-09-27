@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import type { StorefrontArtwork } from "@/lib/storefront";
+import { FallbackImage } from "@/components/ui/fallback-image";
 import { InquiryForm } from "@/components/inquiry-form";
 import { ShareButton } from "@/components/share-button";
 
@@ -48,7 +49,7 @@ export function SharedArtworkModal({ artwork, onClose, customerEmail }: SharedAr
               <div className="artwork-shared-image-price">
                 ${(artwork.priceCents / 100).toFixed(2)}
               </div>
-              <img src={artwork.imageUrl} alt={artwork.altText} loading="eager" fetchPriority="high" decoding="async" />
+              <FallbackImage src={artwork.imageUrl} alt={artwork.altText} loading="eager" fetchPriority="high" decoding="async" />
             </motion.div>
             <div className="artwork-shared-details">
               <div className="artwork-shared-topbar">

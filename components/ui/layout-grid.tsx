@@ -3,6 +3,7 @@
 import * as React from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { FallbackImage } from "@/components/ui/fallback-image";
 
 export type LayoutGridCard = {
   id: string | number;
@@ -59,15 +60,15 @@ export function LayoutGrid({ cards, className, onCardSelect }: LayoutGridProps) 
           tabIndex={0}
           aria-label={`Open ${card.alt}`}
         >
-          <motion.img
+          <motion.div
             // Match SharedArtworkModal's image layout id so the selected
             // artwork itself expands into the detail surface on every gallery
             // path, rather than the modal rendering a second image.
             layoutId={`artwork-image-${card.id}`}
-            src={card.thumbnail}
-            alt={card.alt}
-            className="layout-grid__image"
-          />
+            className="layout-grid__image-wrap"
+          >
+            <FallbackImage src={card.thumbnail} alt={card.alt} className="layout-grid__image" />
+          </motion.div>
           {card.topContent ? <div className="layout-grid__top-meta">{card.topContent}</div> : null}
           {card.hoverContent ? <div className="layout-grid__hover-meta">{card.hoverContent}</div> : null}
         </motion.div>
@@ -90,12 +91,9 @@ export function LayoutGrid({ cards, className, onCardSelect }: LayoutGridProps) 
               className="layout-grid__selected"
               onClick={(event) => event.stopPropagation()}
             >
-              <motion.img
-                layoutId={`artwork-image-${selected.id}`}
-                src={selected.thumbnail}
-                alt={selected.alt}
-                className="layout-grid__selected-image"
-              />
+              <motion.div layoutId={`artwork-image-${selected.id}`} className="layout-grid__selected-image-wrap">
+                <FallbackImage src={selected.thumbnail} alt={selected.alt} className="layout-grid__selected-image" />
+              </motion.div>
               <div className="layout-grid__content">{selected.content}</div>
               <button type="button" className="layout-grid__close" onClick={() => setSelected(null)}>
                 Close
