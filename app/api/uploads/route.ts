@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { isResizableImageType, resizeImage } from "@/lib/resize-image";
 import { getRequestIp, isRateLimited } from "@/lib/rate-limit";
+import { isCloudinaryConfigured, uploadBuffer } from "@/lib/cloudinary";
 
 const ALLOWED_TYPES = new Set([
   "image/png",
@@ -82,9 +83,16 @@ export async function POST(request: Request) {
     }
   }
 
-  const uploaded = await prisma.uploadedFile.create({
-    data: { data: buffer, contentType: file.type },
-  });
+  if (isCloudinaryConfigured()) {
+    try {
+      const uploaded = await uploadBuffer(buffer, file.type);
+      return apiJson({ url: uploaded.secure_url }, { status: 201 });
+    } catch (error) {
+      console.error("[uploads] Cloudinary upload failed", error);
+      return apiContractError("UPLOAD_FAILED", "Could not store the file", 502);
+    }
+  }
 
+  const uploaded = await prisma.uploadedFile.create({ data: { data: buffer, contentType: file.type } });
   return apiJson({ url: `/api/uploads/${uploaded.id}` }, { status: 201 });
 }

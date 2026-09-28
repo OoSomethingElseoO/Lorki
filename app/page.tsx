@@ -14,6 +14,7 @@ import {
   getArtists,
   getCarouselArtworks,
   getImpactTotals,
+  getHeroAnimals,
   getLiveArtworksByKind,
   getLiveNewsArticles,
 } from "@/lib/storefront";
@@ -39,6 +40,7 @@ export default async function Home() {
     getBranding(),
     getCurrentUser(),
     getCarouselArtworks(),
+    getHeroAnimals(),
   ]);
   const value = <T,>(result: PromiseSettledResult<T>, fallback: T): T =>
     result.status === "fulfilled" ? result.value : fallback;
@@ -62,6 +64,7 @@ export default async function Home() {
   });
   const customer = value(results[6], null);
   const carouselArtworks = value(results[7], []);
+  const heroAnimals = value(results[8], []);
 
   const originals = originalsResult.items;
   // The rack (PrintsShowcase) is a horizontal browse-and-buy shelf, not a
@@ -82,14 +85,11 @@ export default async function Home() {
     imageUrl: artist.imageUrl,
   }));
 
-  // An admin-chosen hero image always wins — shown as a single static
-  // image, no rotation. Otherwise rotate through whatever's actually for
-  // sale right now (via the hero's slow crossfade) rather than a single
-  // generic placeholder; a single live artwork or no live inventory at all
-  // both naturally collapse to a one-entry array, which the hero also
-  // renders statically.
-  const heroImages: HeroImage[] = branding.heroImageUrl
-    ? [{ src: branding.heroImageUrl, alt: branding.heroAlt }]
+  // The hero foreground shows the live wildlife causes first, so visitors
+  // immediately see the animals the work protects. Fall back to live artwork
+  // and finally the admin-managed hero image when no animal imagery exists.
+  const heroImages: HeroImage[] = heroAnimals.length > 0
+    ? heroAnimals
     : carouselArtworks.length > 0
       ? carouselArtworks
           .slice(0, 6)

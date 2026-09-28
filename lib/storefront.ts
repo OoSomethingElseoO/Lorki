@@ -120,6 +120,36 @@ export async function getLiveNewsArticleBySlug(slug: string) {
   });
 }
 
+export async function getHeroAnimals(): Promise<{ src: string; alt: string }[]> {
+  const localWildlife = [
+    { src: "/uploads/lorkulup-cubs.jpeg", alt: "Wildlife cubs" },
+    { src: "/uploads/lorkulup-cubs-2.jpeg", alt: "Wildlife cubs in their habitat" },
+    { src: "/uploads/lorkulup-family.jpeg", alt: "Wildlife family" },
+    { src: "/uploads/lorkulup-family-2.jpeg", alt: "Wildlife family in the wild" },
+  ];
+  let animals: { name: string; species: string; imageUrl: string }[] = [];
+  try {
+    animals = await prisma.animal.findMany({
+      select: { name: true, species: true, imageUrl: true },
+      orderBy: { createdAt: "desc" },
+      take: 12,
+    });
+  } catch {
+    // The hero must remain visual when Neon is unavailable. The local assets
+    // are real wildlife imagery and are safe to use as a presentation fallback.
+  }
+  const seen = new Set<string>();
+  const databaseAnimals = animals.flatMap((animal) => {
+    // Database-backed blob URLs are deliberately excluded from this rotating
+    // hero. A Neon outage would otherwise make a later slide blank; new
+    // uploads use Cloudinary URLs and remain eligible here.
+    if (!animal.imageUrl || animal.imageUrl.startsWith("/api/uploads/") || animal.imageUrl === INVALID_TEST_IMAGE_URL || seen.has(animal.imageUrl)) return [];
+    seen.add(animal.imageUrl);
+    return [{ src: animal.imageUrl, alt: `${animal.name} (${animal.species})` }];
+  });
+  return [...localWildlife, ...databaseAnimals].slice(0, 6);
+}
+
 function normalizePage(page: number | undefined): number {
   return Number.isInteger(page) && (page as number) > 0 ? (page as number) : 1;
 }
@@ -216,12 +246,13 @@ export async function getArtists(page?: number) {
 
   const [artists, totalCount] = await Promise.all([
     prisma.artist.findMany({
+      where: { NOT: { imageUrl: INVALID_TEST_IMAGE_URL } },
       include: { socialLinks: true },
       orderBy: { name: "asc" },
       skip: (currentPage - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
     }),
-    prisma.artist.count(),
+    prisma.artist.count({ where: { NOT: { imageUrl: INVALID_TEST_IMAGE_URL } } }),
   ]);
 
   return {
