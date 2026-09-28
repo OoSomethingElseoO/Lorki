@@ -20,9 +20,7 @@ export default async function AccountLayout({ children }: { children: ReactNode 
     user.artist
       ? { label: "Artist Dashboard", href: "/artist" }
       : { label: "Start Selling", href: "/artist/onboarding" },
-    user.conservancy
-      ? { label: "Cause Dashboard", href: "/cause/profile" }
-      : { label: "Register a Cause", href: "/cause/onboarding" },
+    ...(user.conservancy ? [{ label: "Cause Dashboard", href: "/cause/profile" }] : []),
   ];
 
   return (

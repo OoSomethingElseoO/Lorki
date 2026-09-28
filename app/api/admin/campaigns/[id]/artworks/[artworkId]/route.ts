@@ -17,6 +17,7 @@ type UpdateBody = {
   imageUrl: string;
   altText: string;
   story?: string | null;
+  approval?: "APPROVE" | "REJECT";
 };
 
 export async function PATCH(request: Request, { params }: RouteParams) {
@@ -26,6 +27,22 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   const { id, artworkId } = await params;
   const body = await readJsonObject(request) as Partial<UpdateBody> | null;
   if (!body) return apiContractError("INVALID_JSON", "Request body must be a JSON object", 400);
+
+  if (body.approval === "APPROVE" || body.approval === "REJECT") {
+    const artwork = await prisma.artwork.findUnique({ where: { id: artworkId } });
+    if (!artwork || artwork.campaignId !== id) return apiContractError("NOT_FOUND", "Artwork not found on this campaign", 404);
+    const approved = body.approval === "APPROVE";
+    const updated = await prisma.artwork.update({ where: { id: artworkId }, data: { isPublished: approved } });
+    await recordAudit({
+      action: approved ? "ARTWORK_APPROVED" : "ARTWORK_REJECTED",
+      affectedEntityType: "Artwork",
+      affectedEntityId: artworkId,
+      reason: approved ? "Operations administrator approved artist submission" : "Operations administrator rejected artist submission",
+      changedBy: user!.email,
+      metadata: { campaignId: id },
+    });
+    return NextResponse.json({ artwork: updated });
+  }
 
   if (!body.title || !body.kind || typeof body.priceCents !== "number" || !body.imageUrl || !body.altText) {
     return apiContractError("VALIDATION_ERROR", "title, kind, priceCents, imageUrl, and altText are required", 400);

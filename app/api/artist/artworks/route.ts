@@ -94,6 +94,7 @@ export async function POST(request: Request) {
       imageUrl: body.imageUrl,
       altText: body.altText,
       story: body.story || null,
+      isPublished: false,
     },
   });
   await recordAudit({ action: "ARTIST_ARTWORK_CREATED", affectedEntityType: "Artwork", affectedEntityId: artwork.id, reason: "Artist submitted artwork", changedBy: currentUser!.email, metadata: { campaignId: campaign.id, kind: artwork.kind, priceCents: artwork.priceCents } });

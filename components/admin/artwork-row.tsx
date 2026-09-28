@@ -16,16 +16,33 @@ type ArtworkRowProps = {
     altText: string;
     story: string | null;
     inventoryState: string;
+    isPublished: boolean;
   };
 };
 
 export function ArtworkRow({ campaignId, artwork }: ArtworkRowProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [pending, setPending] = useState(false);
+
+  async function setApproval(approval: "APPROVE" | "REJECT") {
+    setPending(true);
+    try {
+      const response = await fetch(`/api/admin/campaigns/${campaignId}/artworks/${artwork.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ approval }),
+      });
+      if (!response.ok) throw new Error("Unable to update artwork review");
+      window.location.reload();
+    } finally {
+      setPending(false);
+    }
+  }
 
   if (isEditing) {
     return (
       <tr>
-        <td colSpan={5}>
+        <td colSpan={6}>
           <ArtworkForm
             campaignId={campaignId}
             id={artwork.id}
@@ -50,6 +67,11 @@ export function ArtworkRow({ campaignId, artwork }: ArtworkRowProps) {
       <td>{artwork.kind}</td>
       <td>${(artwork.priceCents / 100).toFixed(2)}</td>
       <td>{artwork.inventoryState}</td>
+      <td>
+        <span>{artwork.isPublished ? "Approved" : "Pending"}</span>{" "}
+        {!artwork.isPublished ? <Button type="button" size="sm" disabled={pending} onClick={() => setApproval("APPROVE")}>Approve</Button> : null}{" "}
+        {artwork.isPublished ? <Button type="button" variant="outline" size="sm" disabled={pending} onClick={() => setApproval("REJECT")}>Unpublish</Button> : null}
+      </td>
       <td>
         <Button type="button" variant="outline" size="sm" onClick={() => setIsEditing(true)}>
           Edit

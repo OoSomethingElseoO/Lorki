@@ -59,6 +59,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       imageUrl: body.imageUrl,
       altText: body.altText,
       story: body.story || null,
+      isPublished: false,
     },
   });
   await recordAudit({ action: "ARTIST_ARTWORK_UPDATED", affectedEntityType: "Artwork", affectedEntityId: id, reason: "Artist updated artwork", changedBy: currentUser!.email, metadata: { fields: ["title", "kind", "priceCents", "imageUrl", "altText", "story"] } });

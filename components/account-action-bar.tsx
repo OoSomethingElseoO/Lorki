@@ -37,11 +37,6 @@ export function AccountActionBar({ name, email, hasArtist, hasConservancy, mfaEn
             <Heart className="size-5" aria-hidden="true" />
           </Link>
         ) : null}
-        {!hasConservancy ? (
-          <Link className={buttonVariants({ variant: "icon-panel", size: "icon" })} href="/cause/onboarding" aria-label="Register a conservation cause" title="Register a conservation cause">
-            <UserRound className="size-5" aria-hidden="true" />
-          </Link>
-        ) : null}
         <button type="button" className={buttonVariants({ variant: "icon-panel", size: "icon" })} onClick={() => toggle("account")} aria-label="Open account details" aria-expanded={open === "account"} title="Account details">
           <UserRound className="size-5" aria-hidden="true" />
         </button>

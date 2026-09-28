@@ -15,6 +15,7 @@ type CampaignArtworkTableProps = {
     altText: string;
     story: string | null;
     inventoryState: string;
+    isPublished: boolean;
   }[];
 };
 
@@ -40,6 +41,7 @@ export function CampaignArtworkTable({ campaignId, artworks }: CampaignArtworkTa
             <th>Kind</th>
             <th>Price</th>
             <th>Inventory</th>
+            <th>Review</th>
             <th></th>
           </tr>
         </thead>
@@ -49,7 +51,7 @@ export function CampaignArtworkTable({ campaignId, artworks }: CampaignArtworkTa
           ))}
           {artworks.length === 0 ? (
             <tr>
-              <td colSpan={5}>No artworks yet.</td>
+              <td colSpan={6}>No artworks yet.</td>
             </tr>
           ) : null}
         </tbody>

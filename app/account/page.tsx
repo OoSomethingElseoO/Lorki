@@ -115,17 +115,6 @@ export default async function AccountPage() {
                 </Link>
               </Card>
             ) : null}
-            {!user.conservancy ? (
-              <Card variant="brand" style={{ flex: "1 1 16rem" }}>
-                <h3 style={{ marginTop: 0 }}>Register a conservation cause</h3>
-                <p className="admin-form__hint">
-                  Register your organization separately. It will be reviewed before artists can select it for campaigns.
-                </p>
-                <Link href="/cause/onboarding" className={buttonVariants({ variant: "form" })}>
-                  Register a cause
-                </Link>
-              </Card>
-            ) : null}
           </div>
         );
 

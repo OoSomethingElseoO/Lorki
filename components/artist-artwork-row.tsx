@@ -17,6 +17,7 @@ type ArtistArtworkRowProps = {
     inventoryState: string;
     saleMode: "FIXED_PRICE" | "OFFERS" | "AUCTION";
     offerClosesAt: Date | null;
+    isPublished: boolean;
   };
   causeName: string;
   auctionsEnabled?: boolean;
@@ -61,7 +62,7 @@ export function ArtistArtworkRow({ artwork, causeName, auctionsEnabled = false }
       <td>{causeName}</td>
       <td>{artwork.kind}</td>
       <td>${(artwork.priceCents / 100).toFixed(2)}</td>
-      <td>{artwork.inventoryState}</td>
+      <td>{artwork.isPublished ? artwork.inventoryState : "PENDING REVIEW"}</td>
       <td>
         {isSold ? (
           "—"
