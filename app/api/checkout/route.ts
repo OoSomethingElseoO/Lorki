@@ -10,6 +10,7 @@ import { readJsonObject } from "@/lib/request-json";
 
 type CheckoutBody = {
   artworkId: string;
+  variantId?: string;
   buyerEmail?: string;
 };
 
@@ -72,6 +73,15 @@ export async function POST(request: Request) {
     return apiContractError("APPROVAL_REQUIRED", "Originals require approval before payment. Please submit an inquiry.", 409);
   }
 
+  const variant = body.variantId
+    ? await prisma.printVariant.findFirst({ where: { id: body.variantId, artworkId: artwork.id, isPublished: true } })
+    : null;
+  if (body.variantId && !variant) {
+    return apiContractError("NOT_FOUND", "Print size is no longer available", 404);
+  }
+  const productPriceCents = variant?.priceCents ?? artwork.priceCents;
+  const productOption = variant ? `${variant.size}${variant.material ? ` · ${variant.material}` : ""}` : null;
+
   const origin = request.headers.get("origin") ?? new URL(request.url).origin;
 
   try {
@@ -83,8 +93,8 @@ export async function POST(request: Request) {
           quantity: 1,
           price_data: {
             currency: artwork.currency,
-            unit_amount: artwork.priceCents,
-            product_data: { name: artwork.title },
+            unit_amount: productPriceCents,
+            product_data: { name: productOption ? `${artwork.title} — ${productOption}` : artwork.title },
           },
         },
       ],
@@ -98,7 +108,7 @@ export async function POST(request: Request) {
           },
         },
       ],
-      metadata: { artworkId: artwork.id, ...(customer ? { customerId: customer.id } : {}) },
+      metadata: { artworkId: artwork.id, ...(variant ? { variantId: variant.id } : {}), ...(customer ? { customerId: customer.id } : {}) },
       success_url: `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/checkout/cancelled`,
     });

@@ -103,6 +103,7 @@ export async function POST(request: Request) {
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session, eventId: string) {
   const paymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
   const artworkId = session.metadata?.artworkId;
+  const variantId = session.metadata?.variantId;
 
   if (!paymentIntentId || !artworkId) {
     console.warn("[stripe:checkout] Missing paymentIntentId or artworkId", { paymentIntentId, artworkId });
@@ -172,6 +173,14 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session, eventId
     return;
   }
 
+  const variant = variantId
+    ? await prisma.printVariant.findFirst({ where: { id: variantId, artworkId: artwork.id, isPublished: true } })
+    : null;
+  if (variantId && !variant) {
+    await recordMissingLocalPayment(paymentIntentId, "checkout.session.completed", { artworkId, variantId });
+    return;
+  }
+
   const shipping = session.collected_information?.shipping_details ?? session.customer_details;
   const address = shipping?.address;
   const customerId = session.metadata?.customerId;
@@ -189,11 +198,15 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session, eventId
         shippingRegion: address?.state ?? "",
         shippingPostalCode: address?.postal_code ?? "",
         shippingCountry: address?.country ?? "",
-        // Deliberately the artwork's own price, not session.amount_total —
+        printVariantId: variant?.id ?? null,
+        productOption: variant ? `${variant.size}${variant.material ? ` · ${variant.material}` : ""}` : null,
+        productWidthMm: variant?.widthMm ?? null,
+        productHeightMm: variant?.heightMm ?? null,
+        // Deliberately the product price, not session.amount_total —
         // that Stripe field now includes the flat shipping fee too (see
         // PRINT_SHIPPING_CENTS in checkout/route.ts), and shipping revenue
         // must never flow into the artist/conservancy/ops split below.
-        amountCents: artwork.priceCents,
+        amountCents: variant?.priceCents ?? artwork.priceCents,
         currency: artwork.currency,
         stripePaymentIntentId: paymentIntentId,
         status: "PAID",

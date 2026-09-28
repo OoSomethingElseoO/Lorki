@@ -18,6 +18,17 @@ export type StorefrontArtwork = {
   inventoryState: "AVAILABLE" | "RESERVED" | "SOLD";
   imageUrl: string;
   altText: string;
+  printVariants: PrintVariantSummary[];
+};
+
+export type PrintVariantSummary = {
+  id: string;
+  size: string;
+  widthMm: number;
+  heightMm: number;
+  material: string | null;
+  priceCents: number;
+  currency: string;
 };
 
 export const PAGE_SIZE = 12;
@@ -52,7 +63,7 @@ export async function getProductCatalogue(page = 1, filters: ProductFilters = {}
   };
   const orderBy = filters.sort === "oldest" ? { createdAt: "asc" as const } : filters.sort === "price_asc" ? { priceCents: "asc" as const } : filters.sort === "price_desc" ? { priceCents: "desc" as const } : { createdAt: "desc" as const };
   const [items, totalCount] = await Promise.all([
-    prisma.artwork.findMany({ where, include: { campaign: { include: { artist: true } } }, orderBy, skip: (currentPage - 1) * PAGE_SIZE, take: PAGE_SIZE }),
+    prisma.artwork.findMany({ where, include: { campaign: { include: { artist: true } }, printVariants: { where: { isPublished: true }, orderBy: { priceCents: "asc" } } }, orderBy, skip: (currentPage - 1) * PAGE_SIZE, take: PAGE_SIZE }),
     prisma.artwork.count({ where }),
   ]);
   return { items: items.map(mapArtwork), page: currentPage, totalPages: Math.max(1, Math.ceil(totalCount / PAGE_SIZE)), totalCount };
@@ -76,6 +87,7 @@ function mapArtwork(artwork: {
   imageUrl: string;
   altText: string;
   campaign: { artist: { name: string; slug: string; bio: string; country: string } };
+  printVariants?: PrintVariantSummary[];
 }): StorefrontArtwork {
   return {
     id: artwork.id,
@@ -91,6 +103,7 @@ function mapArtwork(artwork: {
     inventoryState: artwork.inventoryState,
     imageUrl: artwork.imageUrl,
     altText: artwork.altText,
+    printVariants: artwork.printVariants ?? [],
   };
 }
 
@@ -132,7 +145,7 @@ export async function getLiveArtworksByKind(
   const [artworks, totalCount] = await Promise.all([
     prisma.artwork.findMany({
       where,
-      include: { campaign: { include: { artist: true } } },
+      include: { campaign: { include: { artist: true } }, printVariants: { where: { isPublished: true }, orderBy: { priceCents: "asc" } } },
       orderBy: { createdAt: "desc" },
       skip: (currentPage - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
@@ -152,7 +165,7 @@ export async function getLiveArtworkById(id: string) {
   await releaseExpiredReservations();
   const artwork = await prisma.artwork.findFirst({
     where: { id, isPublished: true, inventoryState: "AVAILABLE", campaign: { status: "LIVE" } },
-    include: { campaign: { include: { artist: true } } },
+    include: { campaign: { include: { artist: true } }, printVariants: { where: { isPublished: true }, orderBy: { priceCents: "asc" } } },
   });
   return artwork ? mapArtwork(artwork) : null;
 }
@@ -161,7 +174,7 @@ export async function getLiveArtworkById(id: string) {
 export async function getPublicArtworkById(id: string) {
   const artwork = await prisma.artwork.findFirst({
     where: { id, campaign: { status: "LIVE" } },
-    include: { campaign: { include: { artist: true } } },
+    include: { campaign: { include: { artist: true } }, printVariants: { where: { isPublished: true }, orderBy: { priceCents: "asc" } } },
   });
   return artwork ? mapArtwork(artwork) : null;
 }
@@ -188,7 +201,7 @@ export const getCarouselArtworks = unstable_cache(
         campaign: { status: "LIVE" },
         NOT: { imageUrl: INVALID_TEST_IMAGE_URL },
       },
-      include: { campaign: { include: { artist: true } } },
+      include: { campaign: { include: { artist: true } }, printVariants: { where: { isPublished: true }, orderBy: { priceCents: "asc" } } },
       orderBy: { createdAt: "desc" },
       take: CAROUSEL_SIZE,
     });
@@ -234,7 +247,7 @@ export async function getLiveArtworksForArtist(artistId: string): Promise<Storef
       inventoryState: "AVAILABLE",
       campaign: { status: "LIVE", artistId },
     },
-    include: { campaign: { include: { artist: true } } },
+    include: { campaign: { include: { artist: true } }, printVariants: { where: { isPublished: true }, orderBy: { priceCents: "asc" } } },
     orderBy: { createdAt: "desc" },
   });
 

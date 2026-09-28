@@ -240,11 +240,31 @@ model Artwork {
   orders                         Order[]
   inquiries                      Inquiry[]
   offers                         Offer[]        @relation("ArtworkOffers")
+  printVariants                  PrintVariant[]
   createdAt                      DateTime       @default(now())
 
   @@index([kind, inventoryState, isPublished, createdAt])
   @@index([campaignId, inventoryState, isPublished, createdAt])
   @@index([inventoryState, reservedAt])
+}
+
+model PrintVariant {
+  id          String   @id @default(cuid())
+  artwork     Artwork  @relation(fields: [artworkId], references: [id])
+  artworkId   String
+  size        String
+  widthMm     Int
+  heightMm    Int
+  material    String   @default("Unframed")
+  priceCents  Int
+  currency    String   @default("usd")
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  orders Order[]
+
+  @@unique([artworkId, size, material])
+  @@index([artworkId, isPublished])
 }
 
 enum ArtworkKind {
@@ -319,6 +339,8 @@ model Order {
   id                    String                  @id @default(cuid())
   artwork               Artwork                 @relation(fields: [artworkId], references: [id])
   artworkId             String
+  printVariant          PrintVariant?           @relation(fields: [printVariantId], references: [id])
+  printVariantId        String?
   customer              User?                   @relation(fields: [customerId], references: [id])
   customerId            String?
   buyerEmail            String
@@ -330,6 +352,11 @@ model Order {
   shippingPostalCode    String
   shippingCountry       String
   amountCents           Int
+  // Snapshot fields preserve the exact print option selected at checkout,
+  // even if an admin later changes the catalogue variant.
+  productOption         String?
+  productWidthMm        Int?
+  productHeightMm       Int?
   currency              String                  @default("usd")
   stripePaymentIntentId String?                 @unique
   paymentMethod         PaymentMethod           @default(STRIPE)

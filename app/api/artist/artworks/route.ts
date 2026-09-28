@@ -34,6 +34,12 @@ type CreateBody = {
   story?: string | null;
 };
 
+const DEFAULT_PRINT_SIZES = [
+  { size: "A4", widthMm: 210, heightMm: 297, multiplier: 1 },
+  { size: "A3", widthMm: 297, heightMm: 420, multiplier: 1.45 },
+  { size: "A2", widthMm: 420, heightMm: 594, multiplier: 2.1 },
+] as const;
+
 // A self-service campaign is born DRAFT — pending review — not LIVE. An
 // artist can still submit artwork into it while it's DRAFT (that's the
 // whole point: submit, then we set the real price and publish). Only
@@ -68,6 +74,7 @@ export async function POST(request: Request) {
   if (!validation.isValid) {
     return apiContractError("VALIDATION_ERROR", "Invalid artwork", 400, { errors: validation.errors });
   }
+  const submittedPriceCents = body.priceCents;
 
   // Ownership check: this campaign must actually belong to the artist
   // making the request — otherwise anyone could list artwork under
@@ -95,6 +102,21 @@ export async function POST(request: Request) {
       altText: body.altText,
       story: body.story || null,
       isPublished: false,
+      ...(body.kind === "PRINT"
+        ? {
+            printVariants: {
+              create: DEFAULT_PRINT_SIZES.map((option) => ({
+                size: option.size,
+                widthMm: option.widthMm,
+                heightMm: option.heightMm,
+                material: "Unframed",
+                priceCents: Math.round(submittedPriceCents * option.multiplier),
+                currency: "usd",
+                isPublished: false,
+              })),
+            },
+          }
+        : {}),
     },
   });
   await recordAudit({ action: "ARTIST_ARTWORK_CREATED", affectedEntityType: "Artwork", affectedEntityId: artwork.id, reason: "Artist submitted artwork", changedBy: currentUser!.email, metadata: { campaignId: campaign.id, kind: artwork.kind, priceCents: artwork.priceCents } });

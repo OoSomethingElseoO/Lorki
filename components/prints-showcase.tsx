@@ -6,6 +6,7 @@ import { PrintRack } from "@/components/ui/print-rack";
 import { AccessibleModal } from "@/components/accessible-modal";
 import { BuyButton } from "@/components/buy-button";
 import { FallbackImage } from "@/components/ui/fallback-image";
+import { PrintVariantPicker } from "@/components/print-variant-picker";
 
 type PrintsShowcaseProps = {
   prints: StorefrontArtwork[];
@@ -27,6 +28,12 @@ function formatDollars(cents: number) {
 // the Originals/Artists lightboxes do).
 export function PrintsShowcase({ prints, customerEmail }: PrintsShowcaseProps) {
   const [enlarged, setEnlarged] = useState<StorefrontArtwork | null>(null);
+  const [variantIds, setVariantIds] = useState<Record<string, string>>({});
+
+  function selectedVariant(artwork: StorefrontArtwork) {
+    const id = variantIds[artwork.id] ?? artwork.printVariants[0]?.id;
+    return artwork.printVariants.find((variant) => variant.id === id);
+  }
 
   return (
     <>
@@ -48,17 +55,13 @@ export function PrintsShowcase({ prints, customerEmail }: PrintsShowcaseProps) {
                 loading="lazy"
                 decoding="async"
               />
-              <span className="print-tile__tag">{formatDollars(artwork.priceCents)}</span>
+              <span className="print-tile__tag">{formatDollars(selectedVariant(artwork)?.priceCents ?? artwork.priceCents)}</span>
             </button>
             <div className="print-tile__body">
               <h3 className="print-tile__title">{artwork.title}</h3>
               <p className="print-tile__artist">{artwork.artistName}</p>
-              <BuyButton
-                artworkId={artwork.id}
-                title={artwork.title}
-                priceCents={artwork.priceCents}
-                customerEmail={customerEmail}
-              />
+              <PrintVariantPicker variants={artwork.printVariants} value={variantIds[artwork.id] ?? artwork.printVariants[0]?.id ?? ""} onChange={(id) => setVariantIds((current) => ({ ...current, [artwork.id]: id }))} />
+              <BuyButton artworkId={artwork.id} variantId={selectedVariant(artwork)?.id} title={artwork.title} priceCents={selectedVariant(artwork)?.priceCents ?? artwork.priceCents} customerEmail={customerEmail} />
             </div>
           </article>
         )}
@@ -73,12 +76,8 @@ export function PrintsShowcase({ prints, customerEmail }: PrintsShowcaseProps) {
         {enlarged ? (
           <div className="modal-artwork">
             <FallbackImage src={enlarged.imageUrl} alt={enlarged.altText} />
-            <BuyButton
-              artworkId={enlarged.id}
-              title={enlarged.title}
-              priceCents={enlarged.priceCents}
-              customerEmail={customerEmail}
-            />
+            <PrintVariantPicker variants={enlarged.printVariants} value={variantIds[enlarged.id] ?? enlarged.printVariants[0]?.id ?? ""} onChange={(id) => setVariantIds((current) => ({ ...current, [enlarged.id]: id }))} />
+            <BuyButton artworkId={enlarged.id} variantId={selectedVariant(enlarged)?.id} title={enlarged.title} priceCents={selectedVariant(enlarged)?.priceCents ?? enlarged.priceCents} customerEmail={customerEmail} />
           </div>
         ) : null}
       </AccessibleModal>

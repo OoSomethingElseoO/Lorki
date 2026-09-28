@@ -6,6 +6,7 @@ import { AccessibleModal } from "@/components/accessible-modal";
 import { BuyButton } from "@/components/buy-button";
 import { Button } from "@/components/ui/button";
 import { FallbackImage } from "@/components/ui/fallback-image";
+import { PrintVariantPicker } from "@/components/print-variant-picker";
 
 type ArtworkCardProps = {
   artwork: StorefrontArtwork;
@@ -19,7 +20,10 @@ type ArtworkCardProps = {
 
 export function ArtworkCard({ artwork, customerEmail, onSelect }: ArtworkCardProps) {
   const [enlarged, setEnlarged] = useState(false);
+  const [variantId, setVariantId] = useState(artwork.printVariants[0]?.id ?? "");
   const isOriginal = artwork.kind === "ORIGINAL";
+  const selectedVariant = artwork.printVariants.find((variant) => variant.id === variantId);
+  const selectedPriceCents = selectedVariant?.priceCents ?? artwork.priceCents;
 
   function handleImageClick(event: React.MouseEvent<HTMLButtonElement>) {
     if (isOriginal) {
@@ -60,12 +64,10 @@ export function ArtworkCard({ artwork, customerEmail, onSelect }: ArtworkCardPro
             </Button>
           </>
         ) : (
-          <BuyButton
-            artworkId={artwork.id}
-            title={artwork.title}
-            priceCents={artwork.priceCents}
-            customerEmail={customerEmail}
-          />
+          <>
+            <PrintVariantPicker variants={artwork.printVariants} value={variantId} onChange={setVariantId} />
+            <BuyButton artworkId={artwork.id} variantId={selectedVariant?.id} title={artwork.title} priceCents={selectedPriceCents} customerEmail={customerEmail} />
+          </>
         )}
       </div>
 
@@ -77,7 +79,9 @@ export function ArtworkCard({ artwork, customerEmail, onSelect }: ArtworkCardPro
           closeLabel="Close enlarged artwork"
         >
           <div className="modal-artwork">
-            <img src={artwork.imageUrl} alt={artwork.altText} loading="eager" decoding="async" />
+            <FallbackImage src={artwork.imageUrl} alt={artwork.altText} loading="eager" decoding="async" />
+            <PrintVariantPicker variants={artwork.printVariants} value={variantId} onChange={setVariantId} />
+            <BuyButton artworkId={artwork.id} variantId={selectedVariant?.id} title={artwork.title} priceCents={selectedPriceCents} customerEmail={customerEmail} />
           </div>
         </AccessibleModal>
       )}

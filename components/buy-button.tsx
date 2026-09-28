@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 
 type BuyButtonProps = {
   artworkId: string;
+  variantId?: string;
   title: string;
   priceCents: number;
   // Present when the visitor is logged in — skips asking for an email since
@@ -12,7 +13,7 @@ type BuyButtonProps = {
   customerEmail?: string;
 };
 
-export function BuyButton({ artworkId, title, priceCents, customerEmail }: BuyButtonProps) {
+export function BuyButton({ artworkId, variantId, title, priceCents, customerEmail }: BuyButtonProps) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,7 +25,7 @@ export function BuyButton({ artworkId, title, priceCents, customerEmail }: BuyBu
     const response = await fetch("/api/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ artworkId }),
+      body: JSON.stringify({ artworkId, ...(variantId ? { variantId } : {}) }),
     });
 
     const data = await response.json().catch(() => ({}));

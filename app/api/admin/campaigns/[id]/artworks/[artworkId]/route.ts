@@ -37,6 +37,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       if (approved) {
         await tx.campaign.update({ where: { id }, data: { status: "LIVE" } });
       }
+      await tx.printVariant.updateMany({ where: { artworkId }, data: { isPublished: approved } });
       return nextArtwork;
     });
     await recordAudit({
