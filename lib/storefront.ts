@@ -121,33 +121,58 @@ export async function getLiveNewsArticleBySlug(slug: string) {
 }
 
 export async function getHeroAnimals(): Promise<{ src: string; alt: string }[]> {
-  const localWildlife = [
-    { src: "/uploads/lorkulup-cubs.jpeg", alt: "Wildlife cubs" },
-    { src: "/uploads/lorkulup-cubs-2.jpeg", alt: "Wildlife cubs in their habitat" },
-    { src: "/uploads/lorkulup-family.jpeg", alt: "Wildlife family" },
-    { src: "/uploads/lorkulup-family-2.jpeg", alt: "Wildlife family in the wild" },
-  ];
-  let animals: { name: string; species: string; imageUrl: string }[] = [];
+  // These are the Cloudinary copies of the committed local wildlife assets.
+  // They are only a degraded-mode fallback; the database remains the source
+  // of truth whenever Neon is available.
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME
+    ?? process.env.CLOUDINARY_URL?.match(/@([^/?]+)/)?.[1];
+  const cloudinaryFallback = cloudName ? [
+    { src: `https://res.cloudinary.com/${cloudName}/image/upload/lorki/local/lorkulup-cubs.jpg`, alt: "Wildlife cubs" },
+    { src: `https://res.cloudinary.com/${cloudName}/image/upload/lorki/local/lorkulup-cubs-2.jpg`, alt: "Wildlife cubs in their habitat" },
+    { src: `https://res.cloudinary.com/${cloudName}/image/upload/lorki/local/lorkulup-family.jpg`, alt: "Wildlife family" },
+    { src: `https://res.cloudinary.com/${cloudName}/image/upload/lorki/local/lorkulup-family-2.jpg`, alt: "Wildlife family in the wild" },
+    { src: `https://res.cloudinary.com/${cloudName}/image/upload/lorki/local/lorkulup-portrait.jpg`, alt: "Wildlife portrait" },
+    { src: `https://res.cloudinary.com/${cloudName}/image/upload/lorki/local/lorkulup-portrait-2.jpg`, alt: "Wildlife portrait with cubs" },
+  ] : [];
+  let animals: {
+    name: string;
+    species: string;
+    imageUrl: string;
+    campaigns: { artworks: { imageUrl: string; title: string; altText: string }[] }[];
+  }[] = [];
   try {
     animals = await prisma.animal.findMany({
-      select: { name: true, species: true, imageUrl: true },
+      select: {
+        name: true,
+        species: true,
+        imageUrl: true,
+        campaigns: {
+          select: {
+            artworks: {
+              where: { isPublished: true },
+              select: { imageUrl: true, title: true, altText: true },
+              take: 8,
+            },
+          },
+        },
+      },
       orderBy: { createdAt: "desc" },
       take: 12,
     });
   } catch {
-    // The hero must remain visual when Neon is unavailable. The local assets
-    // are real wildlife imagery and are safe to use as a presentation fallback.
+    return cloudinaryFallback;
   }
   const seen = new Set<string>();
-  const databaseAnimals = animals.flatMap((animal) => {
-    // Database-backed blob URLs are deliberately excluded from this rotating
-    // hero. A Neon outage would otherwise make a later slide blank; new
-    // uploads use Cloudinary URLs and remain eligible here.
-    if (!animal.imageUrl || animal.imageUrl.startsWith("/api/uploads/") || animal.imageUrl === INVALID_TEST_IMAGE_URL || seen.has(animal.imageUrl)) return [];
-    seen.add(animal.imageUrl);
-    return [{ src: animal.imageUrl, alt: `${animal.name} (${animal.species})` }];
-  });
-  return [...localWildlife, ...databaseAnimals].slice(0, 6);
+  const databaseImages = animals.flatMap((animal) => [
+    { src: animal.imageUrl, alt: `${animal.name} (${animal.species})` },
+    ...animal.campaigns.flatMap((campaign) => campaign.artworks.map((artwork) => ({
+      src: artwork.imageUrl,
+      alt: artwork.altText || artwork.title,
+    }))),
+  ]).filter(({ src }) => src && !src.startsWith("/api/uploads/") && src !== INVALID_TEST_IMAGE_URL && !seen.has(src))
+    .filter(({ src }) => { seen.add(src); return true; });
+
+  return (databaseImages.length ? databaseImages : cloudinaryFallback).slice(0, 6);
 }
 
 function normalizePage(page: number | undefined): number {
