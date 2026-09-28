@@ -11,11 +11,8 @@ import { Reveal } from "@/components/reveal";
 import { Hero, type HeroImage } from "@/components/hero";
 import { TextBlockAnimation } from "@/components/ui/text-block-animation";
 import {
-  getArtists,
-  getCarouselArtworks,
+  getHomepageSnapshot,
   getImpactTotals,
-  getHeroAnimals,
-  getLiveArtworksByKind,
   getLiveNewsArticles,
 } from "@/lib/storefront";
 import { getBranding } from "@/lib/settings";
@@ -32,26 +29,19 @@ export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const results = await Promise.allSettled([
-    getLiveArtworksByKind("ORIGINAL"),
-    getLiveArtworksByKind("PRINT"),
-    getArtists(),
+    getHomepageSnapshot(),
     getLiveNewsArticles(),
     getImpactTotals(),
     getBranding(),
     getCurrentUser(),
-    getCarouselArtworks(),
-    getHeroAnimals(),
   ]);
   const value = <T,>(result: PromiseSettledResult<T>, fallback: T): T =>
     result.status === "fulfilled" ? result.value : fallback;
   const dataDegraded = results.some((result) => result.status === "rejected");
-  const emptyCatalogue = { items: [], page: 1, totalPages: 1, totalCount: 0 };
-  const originalsResult = value(results[0], emptyCatalogue);
-  const printsResult = value(results[1], emptyCatalogue);
-  const artistsResult = value(results[2], { items: [], page: 1, totalPages: 1, totalCount: 0 });
-  const newsArticles = value(results[3], []);
-  const impact = value(results[4], { artistCents: 0, conservancyCents: 0, operationsCents: 0, piecesSold: 0 });
-  const branding = value(results[5], {
+  const homepage = value(results[0], { originals: [], prints: [], artists: [], heroImages: [] });
+  const newsArticles = value(results[1], []);
+  const impact = value(results[2], { artistCents: 0, conservancyCents: 0, operationsCents: 0, piecesSold: 0 });
+  const branding = value(results[3], {
     siteName: "Lorkulup",
     heroTagline: "Protect wildlife.",
     heroHeadlineWords: { first: ["art"], second: ["masterpieces"], third: ["wildlife"] },
@@ -62,18 +52,16 @@ export default async function Home() {
     contactEmail: "",
     contactPhone: "",
   });
-  const customer = value(results[6], null);
-  const carouselArtworks = value(results[7], []);
-  const heroAnimals = value(results[8], []);
+  const customer = value(results[4], null);
 
-  const originals = originalsResult.items;
+  const originals = homepage.originals;
   // The rack (PrintsShowcase) is a horizontal browse-and-buy shelf, not a
   // fixed grid — it wants enough tiles to actually scroll through. Bumped
   // from 3 (the old plain-grid cap) toward the same generosity already
   // given to Artists (9); still just this preview's cap, the full catalog
   // lives on the paginated /prints route.
-  const prints = printsResult.items.slice(0, 9);
-  const artists = artistsResult.items.slice(0, 9);
+  const prints = homepage.prints.slice(0, 9);
+  const artists = homepage.artists;
   const news = newsArticles.slice(0, 3);
   const featured = originals[0];
 
@@ -93,14 +81,7 @@ export default async function Home() {
   // the rest of the hero carousel. Blob/test/placeholder URLs are excluded
   // before they reach HeroArtwork, so they cannot turn into empty fallback
   // slides in production.
-  const heroCandidates: HeroImage[] = [
-    ...heroAnimals,
-    ...carouselArtworks.map((artwork) => ({
-      src: artwork.imageUrl,
-      alt: artwork.altText,
-      artistName: artwork.artistName,
-    })),
-  ];
+  const heroCandidates: HeroImage[] = homepage.heroImages;
   const heroImages = Array.from(
     new Map(
       heroCandidates
@@ -135,11 +116,11 @@ export default async function Home() {
               </TextBlockAnimation>
               {!featured ? <p>New originals are on the way — check back soon.</p> : null}
             </div>
-            {carouselArtworks.length > 0 ? (
+            {originals.length > 0 ? (
               <>
-                <OriginalsShowcase artworks={carouselArtworks} customerEmail={customer?.email} />
+                <OriginalsShowcase artworks={originals} customerEmail={customer?.email} />
                 <Link href="/originals" className={cn(buttonVariants(), "mt-8 block w-fit mx-auto")}>
-                  {originalsResult.totalCount > carouselArtworks.length ? "View all originals" : "Browse originals"}
+                  Browse originals
                 </Link>
               </>
             ) : null}

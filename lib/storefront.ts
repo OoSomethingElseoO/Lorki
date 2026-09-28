@@ -109,7 +109,10 @@ function mapArtwork(artwork: {
 
 export async function getLiveNewsArticles() {
   return prisma.newsArticle.findMany({
-    where: { status: "LIVE" },
+    // Public pages must not render legacy Neon blob URLs. News images are
+    // served by Cloudinary just like artwork; records without a usable CDN
+    // image stay out of the visual feed until they are migrated.
+    where: { status: "LIVE", imageUrl: { startsWith: "https://res.cloudinary.com/" } },
     orderBy: { createdAt: "desc" },
   });
 }
@@ -235,6 +238,119 @@ export async function getPublicArtworkById(id: string) {
 }
 
 const CAROUSEL_SIZE = 24;
+
+export type HomepageSnapshot = {
+  originals: StorefrontArtwork[];
+  prints: StorefrontArtwork[];
+  artists: {
+    slug: string;
+    name: string;
+    country: string;
+    bio: string;
+    imageUrl: string;
+  }[];
+  heroImages: { src: string; alt: string; artistName?: string }[];
+};
+
+function isPublicImageUrl(value: string | null | undefined): value is string {
+  return Boolean(
+    value &&
+      value.startsWith("https://res.cloudinary.com/") &&
+      !value.includes("example.com/test.jpg"),
+  );
+}
+
+/**
+ * One public read model for the homepage. The page must not run separate
+ * artwork, carousel, artist, and hero queries that can disagree about which
+ * records are public. All four sections use the same filtered snapshot.
+ */
+export const getHomepageSnapshot = unstable_cache(
+  async (): Promise<HomepageSnapshot> => {
+    const [artworks, artists, animals] = await Promise.all([
+      prisma.artwork.findMany({
+        where: {
+          isPublished: true,
+          inventoryState: "AVAILABLE",
+          campaign: { status: "LIVE" },
+          NOT: { imageUrl: INVALID_TEST_IMAGE_URL },
+          imageUrl: { startsWith: "https://res.cloudinary.com/" },
+        },
+        include: {
+          campaign: { include: { artist: true } },
+          printVariants: { where: { isPublished: true }, orderBy: { priceCents: "asc" } },
+        },
+        orderBy: { createdAt: "desc" },
+        take: CAROUSEL_SIZE,
+      }),
+      prisma.artist.findMany({
+        where: {
+          imageUrl: { startsWith: "https://res.cloudinary.com/" },
+          campaigns: {
+            some: {
+              status: "LIVE",
+              artworks: {
+                some: {
+                  isPublished: true,
+                  inventoryState: "AVAILABLE",
+                  imageUrl: { startsWith: "https://res.cloudinary.com/" },
+                },
+              },
+            },
+          },
+        },
+        select: { slug: true, name: true, country: true, bio: true, imageUrl: true },
+        orderBy: { name: "asc" },
+        take: 9,
+      }),
+      prisma.animal.findMany({
+        where: { imageUrl: { startsWith: "https://res.cloudinary.com/" } },
+        select: {
+          name: true,
+          species: true,
+          imageUrl: true,
+          campaigns: {
+            where: { status: "LIVE" },
+            select: {
+              artworks: {
+                where: {
+                  isPublished: true,
+                  inventoryState: "AVAILABLE",
+                  imageUrl: { startsWith: "https://res.cloudinary.com/" },
+                },
+                select: { imageUrl: true, title: true, altText: true },
+                take: 8,
+              },
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 12,
+      }),
+    ]);
+
+    const mapped = artworks.map(mapArtwork);
+    const originals = mapped.filter((artwork) => artwork.kind === "ORIGINAL");
+    const prints = mapped.filter((artwork) => artwork.kind === "PRINT");
+    const seen = new Set<string>();
+    const heroImages = [
+      ...animals.flatMap((animal) => [
+        { src: animal.imageUrl, alt: `${animal.name} (${animal.species})` },
+        ...animal.campaigns.flatMap((campaign) => campaign.artworks.map((artwork) => ({
+          src: artwork.imageUrl,
+          alt: artwork.altText || artwork.title,
+        }))),
+      ]),
+      ...originals.map((artwork) => ({ src: artwork.imageUrl, alt: artwork.altText, artistName: artwork.artistName })),
+    ].filter((image) => isPublicImageUrl(image.src) && !seen.has(image.src))
+      .filter((image) => { seen.add(image.src); return true; })
+      .slice(0, 6);
+
+    return { originals, prints, artists, heroImages };
+  },
+  ["homepage-snapshot"],
+  { revalidate: 60 },
+);
 
 // Backs the homepage's looping showcase carousel. Deliberately cached
 // (unlike getLiveArtworksByKind above): the homepage renders per-request
