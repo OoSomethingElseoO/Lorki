@@ -6,7 +6,7 @@ import { ImageUploadField } from "@/components/admin/image-upload-field";
 import { Button } from "@/components/ui/button";
 
 type ArtistProfileFormProps = {
-  initial: { name: string; country: string; bio: string; imageUrl: string };
+  initial: { name: string; country: string; countryCode?: string | null; bio: string; story?: string | null; imageUrl: string };
 };
 
 // Self-contained: its own <form>, its own fetch, its own Save button. Used
@@ -36,7 +36,9 @@ export function ArtistProfileForm({ initial }: ArtistProfileFormProps) {
       body: JSON.stringify({
         name: form.get("name"),
         country: form.get("country"),
+        countryCode: form.get("countryCode"),
         bio: form.get("bio"),
+        story: form.get("story"),
         imageUrl: form.get("imageUrl"),
       }),
     });
@@ -61,8 +63,14 @@ export function ArtistProfileForm({ initial }: ArtistProfileFormProps) {
       <label htmlFor="country">Country</label>
       <input id="country" name="country" required defaultValue={initial.country} disabled={submitting} />
 
+      <label htmlFor="countryCode">Country code</label>
+      <input id="countryCode" name="countryCode" maxLength={2} placeholder="KE" defaultValue={initial.countryCode ?? ""} disabled={submitting} />
+
       <label htmlFor="bio">Bio</label>
       <textarea id="bio" name="bio" required rows={4} defaultValue={initial.bio} disabled={submitting} />
+
+      <label htmlFor="story">Your story</label>
+      <textarea id="story" name="story" rows={6} maxLength={4000} placeholder="Tell collectors about your journey, community, and influences." defaultValue={initial.story ?? ""} disabled={submitting} />
 
       <ImageUploadField name="imageUrl" label="Portrait" defaultValue={initial.imageUrl} />
 

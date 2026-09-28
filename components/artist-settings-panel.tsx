@@ -14,7 +14,9 @@ type ArtistSettingsPanelProps = {
   artist: {
     name: string;
     country: string;
+    countryCode: string | null;
     bio: string;
+    story: string | null;
     imageUrl: string;
     payoutChannel: "MANUAL" | "FLUTTERWAVE" | "STRIPE_CONNECT" | "CRYPTO";
     payoutCountry: string | null;
@@ -85,7 +87,7 @@ export function ArtistSettingsPanel({ artist, recommendation }: ArtistSettingsPa
             </CardHeader>
             <CardContent className="admin-form admin-form--embedded artist-tab-form">
               <ArtistProfileForm
-                initial={{ name: artist.name, country: artist.country, bio: artist.bio, imageUrl: artist.imageUrl }}
+                initial={{ name: artist.name, country: artist.country, countryCode: artist.countryCode, bio: artist.bio, story: artist.story, imageUrl: artist.imageUrl }}
               />
             </CardContent>
           </Card>

@@ -10,7 +10,9 @@ import { readJsonObject } from "@/lib/request-json";
 type ProfileUpdateBody = {
   name: string;
   country: string;
+  countryCode?: string;
   bio: string;
+  story?: string;
   imageUrl: string;
 };
 
@@ -57,6 +59,13 @@ export async function PATCH(request: Request) {
     return apiContractError("VALIDATION_ERROR", imageError, 400);
   }
 
+  if (body.countryCode && !/^[A-Z]{2}$/.test(body.countryCode)) {
+    return apiContractError("VALIDATION_ERROR", "countryCode must be a two-letter ISO country code", 400);
+  }
+  if (body.story && body.story.length > 4000) {
+    return apiContractError("VALIDATION_ERROR", "Story must be 4000 characters or fewer", 400);
+  }
+
   // Slug stays fixed once set — same immutable-identifier rule as
   // everywhere else in this app (public artist URLs shouldn't break on a
   // name change).
@@ -65,11 +74,13 @@ export async function PATCH(request: Request) {
     data: {
       name: body.name,
       country: body.country,
+      countryCode: body.countryCode || null,
       bio: body.bio,
+      story: body.story || null,
       imageUrl: body.imageUrl,
     },
   });
-  await recordAudit({ action: "ARTIST_PROFILE_UPDATED", affectedEntityType: "Artist", affectedEntityId: currentArtist.id, reason: "Artist updated their public profile", changedBy: currentUser!.email, metadata: { fields: ["name", "country", "bio", "imageUrl"] } });
+  await recordAudit({ action: "ARTIST_PROFILE_UPDATED", affectedEntityType: "Artist", affectedEntityId: currentArtist.id, reason: "Artist updated their public profile", changedBy: currentUser!.email, metadata: { fields: ["name", "country", "countryCode", "bio", "story", "imageUrl"] } });
 
   return NextResponse.json({ artist });
 }

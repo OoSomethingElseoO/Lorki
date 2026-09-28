@@ -1958,6 +1958,51 @@ textarea {
     rgba(var(--shadow-rgb), calc(0.25 * var(--shadow-alpha-scale)));
 }
 
+.artist-profile__story {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid color-mix(in srgb, var(--ink) 16%, transparent);
+}
+
+.artist-profile__story h2 {
+  margin: 0 0 0.45rem;
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.artist-country-map {
+  width: min(100%, 34rem);
+  margin: 1.5rem auto 0;
+  padding: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--ink) 14%, transparent);
+  border-radius: 1.25rem;
+  background: color-mix(in srgb, var(--sand) 72%, white);
+  box-shadow: 0 16px 40px rgb(64 43 27 / 0.12);
+}
+
+.artist-country-map svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.artist-country-map__caption {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  padding: 0.35rem 0.55rem 0.2rem;
+}
+
+.artist-country-map__caption span,
+.artist-country-map__caption small {
+  color: color-mix(in srgb, var(--ink) 62%, transparent);
+}
+
+.artist-country-map__caption small {
+  margin-left: auto;
+}
+
 .print-tile__body {
   margin-top: 0.85rem;
   text-align: center;

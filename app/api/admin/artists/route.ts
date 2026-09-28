@@ -21,7 +21,9 @@ export async function GET(request: Request) {
 type CreateBody = {
   name: string;
   country: string;
+  countryCode?: string;
   bio: string;
+  story?: string;
   imageUrl: string;
   coOpId?: string;
   socialLinks?: { platform: string; url: string }[];
@@ -36,6 +38,12 @@ export async function POST(request: Request) {
 
   if (!body.name || !body.country || !body.bio || !body.imageUrl) {
     return apiContractError("VALIDATION_ERROR", "name, country, bio, and imageUrl are required", 400);
+  }
+  if (body.countryCode && !/^[A-Z]{2}$/.test(body.countryCode)) {
+    return apiContractError("VALIDATION_ERROR", "countryCode must be a two-letter ISO country code", 400);
+  }
+  if (body.story && body.story.length > 4000) {
+    return apiContractError("VALIDATION_ERROR", "Story must be 4000 characters or fewer", 400);
   }
 
   if (body.coOpId) {
@@ -53,7 +61,9 @@ export async function POST(request: Request) {
         slug: slugify(body.name),
         name: body.name,
         country: body.country,
+        countryCode: body.countryCode || null,
         bio: body.bio,
+        story: body.story || null,
         imageUrl: body.imageUrl,
         coOpId: body.coOpId || null,
         socialLinks: { create: socialLinks },

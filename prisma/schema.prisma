@@ -114,7 +114,9 @@ model Artist {
   slug                     String        @unique
   name                     String
   country                  String
+  countryCode              String?
   bio                      String
+  story                    String?
   imageUrl                 String
   payoutAccount            String?
   // Which automated rail (if any) actually moves this artist's payout —

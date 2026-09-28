@@ -10,6 +10,7 @@ import { FallbackImage } from "@/components/ui/fallback-image";
 import { ShareButton } from "@/components/share-button";
 import { absoluteOrRelative, publicMetadata, imageUrlForSchema } from "@/lib/seo";
 import { StructuredData } from "@/components/structured-data";
+import { ArtistCountryMap } from "@/components/artist-country-map";
 
 type ArtistPageProps = {
   params: Promise<{
@@ -79,6 +80,12 @@ export default async function ArtistPage({ params }: ArtistPageProps) {
               <span className="detail-label">Country:</span> {artist.country}
             </p>
             <p>{artist.bio}</p>
+            {artist.story ? (
+              <div className="artist-profile__story">
+                <h2>My story</h2>
+                <p>{artist.story}</p>
+              </div>
+            ) : null}
             {artist.socialLinks.length > 0 ? (
               <ul className="artist-profile__social-links">
                 {artist.socialLinks.map((link) => (
@@ -101,6 +108,7 @@ export default async function ArtistPage({ params }: ArtistPageProps) {
               className="artist-profile__share"
             />
           </div>
+          <ArtistCountryMap country={artist.country} countryCode={artist.countryCode} />
         </section>
         <ArtistGallery artworks={artistArtworks} customerEmail={customer?.email} />
       </main>

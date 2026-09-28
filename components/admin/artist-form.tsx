@@ -14,7 +14,9 @@ type ArtistFormProps = {
   initial?: {
     name: string;
     country: string;
+    countryCode?: string | null;
     bio: string;
+    story?: string | null;
     imageUrl: string;
     coOpId: string | null;
     socialLinks: SocialLinkInput[];
@@ -64,7 +66,9 @@ export function ArtistForm({ coOps, id, initial }: ArtistFormProps) {
       body: JSON.stringify({
         name: form.get("name"),
         country: form.get("country"),
+        countryCode: form.get("countryCode"),
         bio: form.get("bio"),
+        story: form.get("story"),
         imageUrl: form.get("imageUrl"),
         coOpId: coOpId || undefined,
         socialLinks: socialLinks.filter((link) => link.platform && link.url),
@@ -104,9 +108,19 @@ export function ArtistForm({ coOps, id, initial }: ArtistFormProps) {
         <input id="country" name="country" required placeholder="Kenya" defaultValue={initial?.country} />
       </div>
 
+      <div className="admin-form__field">
+        <label htmlFor="countryCode">Country code</label>
+        <input id="countryCode" name="countryCode" maxLength={2} placeholder="KE" defaultValue={initial?.countryCode ?? ""} />
+      </div>
+
       <div className="admin-form__field admin-form__field--wide">
         <label htmlFor="bio">Bio</label>
         <textarea id="bio" name="bio" required rows={4} defaultValue={initial?.bio} />
+      </div>
+
+      <div className="admin-form__field admin-form__field--wide">
+        <label htmlFor="story">Artist story</label>
+        <textarea id="story" name="story" rows={6} maxLength={4000} defaultValue={initial?.story ?? ""} placeholder="Background, influences, community, and artistic journey" />
       </div>
 
       <ImageUploadField name="imageUrl" label="Image" defaultValue={initial?.imageUrl} />

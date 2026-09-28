@@ -23,6 +23,7 @@
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
     "@tailwindcss/postcss": "^4.3.3",
+    "@types/topojson-client": "^3.1.5",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dotenv": "^17.4.2",
@@ -36,11 +37,14 @@
     "prisma": "^7.9.1",
     "react": "latest",
     "react-dom": "latest",
+    "react-simple-maps": "^5.0.5",
     "sharp": "^0.35.4",
     "stripe": "^22.5.0",
     "styled-components": "^6.5.3",
     "tailwind-merge": "^3.6.0",
-    "tailwindcss": "^4.3.3"
+    "tailwindcss": "^4.3.3",
+    "topojson-client": "^3.1.0",
+    "world-atlas": "^2.0.2"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
