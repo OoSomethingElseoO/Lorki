@@ -88,13 +88,27 @@ export default async function Home() {
   // The hero foreground shows the live wildlife causes first, so visitors
   // immediately see the animals the work protects. Fall back to live artwork
   // and finally the admin-managed hero image when no animal imagery exists.
-  const heroImages: HeroImage[] = heroAnimals.length > 0
-    ? heroAnimals
-    : carouselArtworks.length > 0
-      ? carouselArtworks
-          .slice(0, 6)
-          .map((artwork) => ({ src: artwork.imageUrl, alt: artwork.altText, artistName: artwork.artistName }))
-      : [{ src: branding.heroImageUrl, alt: branding.heroAlt }];
+  // Build one live pool instead of choosing animals *or* artworks. A single
+  // valid animal image must not suppress the valid artwork images that fill
+  // the rest of the hero carousel. Blob/test/placeholder URLs are excluded
+  // before they reach HeroArtwork, so they cannot turn into empty fallback
+  // slides in production.
+  const heroCandidates: HeroImage[] = [
+    ...heroAnimals,
+    ...carouselArtworks.map((artwork) => ({
+      src: artwork.imageUrl,
+      alt: artwork.altText,
+      artistName: artwork.artistName,
+    })),
+  ];
+  const heroImages = Array.from(
+    new Map(
+      heroCandidates
+        .filter(({ src }) => src && !src.startsWith("/api/uploads/") && !src.includes("example.com/test.jpg") && !src.includes("/placeholders/"))
+        .map((image) => [image.src, image]),
+    ).values(),
+  ).slice(0, 6);
+  if (heroImages.length === 0) heroImages.push({ src: branding.heroImageUrl, alt: branding.heroAlt });
 
   return (
     <>
