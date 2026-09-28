@@ -1987,6 +1987,26 @@ textarea {
   height: auto;
 }
 
+.artist-country-map__country {
+  fill: #eadfce;
+  stroke: #fffaf2;
+  stroke-width: 0.7;
+  transition: fill 160ms ease;
+  cursor: pointer;
+}
+
+.artist-country-map__country:hover {
+  fill: #d8c5aa;
+}
+
+.artist-country-map__country--selected {
+  fill: #bf6b3f;
+}
+
+.artist-country-map__country--selected:hover {
+  fill: #a9542d;
+}
+
 .artist-country-map__caption {
   display: flex;
   align-items: baseline;

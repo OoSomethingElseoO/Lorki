@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { ComposableMap, Geographies, Geography, ZoomableGroup } from "react-simple-maps";
-import world from "world-atlas/countries-110m.json";
+import { useMemo, useState } from "react";
+import { geoEqualEarth, geoPath } from "d3-geo";
+import world from "@/public/world-countries.json";
 
 type ArtistCountryMapProps = {
   country: string;
@@ -16,32 +16,33 @@ function normalize(value: string) {
 export function ArtistCountryMap({ country, countryCode }: ArtistCountryMapProps) {
   const [hovered, setHovered] = useState<string | null>(null);
   const target = normalize(country);
+  const paths = useMemo(() => {
+    const projection = geoEqualEarth().fitSize([800, 500], world as any);
+    const path = geoPath(projection);
+    return (world as any).features.map((feature: any, index: number) => ({
+      key: `${feature.id ?? "country"}-${index}`,
+      name: String(feature.properties?.name ?? ""),
+      d: path(feature) ?? "",
+    })).filter((item: { d: string }) => item.d);
+  }, []);
 
   return (
     <div className="artist-country-map" aria-label={`Map showing ${country}`}>
-      <ComposableMap projectionConfig={{ scale: 145 }}>
-        <ZoomableGroup center={[10, 8]} maxZoom={3}>
-          <Geographies geography={world as any}>
-            {({ geographies }) => geographies.map((geo) => {
-              const name = String(geo.properties?.name ?? "");
-              const selected = normalize(name) === target;
-              return (
-                <Geography
-                  key={geo.rsmKey}
-                  geography={geo}
-                  onMouseEnter={() => setHovered(name)}
-                  onMouseLeave={() => setHovered(null)}
-                  style={{
-                    default: { fill: selected ? "#bf6b3f" : "#eadfce", outline: "none", stroke: "#fffaf2", strokeWidth: 0.35 },
-                    hover: { fill: selected ? "#a9542d" : "#d8c5aa", outline: "none" },
-                    pressed: { fill: "#a9542d", outline: "none" },
-                  } as any}
-                />
-              );
-            })}
-          </Geographies>
-        </ZoomableGroup>
-      </ComposableMap>
+      <svg viewBox="0 0 800 500" role="img" aria-label={`${country} on a world map`}>
+        {paths.map((item: { key: string; name: string; d: string }) => {
+          const selected = normalize(item.name) === target;
+          return (
+            <path
+              key={item.key}
+              d={item.d}
+              className={selected ? "artist-country-map__country artist-country-map__country--selected" : "artist-country-map__country"}
+              onMouseEnter={() => setHovered(item.name)}
+              onMouseLeave={() => setHovered(null)}
+              aria-label={item.name}
+            />
+          );
+        })}
+      </svg>
       <div className="artist-country-map__caption">
         <strong>{country}</strong>
         {countryCode ? <span>{countryCode.toUpperCase()}</span> : null}

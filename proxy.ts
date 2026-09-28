@@ -90,8 +90,11 @@ export async function proxy(request: NextRequest) {
     return withRequestId(NextResponse.json({ error: "Cross-site request rejected" }, { status: 403 }));
   }
 
-  const isAdminRoute = pathname.startsWith("/admin") || pathname.startsWith("/api/admin");
-  const isArtistRoute = pathname.startsWith("/artist") || pathname.startsWith("/api/artist");
+  // Match route segments, not string prefixes: `/artists` is public, while
+  // `/artist` is the authenticated seller dashboard. A raw startsWith
+  // check would incorrectly send every public artist profile to login.
+  const isAdminRoute = pathname === "/admin" || pathname.startsWith("/admin/") || pathname === "/api/admin" || pathname.startsWith("/api/admin/");
+  const isArtistRoute = pathname === "/artist" || pathname.startsWith("/artist/") || pathname === "/api/artist" || pathname.startsWith("/api/artist/");
 
   if (!isAdminRoute && !isArtistRoute) {
     return next();
