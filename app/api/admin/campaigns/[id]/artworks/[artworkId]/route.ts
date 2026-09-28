@@ -32,7 +32,13 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     const artwork = await prisma.artwork.findUnique({ where: { id: artworkId } });
     if (!artwork || artwork.campaignId !== id) return apiContractError("NOT_FOUND", "Artwork not found on this campaign", 404);
     const approved = body.approval === "APPROVE";
-    const updated = await prisma.artwork.update({ where: { id: artworkId }, data: { isPublished: approved } });
+    const updated = await prisma.$transaction(async (tx) => {
+      const nextArtwork = await tx.artwork.update({ where: { id: artworkId }, data: { isPublished: approved } });
+      if (approved) {
+        await tx.campaign.update({ where: { id }, data: { status: "LIVE" } });
+      }
+      return nextArtwork;
+    });
     await recordAudit({
       action: approved ? "ARTWORK_APPROVED" : "ARTWORK_REJECTED",
       affectedEntityType: "Artwork",
